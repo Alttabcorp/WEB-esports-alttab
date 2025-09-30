@@ -1,0 +1,62 @@
+# Ignore arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignore arquivos de editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore arquivos de log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore cache e builds
+.cache/
+dist/
+build/
+
+# Ignore arquivos temporários
+*.tmp
+*.temp
+
+# Ignore arquivos de backup
+*.backup
+*.bak
+
+# Ignore arquivos de deploy específicos
+deploy.sh
+.env
+.env.local
+.env.production
+
+# Ignore node_modules se for usar algum tooling
+node_modules/
+
+# Ignore arquivos de package managers
+package-lock.json
+yarn.lock
+
+# Assets que podem ser grandes
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.webm
+
+# Ignore arquivos de analytics/tracking
+analytics/
+tracking/
+
+# Ignore arquivos de teste específicos
+test-images/
+test-videos/
+
+# Ignore versões comprimidas
+*.zip
+*.tar.gz
+*.rar

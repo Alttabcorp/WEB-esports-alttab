@@ -1,0 +1,43 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://esports.alttab.com.br/sitemap.xml
+
+# Principais seções permitidas
+Allow: /assets/
+Allow: /js/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Allow: /*.webp
+
+# Arquivos específicos
+Allow: /index.html
+Allow: /manifest.json
+
+# Crawl-delay para bots
+Crawl-delay: 1
+
+# Configurações específicas para diferentes bots
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 1
+
+# Desallow para arquivos de desenvolvimento
+Disallow: /*.map
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.vscode/
+Disallow: /test/
+Disallow: /temp/
+
+# Host principal
+Host: https://esports.alttab.com.br
