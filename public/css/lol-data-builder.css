@@ -1,0 +1,102 @@
+/* LOL DATA BUILDER - COMPONENTES VISUAIS */
+
+.champion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+  justify-content: flex-start;
+}
+.champion-card {
+  background: #181c23;
+  border: 2px solid #222;
+  border-radius: 10px;
+  padding: 8px 10px 6px 10px;
+  width: 110px;
+  min-height: 120px;
+  text-align: center;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(5,150,170,0.08);
+  position: relative;
+  user-select: none;
+}
+.champion-card.selected,
+.champion-card:hover {
+  border: 2px solid #0596aa;
+  box-shadow: 0 4px 16px 0 rgba(5,150,170,0.18);
+  z-index: 2;
+}
+.champion-card img {
+  margin-bottom: 4px;
+}
+.champion-details {
+  background: #20232b;
+  border-radius: 12px;
+  padding: 18px 18px 12px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px 0 rgba(5,150,170,0.10);
+}
+
+.item-card {
+  background: #181c23;
+  border: 2px solid #222;
+  border-radius: 10px;
+  padding: 8px 10px 6px 10px;
+  width: 110px;
+  min-height: 120px;
+  text-align: center;
+  cursor: pointer;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(200,155,60,0.08);
+  position: relative;
+  user-select: none;
+  display: inline-block;
+  margin: 4px;
+}
+.item-card.selected,
+.item-card:hover {
+  border: 2px solid #c89b3c;
+  box-shadow: 0 4px 16px 0 rgba(200,155,60,0.18);
+  z-index: 2;
+}
+.item-card img {
+  margin-bottom: 4px;
+}
+.selected-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #22242b;
+  border: 2px solid #222;
+  border-radius: 8px;
+  margin: 0 4px;
+  position: relative;
+  transition: border 0.2s;
+}
+.selected-slot img {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+.selected-slot .remove-btn {
+  background: #c89b3c;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.12);
+  transition: background 0.2s;
+}
+.selected-slot .remove-btn:hover {
+  background: #ef4444;
+}

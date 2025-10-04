@@ -91,8 +91,8 @@ function renderChampionCards(champions) {
     const fragment = document.createDocumentFragment();
 
     champions.forEach(champion => {
-        const card = document.createElement('article');
-        card.className = 'data-card';
+        const card = document.createElement('div');
+        card.className = 'data-card champion-card';
         card.innerHTML = `
             <div class="data-card-thumb">
                 <img loading="lazy" src="${datasetConfig.championImageBase}${sanitizeUrlSegment(champion.image?.full)}" alt="${escapeHtml(champion.name)}" onerror="this.onerror=null;this.src='public/images/players/player-top.jpg';">

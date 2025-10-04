@@ -1,4 +1,4 @@
-import { aggregateItemStats, renderStatsTable } from './item-stats.js';
+import { aggregateItemStats, renderStatsTable } from '../item-stats.js';
 const API_BASE = 'https://ddragon.leagueoflegends.com/cdn';
 const LANG = 'pt_BR';
 const MAX_ITEMS = 6;

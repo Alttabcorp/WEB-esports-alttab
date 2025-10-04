@@ -91,14 +91,12 @@ function renderItemCards(items) {
     const fragment = document.createDocumentFragment();
 
     items.forEach(item => {
-        const card = document.createElement('article');
-        card.className = 'data-card';
-
+        const card = document.createElement('div');
+        card.className = 'data-card item-card';
         const itemDescription = truncateText(item.plaintext || stripHtml(item.description || ''), 200);
         const goldTotal = item.gold?.total ?? 0;
         const goldSell = item.gold?.sell ?? 0;
         const purchasable = item.gold?.purchasable !== false;
-
         card.innerHTML = `
             <div class="data-card-thumb">
                 <img loading="lazy" src="${datasetConfig.itemImageBase}${sanitizeUrlSegment(item.image.full)}" alt="${escapeHtml(item.name)}" onerror="this.onerror=null;this.src='public/images/logo-alttab.png';">

@@ -30,8 +30,6 @@
             <div class="nav-menu" id="nav-menu">
                 <a href="#panorama" class="nav-link">Panorama</a>
                 <a href="#builder" class="nav-link">Builds</a>
-                <a href="#champions" class="nav-link">Campeões</a>
-                <a href="#items" class="nav-link">Itens</a>
                 <a href="index.html" class="nav-link">Voltar à Landing</a>
             </div>
 
@@ -179,74 +177,6 @@
                 <div id="champion-abilities-container" class="champion-abilities-container"></div>
             </div>
         </section>
-
-        <!-- Seção de listagem de campeões -->
-        <section id="champions" class="data-section">
-            <div class="section-header">
-                <h2 class="section-title">Campeões</h2>
-                <p class="section-subtitle">Explore todos os campeões disponíveis no League of Legends com suas informações completas.</p>
-                <div class="section-meta">
-                    <span class="section-count" id="champion-count">0</span> campeões encontrados
-                </div>
-            </div>
-
-            <div class="builder-filters">
-                <div class="builder-filter">
-                    <label for="champion-search">Buscar campeão</label>
-                    <div class="builder-filter-field">
-                        <i class="fas fa-search"></i>
-                        <input type="search" id="champion-search" placeholder="Digite o nome do campeão...">
-                    </div>
-                </div>
-                <div class="builder-filter">
-                    <label for="champion-role">Filtrar por função</label>
-                    <select id="champion-role">
-                        <option value="all">Todas as funções</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="data-grid" id="champion-list">
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Carregando campeões...
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção de listagem de itens -->
-        <section id="items" class="data-section">
-            <div class="section-header">
-                <h2 class="section-title">Itens</h2>
-                <p class="section-subtitle">Descubra todos os itens disponíveis para Summoner's Rift com suas estatísticas detalhadas.</p>
-                <div class="section-meta">
-                    <span class="section-count" id="item-count">0</span> itens encontrados
-                </div>
-            </div>
-
-            <div class="builder-filters">
-                <div class="builder-filter">
-                    <label for="item-search">Buscar item</label>
-                    <div class="builder-filter-field">
-                        <i class="fas fa-search"></i>
-                        <input type="search" id="item-search" placeholder="Digite o nome do item...">
-                    </div>
-                </div>
-                <div class="builder-filter">
-                    <label for="item-category">Filtrar por categoria</label>
-                    <select id="item-category">
-                        <option value="all">Todas as categorias</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="data-grid" id="item-list">
-                <div class="loading-state">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Carregando itens...
-                </div>
-            </div>
-        </section>
     </main>
 
     <footer class="footer data-footer">
@@ -297,6 +227,6 @@
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.min.js" integrity="sha384-xi87Fibh2P94Af3UGEaykUtyD7MhnlcBm6OB1DRVHojpKCtw6AlyhAbn1ShqENhT" crossorigin="anonymous"></script>
     <script src="public/js/champion-abilities-fallback.js"></script>
     <script src="public/js/champion-abilities.js"></script>
-    <script type="module" src="public/js/lol-data-modular.js"></script>
+    <script src="public/js/lol-data.js"></script>
 </body>
 </html>
