@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Campeões - League of Legends</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: #181c23; color: #fff; font-family: Arial, sans-serif; }
+    .champion-list { display: flex; flex-wrap: wrap; gap: 16px; }
+    .champion-card { cursor: pointer; border: 1px solid #333; border-radius: 8px; padding: 8px; width: 120px; text-align: center; background: #222; color: #fff; transition: box-shadow .2s; }
+    .champion-card:hover { box-shadow: 0 0 8px #0596aa; }
+    .champion-card img { width: 80px; height: 80px; border-radius: 4px; }
+    .champion-details { margin-top: 24px; background: #222; color: #fff; padding: 16px; border-radius: 8px; max-width: 500px; }
+    button { margin-top: 16px; background: #0596aa; color: #fff; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; }
+    button:hover { background: #03788a; }
+  </style>
+</head>
+<body>
+  <h1>Campeões</h1>
+  <div id="champion-list" class="champion-list"></div>
+  <div id="champion-details" class="champion-details" style="display:none"></div>
+  <script type="module" src="js/champions-example.js"></script>
+</body>
+</html>

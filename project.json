@@ -1,0 +1,29 @@
+{
+  "name": "ALTTAB Esports Landing Page",
+  "version": "2.0.0",
+  "description": "Landing page organizacional da ALTTAB Esports com dados do League of Legends",
+  "structure": {
+    "public/": {
+      "description": "Arquivos públicos estáticos",
+      "css/": "Folhas de estilo",
+      "js/": "Scripts JavaScript modulares",
+      "images/": "Imagens da landing page",
+      "icons/": "Ícones e favicons",
+      "videos/": "Vídeos promocionais"
+    }
+  },
+  "features": [
+    "Landing page responsiva",
+    "Galeria de campeões do LoL",
+    "Organização de campeonatos",
+    "Seção de lives e streams",
+    "Formulário de contato inteligente",
+    "Assets oficiais do Riot Games"
+  ],
+  "techStack": {
+    "frontend": ["HTML5", "CSS3", "Vanilla JavaScript"],
+    "assets": ["League of Legends Official Data Patch 15.19.1"],
+    "fonts": ["Google Fonts (Inter, Orbitron)", "Font Awesome 6"],
+    "deployment": "Static hosting ready"
+  }
+}

@@ -3,46 +3,25 @@
 // ================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicialização
     init();
 });
 
 function init() {
-    // Loading Screen
+    preloadResources();
     handleLoadingScreen();
-    
-    // Navigation
     setupNavigation();
-    
-    // Hero Animations
-    setupHeroAnimations();
-    
-    // Scroll Animations
-    setupScrollAnimations();
-    
-    // Form Handling
-    setupContactForm();
-    
-    // Back to Top Button
-    setupBackToTop();
-    
-    // Mobile Menu
     setupMobileMenu();
-    
-    // Counter Animation
+    setupHeroAnimations();
     setupCounterAnimation();
-    
-    // Smooth Scrolling
+    setupScrollAnimations();
     setupSmoothScrolling();
-    
-    // Player Card Interactions
+    setupBackToTop();
     setupPlayerCardInteractions();
-    
-    // News Card Interactions
     setupNewsCardInteractions();
-    
-    // Match Card Interactions
     setupMatchCardInteractions();
+    setupStreamCardInteractions();
+    setupContactForm();
+    setupLazyLoading();
 }
 
 // ================================
@@ -50,26 +29,26 @@ function init() {
 // ================================
 function handleLoadingScreen() {
     const loadingScreen = document.getElementById('loading-screen');
-    
-    // Simula carregamento de recursos
-    setTimeout(() => {
-        loadingScreen.style.opacity = '0';
+    if (!loadingScreen) {
+        return;
+    }
+
+    const hideLoader = () => {
+        if (loadingScreen.classList.contains('fade-out')) {
+            return;
+        }
+        loadingScreen.classList.add('fade-out');
         setTimeout(() => {
             loadingScreen.style.display = 'none';
-            // Inicia animações da página principal
-            startPageAnimations();
-        }, 500);
-    }, 2000);
-}
+        }, 400);
+    };
 
-function startPageAnimations() {
-    // Anima elementos do hero
-    const heroElements = document.querySelectorAll('.hero-text > *, .hero-stats .stat-item');
-    heroElements.forEach((element, index) => {
-        setTimeout(() => {
-            element.classList.add('animate-fade-in-up');
-        }, index * 200);
+    window.addEventListener('load', () => {
+        setTimeout(hideLoader, 500);
     });
+
+    // Fallback para garantir remoção mesmo em ambientes com carregamento parcial
+    setTimeout(hideLoader, 4000);
 }
 
 // ================================
@@ -78,38 +57,95 @@ function startPageAnimations() {
 function setupNavigation() {
     const navbar = document.getElementById('navbar');
     const navLinks = document.querySelectorAll('.nav-link');
-    
-    // Scroll effect para navbar
-    window.addEventListener('scroll', () => {
+    const sections = document.querySelectorAll('section[id]');
+
+    if (!navbar || !navLinks.length || !sections.length) {
+        return;
+    }
+
+    const handleNavbarShadow = () => {
         if (window.scrollY > 50) {
             navbar.classList.add('scrolled');
         } else {
             navbar.classList.remove('scrolled');
         }
-    });
-    
-    // Active link baseado na seção visível
-    const sections = document.querySelectorAll('section[id]');
-    
-    window.addEventListener('scroll', () => {
-        let current = '';
-        
+    };
+
+    const highlightActiveLink = () => {
+        let currentSection = sections[0].id;
+
         sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.clientHeight;
-            
-            if (window.scrollY >= (sectionTop - 200)) {
-                current = section.getAttribute('id');
+            const offset = section.offsetTop - 140;
+            if (window.scrollY >= offset) {
+                currentSection = section.id;
             }
         });
-        
+
         navLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${current}`) {
-                link.classList.add('active');
-            }
+            link.classList.toggle('active', link.getAttribute('href') === `#${currentSection}`);
+        });
+    };
+
+    handleNavbarShadow();
+    highlightActiveLink();
+
+    window.addEventListener('scroll', () => {
+        handleNavbarShadow();
+        highlightActiveLink();
+    });
+}
+
+// ================================
+// STREAM CARD INTERACTIONS
+// ================================
+function setupStreamCardInteractions() {
+    const featuredStream = document.querySelector('.stream-featured');
+    const streamItems = document.querySelectorAll('.stream-item');
+
+    if (featuredStream) {
+        featuredStream.addEventListener('mouseenter', () => {
+            featuredStream.classList.add('highlight');
+        });
+
+        featuredStream.addEventListener('mouseleave', () => {
+            featuredStream.classList.remove('highlight');
+        });
+    }
+
+    streamItems.forEach(item => {
+        item.addEventListener('mouseenter', () => {
+            item.classList.add('hovered');
+        });
+
+        item.addEventListener('mouseleave', () => {
+            item.classList.remove('hovered');
+        });
+
+        item.addEventListener('click', () => {
+            const title = item.querySelector('h4')?.textContent || 'Live';
+            showStreamNotification(`Abrindo destaque: ${title}`);
         });
     });
+}
+
+function showStreamNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'stream-notification';
+    notification.innerHTML = `
+        <i class="fas fa-video"></i>
+        <span>${message}</span>
+    `;
+
+    document.body.appendChild(notification);
+
+    requestAnimationFrame(() => {
+        notification.classList.add('visible');
+    });
+
+    setTimeout(() => {
+        notification.classList.remove('visible');
+        setTimeout(() => notification.remove(), 300);
+    }, 2600);
 }
 
 // ================================
@@ -119,21 +155,23 @@ function setupMobileMenu() {
     const navToggle = document.getElementById('nav-toggle');
     const navMenu = document.getElementById('nav-menu');
     const navLinks = document.querySelectorAll('.nav-link');
-    
+
+    if (!navToggle || !navMenu) {
+        return;
+    }
+
     navToggle.addEventListener('click', () => {
         navToggle.classList.toggle('active');
         navMenu.classList.toggle('active');
     });
-    
-    // Fecha menu ao clicar em um link
+
     navLinks.forEach(link => {
         link.addEventListener('click', () => {
             navToggle.classList.remove('active');
             navMenu.classList.remove('active');
         });
     });
-    
-    // Fecha menu ao clicar fora
+
     document.addEventListener('click', (e) => {
         if (!navToggle.contains(e.target) && !navMenu.contains(e.target)) {
             navToggle.classList.remove('active');
@@ -146,7 +184,6 @@ function setupMobileMenu() {
 // HERO ANIMATIONS
 // ================================
 function setupHeroAnimations() {
-    // Parallax effect para o hero background
     window.addEventListener('scroll', () => {
         const scrolled = window.pageYOffset;
         const heroVideo = document.querySelector('.hero-video');
@@ -157,16 +194,21 @@ function setupHeroAnimations() {
         }
     });
     
-    // Typing effect para o título
     const titleMain = document.querySelector('.title-main');
     const titleSub = document.querySelector('.title-sub');
-    
-    if (titleMain && titleSub) {
+
+    if (titleMain) {
+        const mainText = titleMain.dataset.text || titleMain.textContent.trim();
+        const subText = titleSub ? (titleSub.dataset.text || titleSub.textContent.trim()) : null;
+        const subDelay = Math.min(1200, Math.max(600, mainText.length * 80));
+
         setTimeout(() => {
-            animateTyping(titleMain, 'ALTTAB', 100);
-            setTimeout(() => {
-                animateTyping(titleSub, 'ESPORTS', 100);
-            }, 800);
+            animateTyping(titleMain, mainText, 100);
+            if (titleSub && subText) {
+                setTimeout(() => {
+                    animateTyping(titleSub, subText, 80);
+                }, subDelay);
+            }
         }, 2500);
     }
 }
@@ -193,36 +235,57 @@ function animateTyping(element, text, speed) {
 // COUNTER ANIMATION
 // ================================
 function setupCounterAnimation() {
-    const counters = document.querySelectorAll('.stat-number');
-    const animateCounters = () => {
-        counters.forEach(counter => {
-            const target = parseInt(counter.getAttribute('data-target'));
-            const current = parseInt(counter.textContent);
-            const increment = target / 100;
-            
-            if (current < target) {
-                counter.textContent = Math.ceil(current + increment);
-                setTimeout(animateCounters, 50);
+    const counters = document.querySelectorAll('.stat-number[data-target]');
+    if (!counters.length) {
+        return;
+    }
+
+    const animateCounter = (counter) => {
+        const target = parseInt(counter.dataset.target, 10);
+        if (Number.isNaN(target)) {
+            return;
+        }
+
+        const prefix = counter.dataset.prefix || '';
+        const suffix = counter.dataset.suffix || '';
+        const duration = parseInt(counter.dataset.duration, 10) || 1500;
+        const startValue = parseInt(counter.dataset.start || counter.textContent.replace(/\D/g, ''), 10) || 0;
+        const startTime = performance.now();
+
+        const step = (currentTime) => {
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            const value = Math.round(startValue + (target - startValue) * progress);
+            counter.textContent = `${prefix}${value}${suffix}`;
+
+            if (progress < 1) {
+                requestAnimationFrame(step);
             } else {
-                counter.textContent = target;
+                counter.textContent = `${prefix}${target}${suffix}`;
             }
-        });
+        };
+
+        requestAnimationFrame(step);
     };
-    
-    // Inicia animação quando a seção hero estiver visível
+
     const heroSection = document.getElementById('home');
+    if (!heroSection) {
+        return;
+    }
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                setTimeout(animateCounters, 3000);
+                setTimeout(() => {
+                    counters.forEach(counter => animateCounter(counter));
+                }, 1200);
                 observer.unobserve(entry.target);
             }
         });
+    }, {
+        threshold: 0.3
     });
-    
-    if (heroSection) {
-        observer.observe(heroSection);
-    }
+
+    observer.observe(heroSection);
 }
 
 // ================================
@@ -406,21 +469,21 @@ function setupContactForm() {
     const subjectSelect = document.getElementById('subject');
     const positionGroup = document.getElementById('position-group');
     const rankGroup = document.getElementById('rank-group');
-    
-    // Lógica para mostrar campos específicos de tryout
+    const positionField = document.getElementById('position');
+    const rankField = document.getElementById('rank');
+
+    const toggleTryoutFields = (shouldShow) => {
+        const displayValue = shouldShow ? 'block' : 'none';
+        if (positionGroup) positionGroup.style.display = displayValue;
+        if (rankGroup) rankGroup.style.display = displayValue;
+        if (positionField) positionField.required = shouldShow;
+        if (rankField) rankField.required = shouldShow;
+    };
+
     if (subjectSelect) {
+        toggleTryoutFields(subjectSelect.value === 'tryout');
         subjectSelect.addEventListener('change', function() {
-            if (this.value === 'tryout') {
-                positionGroup.style.display = 'block';
-                rankGroup.style.display = 'block';
-                document.getElementById('position').required = true;
-                document.getElementById('rank').required = true;
-            } else {
-                positionGroup.style.display = 'none';
-                rankGroup.style.display = 'none';
-                document.getElementById('position').required = false;
-                document.getElementById('rank').required = false;
-            }
+            toggleTryoutFields(this.value === 'tryout');
         });
     }
     
@@ -470,8 +533,12 @@ function handleFormSubmission(form) {
             // Esconde campos específicos de tryout
             const positionGroup = document.getElementById('position-group');
             const rankGroup = document.getElementById('rank-group');
+            const positionField = document.getElementById('position');
+            const rankField = document.getElementById('rank');
             if (positionGroup) positionGroup.style.display = 'none';
             if (rankGroup) rankGroup.style.display = 'none';
+            if (positionField) positionField.required = false;
+            if (rankField) rankField.required = false;
             
             // Mensagem específica baseada no tipo de contato
             if (data.subject === 'tryout') {
@@ -645,12 +712,12 @@ function setupLazyLoading() {
 // Preload critical resources
 function preloadResources() {
     const criticalImages = [
-        'assets/images/logo-alttab.png',
-        'assets/images/players/player-top.jpg',
-        'assets/images/players/player-jungle.jpg',
-        'assets/images/players/player-mid.jpg',
-        'assets/images/players/player-adc.jpg',
-        'assets/images/players/player-support.jpg'
+        'public/images/logo-alttab.png',
+        'public/images/players/player-top.jpg',
+        'public/images/players/player-jungle.jpg',
+        'public/images/players/player-mid.jpg',
+        'public/images/players/player-adc.jpg',
+        'public/images/players/player-support.jpg'
     ];
     
     criticalImages.forEach(src => {

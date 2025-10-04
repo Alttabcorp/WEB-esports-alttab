@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Builder de Itens - League of Legends</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { background: #181c23; color: #fff; font-family: Arial, sans-serif; }
+    .item-list { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+    .item-card { cursor: pointer; border: 1px solid #333; border-radius: 8px; padding: 8px; width: 120px; text-align: center; background: #222; color: #fff; transition: box-shadow .2s; }
+    .item-card.selected { border: 2px solid #0596aa; box-shadow: 0 0 8px #0596aa; }
+    .item-card img { width: 64px; height: 64px; border-radius: 4px; }
+    .selected-items { display: flex; gap: 12px; margin-bottom: 24px; }
+    .selected-slot { width: 64px; height: 64px; border: 2px dashed #0596aa; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #222; position: relative; }
+    .selected-slot img { width: 60px; height: 60px; border-radius: 4px; }
+    .remove-btn { position: absolute; top: -8px; right: -8px; background: #c00; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 14px; }
+    .item-search { margin-bottom: 16px; }
+    .item-search input { padding: 6px 10px; border-radius: 4px; border: 1px solid #333; background: #222; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Selecione até 6 Itens</h1>
+  <div class="item-search">
+    <input type="text" id="item-search-input" placeholder="Buscar item...">
+  </div>
+  <div class="selected-items" id="selected-items"></div>
+  <div id="item-stats" style="margin-bottom:24px;"></div>
+  <div class="item-list" id="item-list"></div>
+
+  <hr style="margin:32px 0 24px 0;border:0;border-top:1px solid #333;">
+  <div style="margin-bottom:12px;">
+    <label for="champion-select"><b>Escolha um Campeão:</b></label>
+    <select id="champion-select" style="margin-left:8px;padding:4px 8px;border-radius:4px;background:#222;color:#fff;border:1px solid #333;"></select>
+  </div>
+  <div id="champion-abilities"></div>
+  <script type="module" src="js/items-builder.js"></script>
+</body>
+</html>

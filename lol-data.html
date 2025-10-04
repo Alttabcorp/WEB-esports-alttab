@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALTTAB Esports - Atlas de Dados do League of Legends</title>
+    <meta name="description" content="Explore campeões e itens do League of Legends com a base de dados oficial embutida no projeto ALTTAB Esports.">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0596aa">
+
+    <link rel="icon" type="image/x-icon" href="public/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="public/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="public/icons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="public/icons/favicon.ico">
+
+    <link rel="stylesheet" href="public/css/style.css">
+    <link rel="stylesheet" href="public/css/abilities.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="lol-data-page">
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="public/images/logo-alttab.png" alt="ALTTAB Esports" class="nav-logo">
+            </div>
+
+            <div class="nav-menu" id="nav-menu">
+                <a href="#panorama" class="nav-link">Panorama</a>
+                <a href="#builder" class="nav-link">Builds</a>
+                <a href="#champions" class="nav-link">Campeões</a>
+                <a href="#items" class="nav-link">Itens</a>
+                <a href="index.html" class="nav-link">Voltar à Landing</a>
+            </div>
+
+            <div class="nav-toggle" id="nav-toggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <section id="panorama" class="data-hero">
+        <div class="data-hero-content">
+            <div class="data-hero-text">
+                <h1>Atlas de Dados do League of Legends</h1>
+                <p>Consulte campeões, itens e estatísticas diretamente do acervo oficial incluído no projeto. Ideal para casters, analistas e para nossa comunidade amadora se preparar para os campeonatos ALTTAB.</p>
+                <div class="data-hero-badges" id="dataset-badges" aria-live="polite">
+                    <span class="data-badge" id="badge-patch">Patch 15.19.1</span>
+                    <span class="data-badge" id="badge-champions">168 campeões</span>
+                    <span class="data-badge" id="badge-items">200+ itens</span>
+                </div>
+            </div>
+            <div class="data-hero-sidebar">
+                <div class="data-hero-highlight">
+                    <p class="data-highlight-title">Como usar</p>
+                    <ul>
+                        <li>Carregue os dados oficiais do patch em poucos segundos.</li>
+                        <li>Monte builds combinando campeões e itens e visualize o impacto nas estatísticas.</li>
+                        <li>Compare atributos para guiar transmissões, análises e tryouts.</li>
+                    </ul>
+                </div>
+                <div class="data-hero-update" aria-live="polite">
+                    <p class="data-update-title">Atualização automática</p>
+                    <p class="data-update-description">Ao abrir esta página pela primeira vez, buscamos a versão mais recente no Data Dragon, baixamos o pacote <strong>.tgz</strong> e carregamos os dados diretamente para a visualização.</p>
+                    <p class="data-update-status" id="dataset-status">Verificando dados locais...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="data-main">
+        <section id="builder" class="data-section builder-section">
+            <div class="section-header">
+                <h2 class="section-title">Montador de Build</h2>
+                <p class="section-subtitle">Escolha um campeão, combine até seis itens e visualize os atributos finais com os bônus aplicados automaticamente.</p>
+            </div>
+
+            <div class="builder-grid">
+                <div class="builder-panel builder-panel-champion">
+                    <div class="builder-panel-header">
+                        <h3>1. Selecione um campeão</h3>
+                        <p>Use o drop-down abaixo para definir a base da sua build.</p>
+                    </div>
+
+                    <div class="builder-field">
+                        <label for="builder-champion-select">Campeão</label>
+                        <select id="builder-champion-select" autocomplete="off"></select>
+                    </div>
+
+                    <div class="builder-champion-summary" id="builder-champion-summary" aria-live="polite">
+                        <div class="loading-state">
+                            <i class="fas fa-user-ninja"></i>
+                            Escolha um campeão para começar.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="builder-panel builder-panel-items">
+                    <div class="builder-panel-header">
+                        <h3>2. Escolha os itens</h3>
+                        <p>Procure por nome ou categoria e adicione até seis itens à sua composição.</p>
+                    </div>
+
+                    <div class="builder-filters">
+                        <div class="builder-filter">
+                            <label for="builder-item-search">Buscar item</label>
+                            <div class="builder-filter-field">
+                                <i class="fas fa-search"></i>
+                                <input type="search" id="builder-item-search" placeholder="Ex.: Gume do Infinito, Ímpeto Cósmico...">
+                            </div>
+                        </div>
+                        <div class="builder-filter">
+                            <label for="builder-item-category">Categoria</label>
+                            <select id="builder-item-category">
+                                <option value="all">Todas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="builder-item-feedback" id="builder-item-feedback" aria-live="polite"></div>
+
+                    <div class="builder-item-results" id="builder-item-results" aria-live="polite">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Carregando itens...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="builder-panel builder-panel-loadout">
+                    <div class="builder-panel-header">
+                        <h3>3. Sua build</h3>
+                        <div class="builder-panel-meta">
+                            <span class="builder-count-pill" id="builder-loadout-counter">0/6</span>
+                            <p>Adicione até seis itens. Clique em qualquer slot preenchido para remover.</p>
+                        </div>
+                    </div>
+
+                    <div class="builder-loadout-slots" id="builder-loadout-slots" aria-live="polite"></div>
+
+                    <div class="builder-build-summary">
+                        <div class="builder-cost">
+                            <span class="builder-cost-label">Custo total</span>
+                            <span class="builder-cost-value" id="builder-total-cost">0 <i class="fas fa-coins"></i></span>
+                        </div>
+                        <button type="button" id="builder-clear" class="builder-clear-btn">
+                            <i class="fas fa-eraser"></i> Limpar build
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="builder-stats-board">
+                <div class="builder-stats-header">
+                    <div class="builder-stats-heading">
+                        <h4>Resumo de atributos</h4>
+                        <p>Base do campeão + bônus dos itens montados.</p>
+                    </div>
+                    <span class="builder-stats-tag"><i class="fas fa-bolt"></i> Atualizado em tempo real</span>
+                </div>
+                <div class="builder-stat-table" id="builder-stat-rows" aria-live="polite"></div>
+            </div>
+            
+            <div class="builder-abilities-section">
+                <div class="builder-abilities-header">
+                    <div class="builder-abilities-heading">
+                        <h4>Habilidades do Campeão</h4>
+                        <p>Danos calculados com base nos atributos atuais da build.</p>
+                    </div>
+                    <div class="builder-abilities-toggle">
+                        <button type="button" id="toggle-abilities" class="btn-abilities-toggle active">
+                            <i class="fas fa-magic"></i> <span id="toggle-abilities-text">Ocultar</span> Habilidades
+                        </button>
+                    </div>
+                </div>
+                <div id="champion-abilities-container" class="champion-abilities-container"></div>
+            </div>
+        </section>
+
+        <!-- Seção de listagem de campeões -->
+        <section id="champions" class="data-section">
+            <div class="section-header">
+                <h2 class="section-title">Campeões</h2>
+                <p class="section-subtitle">Explore todos os campeões disponíveis no League of Legends com suas informações completas.</p>
+                <div class="section-meta">
+                    <span class="section-count" id="champion-count">0</span> campeões encontrados
+                </div>
+            </div>
+
+            <div class="builder-filters">
+                <div class="builder-filter">
+                    <label for="champion-search">Buscar campeão</label>
+                    <div class="builder-filter-field">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="champion-search" placeholder="Digite o nome do campeão...">
+                    </div>
+                </div>
+                <div class="builder-filter">
+                    <label for="champion-role">Filtrar por função</label>
+                    <select id="champion-role">
+                        <option value="all">Todas as funções</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="data-grid" id="champion-list">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Carregando campeões...
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção de listagem de itens -->
+        <section id="items" class="data-section">
+            <div class="section-header">
+                <h2 class="section-title">Itens</h2>
+                <p class="section-subtitle">Descubra todos os itens disponíveis para Summoner's Rift com suas estatísticas detalhadas.</p>
+                <div class="section-meta">
+                    <span class="section-count" id="item-count">0</span> itens encontrados
+                </div>
+            </div>
+
+            <div class="builder-filters">
+                <div class="builder-filter">
+                    <label for="item-search">Buscar item</label>
+                    <div class="builder-filter-field">
+                        <i class="fas fa-search"></i>
+                        <input type="search" id="item-search" placeholder="Digite o nome do item...">
+                    </div>
+                </div>
+                <div class="builder-filter">
+                    <label for="item-category">Filtrar por categoria</label>
+                    <select id="item-category">
+                        <option value="all">Todas as categorias</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="data-grid" id="item-list">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Carregando itens...
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer data-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="index.html" class="footer-logo">
+                        <img src="public/images/logo-alttab.png" alt="ALTTAB Esports">
+                    </a>
+                    <p class="footer-description">
+                        Dados oficiais do League of Legends integrados ao ecossistema ALTTAB Esports para estudo, conteúdo e tomada de decisão.
+                    </p>
+                </div>
+
+                <div class="footer-links-section">
+                    <h3 class="footer-title">Explorar</h3>
+                    <ul class="footer-links">
+                        <li><a href="#builder" class="footer-link"><i class="fas fa-chevron-right"></i> Builds</a></li>
+                        <li><a href="index.html" class="footer-link"><i class="fas fa-chevron-right"></i> Landing Page</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-links-section">
+                    <h3 class="footer-title">Contato</h3>
+                    <div class="footer-contact-item">
+                        <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+                        <div class="footer-contact-text">esports@alttab.com.br</div>
+                    </div>
+                    <div class="footer-contact-item">
+                        <div class="footer-contact-icon"><i class="fas fa-globe"></i></div>
+                        <div class="footer-contact-text"><a href="https://www.alttabcorp.com.br" target="_blank" rel="noopener" class="footer-contact-link">alttabcorp.com.br</a></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copy">
+                    &copy; 2025 ALTTAB Corp • Dados oficiais Riot Games Patch 15.19.1
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <button id="back-to-top" class="back-to-top" aria-label="Voltar ao topo">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.min.js" integrity="sha384-xi87Fibh2P94Af3UGEaykUtyD7MhnlcBm6OB1DRVHojpKCtw6AlyhAbn1ShqENhT" crossorigin="anonymous"></script>
+    <script src="public/js/champion-abilities-fallback.js"></script>
+    <script src="public/js/champion-abilities.js"></script>
+    <script type="module" src="public/js/lol-data-modular.js"></script>
+</body>
+</html>

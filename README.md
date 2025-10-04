@@ -6,34 +6,34 @@
 
 [![License](https://img.shields.io/github/license/Alttabcorp/WEB-esports-alttab)](LICENSE)
 [![HTML5](https://img.shields.io/badge/HTML5-Ready-orange)](index.html)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)](js/)
-[![CSS3](https://img.shields.io/badge/CSS3-Modern-blue)](assets/css/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)](public/js/)
+[![CSS3](https://img.shields.io/badge/CSS3-Modern-blue)](public/css/)
 [![MVP](https://img.shields.io/badge/Status-MVP-success)](README.md)
 
 **MVP da Vertente Esports - ALTTAB Corp | Recrutamento de Novos Talentos**
 
 *Junte-se ao nosso time e domine o Rift conosco!*
 
-</div>
-
-## 🎯 Sobre o Projeto
-
-A **ALTTAB Esports** é um **MVP (Minimum Viable Product)** desenvolvido como a primeira iniciativa da vertente de esports da ALTTAB Corp. Este site serve como plataforma de **recrutamento e captação de novos jogadores** para nosso time de League of Legends, apresentando nossa visão, estrutura e oportunidades para talentos emergentes.
-
-### 🌟 Objetivos do MVP
-
-- **Recrutamento Ativo**: Atrair e captar novos talentos para o time de League of Legends
-- **Apresentação da Marca**: Estabelecer a identidade visual e conceitual da ALTTAB Esports
-- **Validação de Mercado**: Testar receptividade da comunidade gamer à nossa proposta
-- **Base de Contatos**: Criar canal direto para interessados em fazer parte do projeto
-- **Expansão Futura**: Servir como foundation para futuras iniciativas de esports da ALTTAB Corp
-
-### 🎮 Foco em Novos Jogadores
-
-Este MVP é especialmente voltado para:
-- **Jogadores em ascensão** buscando oportunidades profissionais
-- **Talentos locais** que querem representar uma marca sólida
-- **Streamers e influencers** interessados em parcerias
+```
+public/images/
+├── logo-alttab.png       # Logo principal
+├── team1.png             # Logo time parceiro 1
+├── team2.png             # Logo time parceiro 2
+├── team3.png             # Logo time parceiro 3
+├── team4.png             # Logo time parceiro 4
+├── team5.png             # Logo time parceiro 5
+├── team6.png             # Logo time parceiro 6
+├── players/
+│   ├── player-top.jpg    # Top laner
+│   ├── player-jungle.jpg # Jungler
+│   ├── player-mid.jpg    # Mid laner
+│   ├── player-adc.jpg    # ADC
+│   └── player-support.jpg# Suporte
+├── news/
+│   ├── news1.jpg         # Imagem notícia 1
+│   ├── news2.jpg         # Imagem notícia 2
+│   └── news3.jpg         # Imagem notícia 3
+```
 - **Comunidade gamer** que quer acompanhar nosso crescimento
 - **Patrocinadores** que enxergam potencial no mercado de esports
 
@@ -41,7 +41,7 @@ Este MVP é especialmente voltado para:
 
 ```
 WEB-esports-alttab/
-├── assets/
+├── public/
 │   ├── css/
 │   │   └── style.css        # Estilos principais do site
 │   ├── images/              # Imagens do site
@@ -51,7 +51,7 @@ WEB-esports-alttab/
 │   │   └── logo-alttab.png  # Logo principal
 │   ├── videos/              # Vídeos de background
 │   └── icons/               # Favicons e ícones
-├── js/
+├── public/js/
 │   └── app.js               # JavaScript principal
 ├── index.html               # Página principal
 ├── README.md                # Documentação do projeto
@@ -184,40 +184,40 @@ Para funcionamento completo, adicione os seguintes assets:
 
 ### Imagens
 ```
-assets/images/
+public/images/
 ├── logo-alttab.png           # Logo principal
+├── stream-preview.jpg        # Destaque da seção de lives
+├── stream-thumb1.jpg         # Miniatura live 1
+├── stream-thumb2.jpg         # Miniatura live 2
+├── stream-thumb3.jpg         # Miniatura live 3
 ├── players/
 │   ├── player-top.jpg        # Foto do jogador Top
 │   ├── player-jungle.jpg     # Foto do jogador Jungle
 │   ├── player-mid.jpg        # Foto do jogador Mid
 │   ├── player-adc.jpg        # Foto do jogador ADC
 │   └── player-support.jpg    # Foto do jogador Support
-├── teams/
-│   ├── enemy-team1.png       # Logo time adversário 1
-│   ├── enemy-team2.png       # Logo time adversário 2
-│   └── enemy-team3.png       # Logo time adversário 3
-└── news/
-    ├── news1.jpg             # Imagem notícia 1
-    ├── news2.jpg             # Imagem notícia 2
-    └── news3.jpg             # Imagem notícia 3
+└── teams/
+   ├── enemy-team1.png       # Logo time adversário 1
+   ├── enemy-team2.png       # Logo time adversário 2
+   └── enemy-team3.png       # Logo time adversário 3
 ```
 
 ### Vídeos
 ```
-assets/videos/
+public/videos/
 └── lol-background.mp4        # Vídeo de background do hero
 ```
 
 ### Ícones
 ```
-assets/icons/
+public/icons/
 └── favicon.ico               # Favicon do site
 ```
 
 ## 🎯 Personalização
 
 ### Alterando Cores
-Edite as variáveis CSS em `assets/css/style.css`:
+Edite as variáveis CSS em `public/css/style.css`:
 ```css
 :root {
     --primary-color: #0f172a;
@@ -228,12 +228,12 @@ Edite as variáveis CSS em `assets/css/style.css`:
 
 ### Modificando Conteúdo
 1. **Informações do time**: Edite a seção `#team` no `index.html`
-2. **Partidas**: Atualize a seção `#matches`
+2. **Lives**: Atualize a seção `#streams`
 3. **Conquistas**: Modifique a seção `#achievements`
-4. **Notícias**: Altere a seção `#news`
+4. **Campeonatos**: Altere a seção `#tournaments`
 
 ### Adicionando Funcionalidades
-O JavaScript é modular em `js/app.js`. Adicione novas funções seguindo o padrão:
+O JavaScript é modular em `public/js/app.js`. Adicione novas funções seguindo o padrão:
 ```javascript
 function setupNewFeature() {
     // Sua funcionalidade aqui
@@ -426,9 +426,9 @@ return {
 
 ### Personalização Visual
 
-- **Cores**: Edite variáveis CSS em `assets/css/style.css`
-- **Logo**: Substitua arquivos em `assets/images/logo/`
-- **Ícones**: Atualize arquivos em `assets/icons/`
+- **Cores**: Edite variáveis CSS em `public/css/style.css`
+- **Logo**: Substitua arquivos em `public/images/logo/`
+- **Ícones**: Atualize arquivos em `public/icons/`
 
 ## 🔧 Funcionalidades Técnicas
 
