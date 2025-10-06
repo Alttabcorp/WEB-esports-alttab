@@ -62,7 +62,7 @@ async function getItems(version) {
     const data = await res.json();
     return Object.entries(data.data)
         .map(([id, item]) => ({ id: parseInt(id), ...item }))
-        .filter(item => item.gold && item.gold.purchasable && item.image);
+        .filter(item => item.gold && item.gold.purchasable && item.image && item.maps && item.maps["11"]);
 }
 
 /**
@@ -333,10 +333,29 @@ function updateBuilderStats() {
     const itemStats = calculateItemStats();
     
     // Combinar stats
-    const finalStats = combineStats(championStats, itemStats);
-    
+    const finalStats = combineStats(championStats, itemStats, window.extendedStatsMode);
     // Renderizar tabela
-    renderStatsTable(container, finalStats);
+    renderStatsTable(container, finalStats, window.extendedStatsMode);
+    // Adicionar botão de toggle se não existir
+    if (!document.getElementById('toggle-extended-stats')) {
+        const statsBoard = container.closest('.builder-stats-board');
+        if (statsBoard) {
+            const btn = document.createElement('button');
+            btn.id = 'toggle-extended-stats';
+            btn.className = 'builder-stats-tag';
+            btn.type = 'button';
+            btn.style.marginLeft = 'auto';
+            btn.innerHTML = `<i class="fas fa-layer-group"></i> <span>Versão Estendida</span>`;
+            btn.onclick = function() {
+                window.extendedStatsMode = !window.extendedStatsMode;
+                updateBuilderStats();
+                btn.classList.toggle('active', !!window.extendedStatsMode);
+                btn.querySelector('span').textContent = window.extendedStatsMode ? 'Versão Resumida' : 'Versão Estendida';
+            };
+            const header = statsBoard.querySelector('.builder-stats-header');
+            if (header) header.appendChild(btn);
+        }
+    }
 }
 
 /**
@@ -347,13 +366,17 @@ function calculateChampionStatsAtLevel(champion, level) {
     
     return {
         hp: (stats.hp || 0) + (stats.hpperlevel || 0) * (level - 1),
+        mp: (stats.mp !== undefined ? (stats.mp || 0) + (stats.mpperlevel || 0) * (level - 1) : undefined),
         attackdamage: (stats.attackdamage || 0) + (stats.attackdamageperlevel || 0) * (level - 1),
         abilitypower: 0,
         armor: (stats.armor || 0) + (stats.armorperlevel || 0) * (level - 1),
         spellblock: (stats.spellblock || 0) + (stats.spellblockperlevel || 0) * (level - 1),
         movespeed: stats.movespeed || 0,
-        attackspeed: ((stats.attackspeed || 0) + (stats.attackspeedperlevel || 0) * (level - 1)),
-        crit: 0
+        attackspeed: ((stats.attackspeed || 0) * (1 + ((stats.attackspeedperlevel || 0) / 100) * (level - 1))),
+        crit: (stats.crit || 0) + (stats.critperlevel || 0) * (level - 1),
+        attackrange: stats.attackrange || 0,
+        hpregen: (stats.hpregen || 0) + (stats.hpregenperlevel || 0) * (level - 1),
+        mpregen: (stats.mpregen !== undefined ? (stats.mpregen || 0) + (stats.mpregenperlevel || 0) * (level - 1) : undefined)
     };
 }
 
@@ -411,7 +434,7 @@ function calculateItemStats() {
  * Combinar stats do campeão e itens
  */
 function combineStats(championStats, itemStats) {
-    return {
+    const stats = {
         'Vida': Math.round(championStats.hp + itemStats.hp),
         'Dano de Ataque': Math.round((championStats.attackdamage + itemStats.attackdamage) * 10) / 10,
         'Poder de Habilidade': Math.round(itemStats.abilitypower * 10) / 10,
@@ -421,6 +444,17 @@ function combineStats(championStats, itemStats) {
         'Velocidade de Ataque': Math.round((championStats.attackspeed * (1 + itemStats.attackspeed)) * 1000) / 1000,
         'Chance de Crítico': Math.round(itemStats.crit * 100) + '%'
     };
+    if (!window.extendedStatsMode) return stats;
+    // Versão estendida: adicionar atributos extras
+    stats['Roubo de Vida'] = (itemStats.lifesteal ? Math.round(itemStats.lifesteal * 1000) / 10 : 0) + '%';
+    stats['Onivampirismo'] = (itemStats.omnivamp ? Math.round(itemStats.omnivamp * 1000) / 10 : 0) + '%';
+    stats['Penetração de Armadura'] = (itemStats.armorpen ? Math.round(itemStats.armorpen * 100) / 100 : 0);
+    stats['Penetração Mágica'] = (itemStats.magicpen ? Math.round(itemStats.magicpen * 100) / 100 : 0);
+    stats['Aceleração de Habilidade'] = (itemStats.ah ? Math.round(itemStats.ah) : 0);
+    stats['Mana'] = (championStats.mp !== undefined ? Math.round(championStats.mp + (itemStats.mp || 0)) : (itemStats.mp ? Math.round(itemStats.mp) : 0));
+    stats['Regeneração de Vida'] = (championStats.hpregen !== undefined ? Math.round(championStats.hpregen + (itemStats.hpregen || 0)) : (itemStats.hpregen ? Math.round(itemStats.hpregen) : 0));
+    stats['Regeneração de Mana'] = (championStats.mpregen !== undefined ? Math.round(championStats.mpregen + (itemStats.mpregen || 0)) : (itemStats.mpregen ? Math.round(itemStats.mpregen) : 0));
+    return stats;
 }
 
 /**
