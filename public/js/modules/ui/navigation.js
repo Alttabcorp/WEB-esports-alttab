@@ -1,4 +1,6 @@
 // Funcionalidades gerais de navegação e UI
+import { createErrorState } from '../utils/helpers.js';
+
 export function setupNavigation() {
     const navbar = document.getElementById('navbar');
     const navLinks = Array.from(document.querySelectorAll('.nav-link')).filter(link => link.getAttribute('href')?.startsWith('#'));
@@ -123,6 +125,4 @@ export function showGlobalDatasetError() {
     }
 }
 
-function createErrorState(message) {
-    return `<div class="error-state"><i class="fas fa-triangle-exclamation"></i> ${message}</div>`;
-}
+// Função createErrorState importada de helpers.js

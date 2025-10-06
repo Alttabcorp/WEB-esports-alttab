@@ -56,11 +56,3 @@ export function debounce(callback, delay = 200) {
         }, delay);
     };
 }
-
-export async function fetchJson(url, options) {
-    const response = await fetch(url, options);
-    if (!response.ok) {
-        throw new Error(`Erro ao carregar ${url}: ${response.status}`);
-    }
-    return response.json();
-}
