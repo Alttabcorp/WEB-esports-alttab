@@ -201,6 +201,7 @@ function renderItemResults(items = allItems) {
             <button type="button" class="builder-item-add" ${isBuildFull && !isSelected ? 'disabled' : ''}>
                 ${isSelected ? 'Remover' : isBuildFull ? 'Slots completos' : 'Adicionar'}
             </button>
+            <button type="button" class="builder-item-details" style="margin-left:0.5rem; background:#233; color:#fff; border:none; border-radius:0.5rem; padding:0.3rem 0.7rem; font-size:0.92rem; cursor:pointer;">Detalhes</button>
         `;
         
         const button = card.querySelector('.builder-item-add');
@@ -210,6 +211,12 @@ function renderItemResults(items = allItems) {
             } else if (!isBuildFull) {
                 addItemToBuild(item.id);
             }
+        });
+        
+        const detailsBtn = card.querySelector('.builder-item-details');
+        detailsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showItemDetailsModal(item);
         });
         
         container.appendChild(card);
@@ -785,3 +792,33 @@ async function init() {
 
 // Inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', init);
+
+// Modal de detalhes do item
+function showItemDetailsModal(item) {
+    if (document.getElementById('item-details-modal')) {
+        document.getElementById('item-details-modal').remove();
+    }
+    const modal = document.createElement('div');
+    modal.id = 'item-details-modal';
+    modal.style = 'display:flex; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(10,18,32,0.92); align-items:center; justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:#151c2c; border-radius:1.2rem; padding:2.2rem 2.2rem 1.5rem 2.2rem; min-width:320px; max-width:96vw; max-height:90vh; box-shadow:0 8px 32px #000a; display:flex; flex-direction:column; gap:1.2rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+          <h3 style="margin:0; font-size:1.15rem;">${item.name}</h3>
+          <button id="close-item-details" style="background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class='fas fa-times'></i></button>
+        </div>
+        <div style='display:flex;gap:1.2rem;align-items:flex-start;'>
+          <img src='${API_BASE}/${currentVersion}/img/item/${item.image.full}' alt='${item.name}' style='width:64px;height:64px;border-radius:0.7rem;background:#222;object-fit:cover;box-shadow:0 2px 8px #0004;'>
+          <div style='flex:1;'>
+            <div style='color:#fff;font-size:1.01rem;margin-bottom:0.7rem;'>${item.plaintext || ''}</div>
+            <div style='color:#bcd; font-size:0.97rem;'>${item.description || ''}</div>
+            <div style='color:#aaa; font-size:0.93rem; margin-top:0.7rem;'>Custo: ${item.gold?.total || 0} <i class="fas fa-coins"></i></div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById('close-item-details').onclick = () => {
+        modal.remove();
+    };
+}
