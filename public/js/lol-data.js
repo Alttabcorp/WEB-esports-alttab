@@ -1007,3 +1007,8 @@ function initToggleDetailsButton() {
         }
     });
 }
+
+// Exporta funções para o escopo global para uso por outros scripts
+window.renderBuildLoadout = renderBuildLoadout;
+window.renderItemResults = renderItemResults;
+window.updateBuilderStats = updateBuilderStats;

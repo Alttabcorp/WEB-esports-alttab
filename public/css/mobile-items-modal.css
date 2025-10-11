@@ -1,0 +1,354 @@
+/**
+ * Modal de itens para dispositivos móveis
+ * Este estilo só é aplicado em telas menores que 768px
+ */
+
+@media screen and (max-width: 768px) {
+    /* Esconde a listagem normal de itens em dispositivos móveis */
+    .builder-item-results {
+        display: none !important;
+    }
+    
+    /* Esconde os campos de busca e categoria */
+    .builder-filter, .builder-filters {
+        display: none !important;
+    }
+    
+    /* Esconde a mensagem "Mostrando X de Y itens Build atual: Z/6" */
+    .builder-item-feedback {
+        display: none !important;
+    }
+
+    /* Botão para abrir a modal em dispositivos móveis */
+    .mobile-items-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px 15px;
+        margin: 10px 0;
+        background-color: #3da2b8;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: background-color 0.2s ease;
+    }
+
+    .mobile-items-button:active {
+        background-color: #2f8999;
+    }
+
+    /* Modal de itens em tela cheia */
+    .mobile-items-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #0a1428;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Cabeçalho da modal */
+    .mobile-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background-color: #091428;
+        border-bottom: 1px solid #1e2328;
+    }
+
+    .mobile-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        color: #f0e6d2;
+        font-weight: 600;
+    }
+
+    .mobile-modal-close {
+        background: none;
+        border: none;
+        color: #f0e6d2;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Barra de busca */
+    .mobile-search-container {
+        padding: 12px 16px;
+        background-color: #091428;
+        border-bottom: 1px solid #1e2328;
+    }
+
+    .mobile-search-field {
+        display: flex;
+        align-items: center;
+        background-color: rgba(10, 18, 32, 0.7);
+        border: 1px solid #334;
+        border-radius: 6px;
+        padding: 0 12px;
+        overflow: hidden;
+    }
+
+    .mobile-search-field i {
+        color: #0596aa;
+        margin-right: 10px;
+    }
+
+    .mobile-search-input {
+        flex: 1;
+        height: 44px;
+        background: transparent;
+        border: none;
+        color: #f0e6d2;
+        font-size: 16px;
+        outline: none;
+    }
+
+    .mobile-search-input::placeholder {
+        color: #888;
+    }
+
+    .mobile-search-clear {
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 6px;
+        display: none;
+    }
+
+    .mobile-search-input:not(:placeholder-shown) + .mobile-search-clear {
+        display: block;
+    }
+
+    /* Status e filtros */
+    .mobile-items-status {
+        display: none; /* Ocultamos o elemento de status */
+    }
+
+    /* Lista de itens */
+    .mobile-items-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 0;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Card de item */
+    .mobile-item-card {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        position: relative;
+        border-bottom: 1px solid #1e2328;
+    }
+
+    .mobile-item-card:active {
+        background-color: rgba(10, 18, 32, 0.7);
+    }
+
+    .mobile-item-card.selected {
+        background-color: rgba(5, 150, 170, 0.15);
+    }
+
+    .mobile-item-image {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-right: 12px;
+        background-color: #000a14;
+    }
+
+    .mobile-item-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .mobile-item-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .mobile-item-name {
+        font-size: 16px;
+        font-weight: 500;
+        color: #f0e6d2;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .mobile-item-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mobile-item-cost {
+        font-size: 14px;
+        color: #0596aa;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .mobile-item-tag {
+        font-size: 12px;
+        color: #f0e6d2;
+        background-color: rgba(10, 18, 32, 0.7);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .mobile-item-action {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .mobile-item-button {
+        background-color: #0596aa;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .mobile-item-button.remove {
+        background-color: #444;
+    }
+
+    .mobile-item-button:active {
+        opacity: 0.8;
+    }
+
+    /* Estado vazio */
+    .mobile-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        text-align: center;
+    }
+
+    .mobile-empty-icon {
+        font-size: 32px;
+        color: #0596aa;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .mobile-empty-text {
+        color: #f0e6d2;
+        font-size: 16px;
+    }
+
+    /* Rodapé */
+    .mobile-modal-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background-color: #091428;
+        border-top: 1px solid #1e2328;
+    }
+
+    .mobile-build-status {
+        font-size: 14px;
+        color: #f0e6d2;
+    }
+
+    .mobile-build-status strong {
+        color: #0596aa;
+    }
+
+    .mobile-done-button {
+        background-color: #0596aa;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .mobile-done-button:active {
+        background-color: #047d8d;
+    }
+
+    /* Transição de fade para a modal */
+    @keyframes modalFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .mobile-items-modal {
+        animation: modalFadeIn 0.2s ease-out forwards;
+    }
+    
+    /* Melhorias para a seção de build no mobile */
+    .builder-panel-loadout {
+        scroll-margin-top: 20px;
+    }
+    
+    /* Destaca a seção da build quando itens são adicionados */
+    .builder-loadout-slots {
+        padding: 12px;
+        border: 1px solid rgba(5, 150, 170, 0.5);
+        border-radius: 8px;
+        background-color: rgba(5, 150, 170, 0.1);
+        margin: 10px 0;
+    }
+    
+    /* Destaque especial para slots preenchidos */
+    .builder-slot.filled {
+        box-shadow: 0 0 8px 2px rgba(5, 150, 170, 0.4);
+        border: 1px solid rgba(5, 150, 170, 0.8);
+        transition: all 0.3s ease;
+    }
+    
+    /* Animação sutil quando um item é adicionado */
+    @keyframes buildPulse {
+        0% { box-shadow: 0 0 0 0 rgba(5, 150, 170, 0.4); }
+        70% { box-shadow: 0 0 8px 4px rgba(5, 150, 170, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(5, 150, 170, 0); }
+    }
+    
+    .builder-slot.filled {
+        animation: buildPulse 1s ease-out;
+    }
+    
+    /* Destaca o título da seção para chamar atenção */
+    .builder-panel-loadout .builder-panel-header h3 {
+        color: #0596aa;
+        font-weight: bold;
+    }
+}
