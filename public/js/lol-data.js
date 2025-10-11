@@ -660,56 +660,122 @@ function showChampionPickerModal(champions) {
     }
     const modal = document.createElement('div');
     modal.id = 'champion-picker-modal';
-    modal.style = 'display:flex; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(10,18,32,0.92); align-items:center; justify-content:center;';
+    modal.style = 'display:flex; position:fixed; z-index:9999; left:0; top:0; width:100vw; height:100vh; background:rgba(10,18,32,0.92); align-items:center; justify-content:center; opacity:0; transition:opacity 0.3s ease-in-out;';
+    
+    // Trigger animation in the next frame
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        const modalContent = modal.querySelector('.champion-modal-content');
+        if (modalContent) {
+            modalContent.style.transform = 'scale(1)';
+        }
+    }, 10);
     modal.innerHTML = `
-      <div style="background:#151c2c; border-radius:1.2rem; padding:2.2rem 2.2rem 1.5rem 2.2rem; min-width:340px; max-width:98vw; max-height:98vh; box-shadow:0 8px 32px #000a; display:flex; flex-direction:column; gap:1.2rem; height:90vh;">
+      <div class="champion-modal-content" style="background:#151c2c; border-radius:1.2rem; padding:2.2rem 2.5rem 1.8rem 2.5rem; min-width:340px; width:80vw; max-width:1200px; max-height:90vh; box-shadow:0 8px 32px #000a; display:flex; flex-direction:column; gap:1.2rem; height:90vh; transform:scale(0.95); transition:transform 0.3s ease-out;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
-          <h3 style="margin:0; font-size:1.25rem;">Selecionar Campeão</h3>
+          <h3 style="margin:0; font-size:1.4rem; font-weight:600;">Selecionar Campeão</h3>
           <button id="close-champion-picker" style="background:none; border:none; color:#fff; font-size:1.5rem; cursor:pointer;"><i class='fas fa-times'></i></button>
         </div>
-        <input id="champion-search-input" type="text" placeholder="Buscar campeão..." style="padding:0.6rem 1rem; border-radius:0.7rem; border:1px solid #233; background:#101624; color:#fff; font-size:1rem; outline:none; margin-bottom:0.7rem;" />
-        <div id="champion-table-container" style="flex:1 1 0; min-height:0; height:100%;"></div>
+        <input id="champion-search-input" type="text" placeholder="Buscar campeão..." style="padding:0.8rem 1.2rem; border-radius:0.8rem; border:1px solid #233; background:#101624; color:#fff; font-size:1.1rem; outline:none; margin-bottom:0.8rem; width:100%; max-width:400px;" />
+        <div id="champion-table-container" style="flex:1 1 0; min-height:0; height:100%; overflow:hidden;"></div>
       </div>
     `;
     document.body.appendChild(modal);
     document.getElementById('close-champion-picker').onclick = () => {
-        modal.style.display = 'none';
+        // Fade out animation
+        modal.style.opacity = '0';
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
     };
     function renderChampionTable(filter = '') {
         const container = document.getElementById('champion-table-container');
         const sorted = [...champions].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
         const filtered = filter ? sorted.filter(c => c.name.toLowerCase().includes(filter.toLowerCase())) : sorted;
         if (!filtered.length) {
-            container.innerHTML = '<div style="color:#aaa; text-align:center; padding:1.5rem;">Nenhum campeão encontrado</div>';
+            container.innerHTML = '<div style="color:#aaa; text-align:center; padding:1.5rem; font-size: 1.1rem;">Nenhum campeão encontrado</div>';
             return;
         }
         if (filtered.length === 1) {
             container.innerHTML = `<div style='display:flex;justify-content:center;align-items:flex-start;height:100%;padding-top:1.5rem;'>
-                <button class="champion-table-btn" data-champ-id="${filtered[0].id}" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0.5rem;padding:0.6rem 0.1rem;background:#1e263a;border-radius:0.8rem;border:1px solid #233;cursor:pointer;transition:.2s;outline:none;min-width:0;min-height:0;width:120px;overflow:hidden;box-sizing:border-box;">
-                    <img src='${API_BASE}/${currentVersion}/img/champion/${filtered[0].image.full}' alt='${filtered[0].name}' style='width:44px;height:44px;border-radius:0.6rem;background:#222;object-fit:cover;box-shadow:0 2px 8px #0004;'>
-                    <span style="color:#fff;font-size:${filtered[0].name.length > 12 ? '0.85rem' : '0.93rem'};font-weight:600;text-align:center;line-height:1.2;white-space:normal;word-break:break-word;max-width:90px;">${filtered[0].name}</span>
+                <button class="champion-table-btn" data-champ-id="${filtered[0].id}" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0.7rem;padding:0.8rem 0.2rem;background:#1e263a;border-radius:0.8rem;border:1px solid #233;cursor:pointer;transition:.2s;outline:none;min-width:0;min-height:0;width:140px;overflow:hidden;box-sizing:border-box;">
+                    <img src='${API_BASE}/${currentVersion}/img/champion/${filtered[0].image.full}' alt='${filtered[0].name}' style='width:70px;height:70px;border-radius:0.6rem;background:#222;object-fit:cover;box-shadow:0 2px 8px #0004;'>
+                    <span style="color:#fff;font-size:${filtered[0].name.length > 12 ? '0.95rem' : '1rem'};font-weight:600;text-align:center;line-height:1.2;white-space:normal;word-break:break-word;max-width:110px;">${filtered[0].name}</span>
                 </button>
             </div>`;
         } else {
-            let colCount = 3;
-            if (filtered.length === 2) colCount = 2;
-            container.innerHTML = `<div style="display:grid; grid-template-columns:repeat(${colCount},1fr); gap:1.1rem 0.7rem; max-height:60vh; overflow-y:auto;">${filtered.map(champion => `
-                <button class=\"champion-table-btn\" data-champ-id=\"${champion.id}\" style=\"display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0.5rem;padding:0.6rem 0.1rem;background:#1e263a;border-radius:0.8rem;border:1px solid #233;cursor:pointer;transition:.2s;outline:none;min-width:0;min-height:0;aspect-ratio:1/1;overflow:hidden;box-sizing:border-box;\">\n                    <img src='${API_BASE}/${currentVersion}/img/champion/${champion.image.full}' alt='${champion.name}' style='width:44px;height:44px;border-radius:0.6rem;background:#222;object-fit:cover;box-shadow:0 2px 8px #0004;'>\n                    <span style=\"color:#fff;font-size:${champion.name.length > 12 ? '0.85rem' : '0.93rem'};font-weight:600;text-align:center;line-height:1.2;white-space:normal;word-break:break-word;max-width:90px;\">${champion.name}</span>\n                </button>\n            `).join('')}</div>`;
+            // Determine o número de colunas com base na largura da janela
+            const screenWidth = window.innerWidth;
+            let colCount = 3; // Padrão para mobile
+            
+            if (screenWidth >= 1600) colCount = 10;
+            else if (screenWidth >= 1400) colCount = 9;
+            else if (screenWidth >= 1200) colCount = 8;
+            else if (screenWidth >= 1000) colCount = 7;
+            else if (screenWidth >= 800) colCount = 6;
+            else if (screenWidth >= 600) colCount = 5;
+            else if (screenWidth >= 480) colCount = 4;
+            
+            if (filtered.length === 2) colCount = Math.min(colCount, 2);
+            
+            container.innerHTML = `<div style="display:grid; grid-template-columns:repeat(${colCount},1fr); gap:1.2rem 1rem; height:100%; overflow-y:auto; padding:0.5rem;">${filtered.map(champion => `
+                <button class=\"champion-table-btn\" data-champ-id=\"${champion.id}\" style=\"display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:0.7rem;padding:0.8rem 0.2rem;background:#1e263a;border-radius:0.8rem;border:1px solid #233;cursor:pointer;transition:.2s;outline:none;min-width:0;min-height:0;overflow:hidden;box-sizing:border-box;height:120px;\">\n                    <img src='${API_BASE}/${currentVersion}/img/champion/${champion.image.full}' alt='${champion.name}' style='width:60px;height:60px;border-radius:0.6rem;background:#222;object-fit:cover;box-shadow:0 2px 8px #0004;'>\n                    <span style=\"color:#fff;font-size:${champion.name.length > 12 ? '0.95rem' : '1rem'};font-weight:600;text-align:center;line-height:1.2;white-space:normal;word-break:break-word;max-width:100px;\">${champion.name}</span>\n                </button>\n            `).join('')}</div>`;
         }
+        // Adiciona estilos e efeitos aos botões
+        const style = document.createElement('style');
+        style.textContent = `
+            .champion-table-btn {
+                transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+            }
+            .champion-table-btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                background-color: #2a3652;
+            }
+            .champion-table-btn:active {
+                transform: translateY(0px);
+                background-color: #26324d;
+            }
+        `;
+        document.head.appendChild(style);
+        
         container.querySelectorAll('.champion-table-btn').forEach(btn => {
             btn.onclick = () => {
                 const champId = btn.getAttribute('data-champ-id');
                 const select = document.getElementById('builder-champion-select');
                 if (select) select.value = champId;
-                modal.style.display = 'none';
-                builderState.championId = champId;
-                renderChampionSummary(champId);
+                
+                // Fade out animation
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    builderState.championId = champId;
+                    renderChampionSummary(champId);
+                }, 300);
             };
         });
     }
     document.getElementById('champion-search-input').oninput = (e) => {
         renderChampionTable(e.target.value);
     };
+    
+    // Adicionar suporte para redimensionamento da janela
+    const resizeHandler = () => {
+        const searchInput = document.getElementById('champion-search-input');
+        renderChampionTable(searchInput ? searchInput.value : '');
+    };
+    
+    window.addEventListener('resize', resizeHandler);
+    
+    // Limpar o event listener quando a modal for fechada
+    const originalDisplay = modal.style.display;
+    const originalCloseHandler = document.getElementById('close-champion-picker').onclick;
+    
+    document.getElementById('close-champion-picker').onclick = () => {
+        window.removeEventListener('resize', resizeHandler);
+        originalCloseHandler();
+    };
+    
     renderChampionTable();
 }
 
