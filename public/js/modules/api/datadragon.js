@@ -1,7 +1,7 @@
 /**
  * Funções de API para Data Dragon
  */
-import { API_BASE, LANG, currentVersion } from '../config.js';
+import { API_BASE, LANG, currentVersion } from '../config-new.js';
 
 /**
  * Obter versão mais recente do Data Dragon

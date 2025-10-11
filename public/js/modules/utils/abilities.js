@@ -1,7 +1,7 @@
 /**
  * Funções de utilitário para gerenciamento de habilidades do campeão
  */
-import { selectedChampionData } from '../config.js';
+import { selectedChampionData } from '../config-new.js';
 import { calculateChampionStatsAtLevel, calculateItemStats } from '../stats/stats.js';
 
 /**

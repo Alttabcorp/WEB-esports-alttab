@@ -1,7 +1,7 @@
 /**
  * Funções de cálculo e exibição de estatísticas
  */
-import { selectedChampionData, builderState, allItems } from '../config.js';
+import { selectedChampionData, builderState, allItems } from '../config-new.js';
 
 /**
  * Atualizar estatísticas da build

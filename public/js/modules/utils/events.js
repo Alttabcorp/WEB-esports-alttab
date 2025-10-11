@@ -1,7 +1,7 @@
 /**
  * Configurar ouvintes de eventos
  */
-import { builderState } from '../config.js';
+import { builderState } from '../config-new.js';
 import { renderChampionSummary } from '../builder/champion.js';
 import { renderItemResults } from '../builder/items.js';
 import { renderBuildLoadout } from '../builder/loadout.js';

@@ -15,6 +15,7 @@
 
     <link rel="stylesheet" href="public/css/style.css">
     <link rel="stylesheet" href="public/css/abilities.css">
+    <link rel="stylesheet" href="public/css/champion-details.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -165,16 +166,43 @@
             <div class="builder-abilities-section">
                 <div class="builder-abilities-header">
                     <div class="builder-abilities-heading">
-                        <h4>Habilidades do Campeão</h4>
-                        <p>Danos calculados com base nos atributos atuais da build.</p>
+                        <h4>Detalhes do Campeão</h4>
+                        <p>Habilidades e skins disponíveis para o campeão selecionado.</p>
                     </div>
                     <div class="builder-abilities-toggle">
-                        <button type="button" id="toggle-abilities" class="btn-abilities-toggle active">
-                            <i class="fas fa-magic"></i> <span id="toggle-abilities-text">Ocultar</span> Habilidades
+                        <button type="button" id="toggle-details" class="btn-abilities-toggle active">
+                            <i class="fas fa-chevron-up"></i> <span id="toggle-details-text">Ocultar</span> Detalhes
                         </button>
                     </div>
                 </div>
-                <div id="champion-abilities-container" class="champion-abilities-container"></div>
+                
+                <div id="champion-details-container" class="champion-details-container">
+                    <div class="champion-tabs">
+                        <div class="champion-tab-buttons">
+                            <button type="button" id="tab-abilities" class="champion-tab-button active" data-tab="abilities">
+                                <i class="fas fa-magic"></i> Habilidades
+                            </button>
+                            <button type="button" id="tab-skins" class="champion-tab-button" data-tab="skins">
+                                <i class="fas fa-palette"></i> Skins
+                            </button>
+                        </div>
+                        
+                        <div class="champion-tab-content">
+                            <div id="abilities-tab-content" class="champion-tab-pane active">
+                                <div id="champion-abilities-container" class="champion-abilities-container"></div>
+                            </div>
+                            
+                            <div id="skins-tab-content" class="champion-tab-pane">
+                                <div id="champion-skins-container" class="champion-skins-container">
+                                    <div class="loading-state">
+                                        <i class="fas fa-spinner fa-spin"></i>
+                                        Selecione um campeão para ver as skins...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>

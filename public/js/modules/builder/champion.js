@@ -1,7 +1,7 @@
 /**
  * Funções relacionadas à renderização do campeão
  */
-import { API_BASE, currentVersion, selectedChampionData, builderState } from '../config.js';
+import { API_BASE, currentVersion, selectedChampionData, builderState } from '../config-new.js';
 import { getChampionDetails } from '../api/datadragon.js';
 import { calculateChampionStatsAtLevel, calculateItemStats, updateBuilderStats } from '../stats/stats.js';
 import { updateChampionAbilities } from '../utils/abilities.js';
@@ -62,8 +62,14 @@ export async function renderChampionSummary(championId) {
             <p class="builder-champion-blurb">${championData.blurb || championData.lore?.substring(0, 200) + '...' || ''}</p>
         `;
         
-        // Atualizar habilidades se o sistema existir
+        // Atualizar habilidades e skins se o sistema existir
         updateChampionAbilities();
+        
+        // Carregar as skins disponíveis se a função existir
+        if (typeof window.displayChampionSkins === 'function') {
+            window.displayChampionSkins(championData, currentVersion);
+        }
+        
         updateBuilderStats();
         
     } catch (error) {

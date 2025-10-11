@@ -2,7 +2,7 @@
  * Arquivo principal que inicializa o módulo lol-data
  * Importa e coordena todos os outros módulos
  */
-import { API_BASE, currentVersion, allChampions, allItems } from './modules/config.js';
+import { API_BASE, currentVersion, allChampions, allItems } from './modules/config-new.js';
 import { getLatestVersion, getChampions, getItems } from './modules/api/datadragon.js';
 import { renderChampionSelect } from './modules/builder/champion.js';
 import { setupItemCategories, renderItemResults } from './modules/builder/items.js';
@@ -11,10 +11,12 @@ import { setupChampionModal } from './modules/modals/championModal.js';
 import { showItemPickerModal, showItemDetailsModal } from './modules/modals/itemModal.js';
 import { updateHeroBadges } from './modules/utils/ui.js';
 import { setupEventListeners } from './modules/utils/events.js';
+import { displayChampionSkins, initChampionDetailsTabs, initToggleDetailsButton } from './modules/ui/champion-skins.js';
 
 // Tornar funções importantes disponíveis globalmente
 window.showItemPickerModal = showItemPickerModal;
 window.showItemDetailsModal = showItemDetailsModal;
+window.displayChampionSkins = displayChampionSkins;
 
 /**
  * Inicialização principal
@@ -52,6 +54,10 @@ async function init() {
         // Configurar responsividade
         hideItemSectionOnMobile();
         setupInteractiveBuildSlots();
+        
+        // Inicializar sistema de abas e botão de alternar detalhes
+        initChampionDetailsTabs();
+        initToggleDetailsButton();
         
         if (statusEl) {
             statusEl.textContent = `Dados carregados com sucesso (Patch ${version})`;

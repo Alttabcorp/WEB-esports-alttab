@@ -1,7 +1,7 @@
 /**
  * Funções de utilitário para UI
  */
-import { currentVersion } from '../config.js';
+import { currentVersion } from '../config-new.js';
 
 /**
  * Atualizar badges do hero
