@@ -1,7 +1,3 @@
-// Calculadora de estatísticas do builder
-import { CONFIG, BUILDER_STATS } from '../config.js';
-import { getSelectedChampion, getSelectedItems } from '../data/state.js';
-
 export function computeBuilderStat(champion, items, definition) {
     const stats = champion?.stats || {};
     const baseValue = typeof definition.base === 'function'

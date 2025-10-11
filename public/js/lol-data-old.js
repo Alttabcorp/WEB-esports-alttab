@@ -1,6 +1,6 @@
 /**
  * Sistema principal do lol-data.html
- * Versão consolidada do builder de League of Legends
+ * Baseado no champions-example.js com adaptações para a estrutura existente
  */
 
 const API_BASE = 'https://ddragon.leagueoflegends.com/cdn';
