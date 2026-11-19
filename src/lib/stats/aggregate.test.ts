@@ -31,6 +31,29 @@ function participant(
     champLevel: 16,
     goldEarned: 12000,
     timePlayed: 1800,
+    summoner1Id: 4,
+    summoner2Id: 14,
+    perks: {
+      statPerks: { defense: 5002, flex: 5008, offense: 5005 },
+      styles: [
+        {
+          description: "primaryStyle",
+          style: 8000,
+          selections: [
+            { perk: 8005, var1: 0, var2: 0, var3: 0 },
+            { perk: 9111, var1: 0, var2: 0, var3: 0 },
+          ],
+        },
+        {
+          description: "subStyle",
+          style: 8100,
+          selections: [
+            { perk: 8139, var1: 0, var2: 0, var3: 0 },
+            { perk: 8135, var1: 0, var2: 0, var3: 0 },
+          ],
+        },
+      ],
+    },
     ...overrides,
   };
 }
@@ -118,5 +141,14 @@ describe("aggregatePlayerMatches", () => {
     expect(result.topRecommendations[0]?.games).toBe(6);
     expect(result.roles.some((r) => r.role === "MIDDLE")).toBe(true);
     expect(result.champions[0]?.topBuilds.length).toBeGreaterThan(0);
+    expect(result.champions.find((c) => c.championName === "Annie")?.topRunes[0])
+      .toMatchObject({
+        primaryStyle: 8000,
+        keystone: 8005,
+        subStyle: 8100,
+        primaryPerkIds: [8005, 9111],
+        subPerkIds: [8139, 8135],
+        role: "MIDDLE",
+      });
   });
 });

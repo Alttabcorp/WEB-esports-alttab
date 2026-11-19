@@ -1,6 +1,13 @@
 import type { MatchDto, MatchParticipant } from "@/lib/riot/types";
 import { buildFingerprint } from "./builds";
+import { extractRunesFromParticipant, parseRuneFingerprint } from "./runes";
+import { extractSpells, parseSpellFingerprint } from "./spells";
 import {
+  buildTemporalInsights,
+  type TemporalInsights,
+} from "./temporal";
+import {
+  MIN_SAMPLE_FOR_MATCHUP_DISPLAY,
   MIN_SAMPLE_FOR_RECOMMENDATION,
   confidenceFromSample,
   type ConfidenceLevel,
@@ -35,7 +42,12 @@ export type ChampionInsight = RankedStat & {
   championId: number;
   championName: string;
   topBuilds: BuildInsight[];
+  topRunes: RuneInsight[];
   matchups: MatchupInsight[];
+  allySynergies: AllySynergyInsight[];
+  matchupBuilds: MatchupBuildInsight[];
+  matchupRunes: MatchupRuneInsight[];
+  matchupSpells: MatchupSpellInsight[];
 };
 
 export type BuildInsight = RankedStat & {
@@ -44,11 +56,61 @@ export type BuildInsight = RankedStat & {
   championId: number;
 };
 
+export type RuneInsight = RankedStat & {
+  fingerprint: string;
+  primaryStyle: number;
+  keystone: number;
+  subStyle: number;
+  primaryPerkIds: number[];
+  subPerkIds: number[];
+  perkIds: number[];
+  championId: number;
+  role: RoleKey;
+};
+
 export type MatchupInsight = RankedStat & {
   myChampionId: number;
   enemyChampionId: number;
   enemyChampionName: string;
   role: RoleKey;
+};
+
+export type AllySynergyInsight = RankedStat & {
+  myChampionId: number;
+  allyChampionId: number;
+  allyChampionName: string;
+};
+
+export type MatchupBuildInsight = RankedStat & {
+  myChampionId: number;
+  enemyChampionId: number;
+  enemyChampionName: string;
+  role: RoleKey;
+  fingerprint: string;
+  items: number[];
+};
+
+export type MatchupRuneInsight = RankedStat & {
+  myChampionId: number;
+  enemyChampionId: number;
+  enemyChampionName: string;
+  role: RoleKey;
+  fingerprint: string;
+  primaryStyle: number;
+  keystone: number;
+  subStyle: number;
+  primaryPerkIds: number[];
+  subPerkIds: number[];
+  perkIds: number[];
+};
+
+export type MatchupSpellInsight = RankedStat & {
+  myChampionId: number;
+  enemyChampionId: number;
+  enemyChampionName: string;
+  role: RoleKey;
+  fingerprint: string;
+  spellIds: number[];
 };
 
 export type RoleInsight = RankedStat & {
@@ -65,6 +127,9 @@ export type AggregateResult = {
   topRecommendations: ChampionInsight[];
   bestMatchups: MatchupInsight[];
   worstMatchups: MatchupInsight[];
+  topAllySynergies: AllySynergyInsight[];
+  /** Horário, dia, patch, sessão e alertas de desempenho. */
+  temporal: TemporalInsights;
 };
 
 function emptyBucket(): StatBucket {
@@ -113,7 +178,7 @@ function participantItems(p: MatchParticipant): number[] {
   return [p.item0, p.item1, p.item2, p.item3, p.item4, p.item5];
 }
 
-function findLanerEnemy(
+export function findLanerEnemy(
   match: MatchDto,
   me: MatchParticipant,
 ): MatchParticipant | null {
@@ -128,13 +193,27 @@ function findLanerEnemy(
   );
 }
 
+export function findAllies(
+  match: MatchDto,
+  me: MatchParticipant,
+): MatchParticipant[] {
+  return match.info.participants.filter(
+    (p) => p.teamId === me.teamId && p.puuid !== me.puuid,
+  );
+}
+
 export function aggregatePlayerMatches(
   matches: MatchDto[],
   puuid: string,
 ): AggregateResult {
   const champMap = new Map<
     number,
-    { name: string; bucket: StatBucket; builds: Map<string, StatBucket> }
+    {
+      name: string;
+      bucket: StatBucket;
+      builds: Map<string, StatBucket>;
+      runes: Map<string, { role: RoleKey; bucket: StatBucket }>;
+    }
   >();
   const roleMap = new Map<RoleKey, StatBucket>();
   const matchupMap = new Map<
@@ -144,6 +223,48 @@ export function aggregatePlayerMatches(
       enemyChampionId: number;
       enemyChampionName: string;
       role: RoleKey;
+      bucket: StatBucket;
+    }
+  >();
+  const synergyMap = new Map<
+    string,
+    {
+      myChampionId: number;
+      allyChampionId: number;
+      allyChampionName: string;
+      bucket: StatBucket;
+    }
+  >();
+  const matchupBuildMap = new Map<
+    string,
+    {
+      myChampionId: number;
+      enemyChampionId: number;
+      enemyChampionName: string;
+      role: RoleKey;
+      fingerprint: string;
+      bucket: StatBucket;
+    }
+  >();
+  const matchupRuneMap = new Map<
+    string,
+    {
+      myChampionId: number;
+      enemyChampionId: number;
+      enemyChampionName: string;
+      role: RoleKey;
+      fingerprint: string;
+      bucket: StatBucket;
+    }
+  >();
+  const matchupSpellMap = new Map<
+    string,
+    {
+      myChampionId: number;
+      enemyChampionId: number;
+      enemyChampionName: string;
+      role: RoleKey;
+      fingerprint: string;
       bucket: StatBucket;
     }
   >();
@@ -166,6 +287,7 @@ export function aggregatePlayerMatches(
         name: me.championName,
         bucket: emptyBucket(),
         builds: new Map(),
+        runes: new Map(),
       });
     }
     const champ = champMap.get(me.championId)!;
@@ -174,6 +296,30 @@ export function aggregatePlayerMatches(
     const fp = buildFingerprint(participantItems(me));
     if (!champ.builds.has(fp)) champ.builds.set(fp, emptyBucket());
     addGame(champ.builds.get(fp)!, me, duration);
+
+    const runes = extractRunesFromParticipant(me);
+    if (runes.runeFingerprint && role !== "UNKNOWN") {
+      const runeKey = `${role}:${runes.runeFingerprint}`;
+      if (!champ.runes.has(runeKey)) {
+        champ.runes.set(runeKey, { role, bucket: emptyBucket() });
+      }
+      addGame(champ.runes.get(runeKey)!.bucket, me, duration);
+    }
+
+    const spells = extractSpells(me);
+
+    for (const ally of findAllies(match, me)) {
+      const key = `${me.championId}:${ally.championId}`;
+      if (!synergyMap.has(key)) {
+        synergyMap.set(key, {
+          myChampionId: me.championId,
+          allyChampionId: ally.championId,
+          allyChampionName: ally.championName,
+          bucket: emptyBucket(),
+        });
+      }
+      addGame(synergyMap.get(key)!.bucket, me, duration);
+    }
 
     const enemy = findLanerEnemy(match, me);
     if (enemy && role !== "UNKNOWN") {
@@ -188,6 +334,51 @@ export function aggregatePlayerMatches(
         });
       }
       addGame(matchupMap.get(key)!.bucket, me, duration);
+
+      if (fp !== "empty") {
+        const bKey = `${key}:${fp}`;
+        if (!matchupBuildMap.has(bKey)) {
+          matchupBuildMap.set(bKey, {
+            myChampionId: me.championId,
+            enemyChampionId: enemy.championId,
+            enemyChampionName: enemy.championName,
+            role,
+            fingerprint: fp,
+            bucket: emptyBucket(),
+          });
+        }
+        addGame(matchupBuildMap.get(bKey)!.bucket, me, duration);
+      }
+
+      if (runes.runeFingerprint) {
+        const rKey = `${key}:${runes.runeFingerprint}`;
+        if (!matchupRuneMap.has(rKey)) {
+          matchupRuneMap.set(rKey, {
+            myChampionId: me.championId,
+            enemyChampionId: enemy.championId,
+            enemyChampionName: enemy.championName,
+            role,
+            fingerprint: runes.runeFingerprint,
+            bucket: emptyBucket(),
+          });
+        }
+        addGame(matchupRuneMap.get(rKey)!.bucket, me, duration);
+      }
+
+      if (spells.spellFingerprint) {
+        const sKey = `${key}:${spells.spellFingerprint}`;
+        if (!matchupSpellMap.has(sKey)) {
+          matchupSpellMap.set(sKey, {
+            myChampionId: me.championId,
+            enemyChampionId: enemy.championId,
+            enemyChampionName: enemy.championName,
+            role,
+            fingerprint: spells.spellFingerprint,
+            bucket: emptyBucket(),
+          });
+        }
+        addGame(matchupSpellMap.get(sKey)!.bucket, me, duration);
+      }
     }
   }
 
@@ -200,10 +391,33 @@ export function aggregatePlayerMatches(
         .map(([fingerprint, bucket]) => ({
           ...finalize(bucket, baselineWr),
           fingerprint,
-          items: fingerprint === "empty" ? [] : fingerprint.split("-").map(Number),
+          items:
+            fingerprint === "empty" ? [] : fingerprint.split("-").map(Number),
           championId,
         }))
         .filter((b) => b.fingerprint !== "empty")
+        .sort((a, b) => b.wilsonLower - a.wilsonLower)
+        .slice(0, 5);
+
+      const topRunes: RuneInsight[] = [...data.runes.entries()]
+        .map(([runeKey, entry]) => {
+          const fingerprint = runeKey.slice(entry.role.length + 1);
+          const parsed = parseRuneFingerprint(fingerprint);
+          if (!parsed) return null;
+          return {
+            ...finalize(entry.bucket, baselineWr),
+            fingerprint,
+            primaryStyle: parsed.primaryStyle,
+            keystone: parsed.keystone,
+            subStyle: parsed.subStyle,
+            primaryPerkIds: parsed.primaryPerkIds,
+            subPerkIds: parsed.subPerkIds,
+            perkIds: parsed.perkIds,
+            championId,
+            role: entry.role,
+          };
+        })
+        .filter((r): r is RuneInsight => r != null)
         .sort((a, b) => b.wilsonLower - a.wilsonLower)
         .slice(0, 5);
 
@@ -218,12 +432,80 @@ export function aggregatePlayerMatches(
         }))
         .sort((a, b) => b.wilsonLower - a.wilsonLower);
 
+      const allySynergies: AllySynergyInsight[] = [...synergyMap.values()]
+        .filter((s) => s.myChampionId === championId)
+        .map((s) => ({
+          ...finalize(s.bucket, baselineWr),
+          myChampionId: s.myChampionId,
+          allyChampionId: s.allyChampionId,
+          allyChampionName: s.allyChampionName,
+        }))
+        .sort((a, b) => b.wilsonLower - a.wilsonLower)
+        .slice(0, 12);
+
+      const matchupBuilds: MatchupBuildInsight[] = [...matchupBuildMap.values()]
+        .filter((m) => m.myChampionId === championId)
+        .map((m) => ({
+          ...finalize(m.bucket, baselineWr),
+          myChampionId: m.myChampionId,
+          enemyChampionId: m.enemyChampionId,
+          enemyChampionName: m.enemyChampionName,
+          role: m.role,
+          fingerprint: m.fingerprint,
+          items: m.fingerprint.split("-").map(Number),
+        }))
+        .sort((a, b) => b.wilsonLower - a.wilsonLower)
+        .slice(0, 20);
+
+      const matchupRunes: MatchupRuneInsight[] = [...matchupRuneMap.values()]
+        .filter((m) => m.myChampionId === championId)
+        .map((m) => {
+          const parsed = parseRuneFingerprint(m.fingerprint);
+          if (!parsed) return null;
+          return {
+            ...finalize(m.bucket, baselineWr),
+            myChampionId: m.myChampionId,
+            enemyChampionId: m.enemyChampionId,
+            enemyChampionName: m.enemyChampionName,
+            role: m.role,
+            fingerprint: m.fingerprint,
+            primaryStyle: parsed.primaryStyle,
+            keystone: parsed.keystone,
+            subStyle: parsed.subStyle,
+            primaryPerkIds: parsed.primaryPerkIds,
+            subPerkIds: parsed.subPerkIds,
+            perkIds: parsed.perkIds,
+          };
+        })
+        .filter((r): r is MatchupRuneInsight => r != null)
+        .sort((a, b) => b.wilsonLower - a.wilsonLower)
+        .slice(0, 20);
+
+      const matchupSpells: MatchupSpellInsight[] = [...matchupSpellMap.values()]
+        .filter((m) => m.myChampionId === championId)
+        .map((m) => ({
+          ...finalize(m.bucket, baselineWr),
+          myChampionId: m.myChampionId,
+          enemyChampionId: m.enemyChampionId,
+          enemyChampionName: m.enemyChampionName,
+          role: m.role,
+          fingerprint: m.fingerprint,
+          spellIds: parseSpellFingerprint(m.fingerprint),
+        }))
+        .sort((a, b) => b.wilsonLower - a.wilsonLower)
+        .slice(0, 20);
+
       return {
         ...base,
         championId,
         championName: data.name,
         topBuilds,
+        topRunes,
         matchups,
+        allySynergies,
+        matchupBuilds,
+        matchupRunes,
+        matchupSpells,
       };
     })
     .sort((a, b) => b.wilsonLower - a.wilsonLower);
@@ -243,14 +525,33 @@ export function aggregatePlayerMatches(
       enemyChampionName: m.enemyChampionName,
       role: m.role,
     }))
-    .filter((m) => m.games >= MIN_SAMPLE_FOR_RECOMMENDATION);
+    .filter((m) => m.games >= MIN_SAMPLE_FOR_MATCHUP_DISPLAY);
 
   const bestMatchups = [...allMatchups]
-    .sort((a, b) => b.wilsonLower - a.wilsonLower)
-    .slice(0, 8);
+    .sort((a, b) => b.wilsonLower - a.wilsonLower || b.games - a.games)
+    .slice(0, 10);
   const worstMatchups = [...allMatchups]
-    .sort((a, b) => a.wilsonLower - b.wilsonLower)
-    .slice(0, 8);
+    .filter((m) => !bestMatchups.slice(0, 3).some(
+      (b) =>
+        b.myChampionId === m.myChampionId &&
+        b.enemyChampionId === m.enemyChampionId &&
+        b.role === m.role,
+    ))
+    .sort((a, b) => a.wilsonLower - b.wilsonLower || b.games - a.games)
+    .slice(0, 10);
+
+  const topAllySynergies: AllySynergyInsight[] = [...synergyMap.values()]
+    .map((s) => ({
+      ...finalize(s.bucket, baselineWr),
+      myChampionId: s.myChampionId,
+      allyChampionId: s.allyChampionId,
+      allyChampionName: s.allyChampionName,
+    }))
+    .filter((s) => s.games >= 3)
+    .sort((a, b) => b.wilsonLower - a.wilsonLower)
+    .slice(0, 12);
+
+  const temporal = buildTemporalInsights(matches, puuid, baselineWr);
 
   const topRecommendations = champions
     .filter((c) => c.games >= MIN_SAMPLE_FOR_RECOMMENDATION)
@@ -271,5 +572,7 @@ export function aggregatePlayerMatches(
     topRecommendations,
     bestMatchups,
     worstMatchups,
+    topAllySynergies,
+    temporal,
   };
 }

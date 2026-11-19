@@ -31,3 +31,6 @@ export function confidenceFromSample(games: number): ConfidenceLevel {
 }
 
 export const MIN_SAMPLE_FOR_RECOMMENDATION = 5;
+
+/** Matchups na UI: amostra menor (WR com confiança baixa). */
+export const MIN_SAMPLE_FOR_MATCHUP_DISPLAY = 2;
