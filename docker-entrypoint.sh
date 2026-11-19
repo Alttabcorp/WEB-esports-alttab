@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
 
-npx prisma migrate deploy
+# Migrações: `npx prisma migrate deploy` no host/CI antes do up
+# (Prisma CLI fica em devDependency; o standalone não embute o CLI completo).
 exec node server.js

@@ -1,16 +1,13 @@
 # League Persua — infra local + app
 #
-# Só infra (npm run dev no host):
+# Só infra local (npm run dev no host):
 #   npm run infra:up
 #   Postgres host :5436 · Redis host :6380
 #
-# Stack completo:
-#   npm run compose:up
-#
-# Postgres compartilhado (servidor):
+# Servidor (Postgres compartilhado + Redis deste compose + app):
 #   /home/garcon/infra/postgres/scripts/criar-servico.sh league_persua
-#   Depois: docker compose --profile app up -d redis app
-#   com DATABASE_URL @127.0.0.1:5432 ou @postgres:5432 (rede servicos)
+#   docker compose --profile app up -d --build
+#   App em http://localhost:3001 (3000 fica com o FinOps)
 
 services:
   postgres:
@@ -51,23 +48,31 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        DATABASE_URL: postgresql://league_persua:league_persua_dev@postgres:5432/league_persua?schema=public
+        DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:build@postgres:5432/league_persua?schema=public}
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       NODE_ENV: production
       HOSTNAME: "0.0.0.0"
       PORT: "3000"
-      DATABASE_URL: ${DATABASE_URL:-postgresql://league_persua:league_persua_dev@postgres:5432/league_persua?schema=public}
-      REDIS_URL: ${REDIS_URL:-redis://:league_persua_redis_dev@redis:6379}
+      DATABASE_URL: ${DATABASE_URL_DOCKER}
+      REDIS_URL: ${REDIS_URL_DOCKER:-redis://:${REDIS_PASSWORD:-league_persua_redis_dev}@redis:6379}
       RIOT_API_KEY: ${RIOT_API_KEY:-}
       RIOT_DEFAULT_REGION: ${RIOT_DEFAULT_REGION:-br1}
       RIOT_APP_ID: ${RIOT_APP_ID:-364635}
+      LIVE_AGENT_TOKEN: ${LIVE_AGENT_TOKEN:-}
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - default
+      - servicos
 
 volumes:
   league_persua_pg:
   league_persua_redis:
+
+networks:
+  servicos:
+    external: true

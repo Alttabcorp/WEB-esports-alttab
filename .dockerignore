@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+coverage
+npm-debug.log*
+Dockerfile
+docker-compose.yml
+.vscode
+.idea
+src/generated
