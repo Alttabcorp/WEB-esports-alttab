@@ -19,10 +19,69 @@ model Player {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  matches      PlayerMatch[]
-  analysisRuns AnalysisRun[]
+  matches          PlayerMatch[]
+  analysisRuns     AnalysisRun[]
+  draftSessions    DraftSession[]
+  rankSnapshots    RankSnapshot[]
+  appProfile       AppProfile?
+  asReferenceFor   ReferencePlayer[]
 
   @@index([platform, gameName, tagLine])
+}
+
+/** Snapshot de elo/LP para ledger de PDL do dia. */
+model RankSnapshot {
+  id         String   @id @default(cuid())
+  playerId   String
+  queueType  String
+  tier       String
+  rank       String
+  lp         Int
+  wins       Int
+  losses     Int
+  /** Pontuação linear na ladder (comparável entre snapshots). */
+  ladderScore Int
+  source     String   @default("sync")
+  createdAt  DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, queueType, createdAt(sort: Desc)])
+  @@index([playerId, createdAt(sort: Desc)])
+}
+
+/** Perfil padrão do coach neste servidor (um invocador “eu”). */
+model AppProfile {
+  id            String   @id @default("default")
+  playerId      String   @unique
+  preferredRole String   @default("MIDDLE")
+  queue         String   @default("ranked")
+  matchCount    Int      @default(50)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  player           Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  referencePlayers ReferencePlayer[]
+}
+
+/** Jogadores que você usa de referência (monos, builds, etc.). */
+model ReferencePlayer {
+  id           String   @id @default(cuid())
+  appProfileId String   @default("default")
+  playerId     String
+  label        String?
+  notes        String?
+  /** Campeões de interesse; vazio = todos. */
+  championIds  Int[]    @default([])
+  matchCount   Int      @default(100)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  appProfile AppProfile @relation(fields: [appProfileId], references: [id], onDelete: Cascade)
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([appProfileId, playerId])
+  @@index([appProfileId])
 }
 
 model Match {
@@ -31,27 +90,43 @@ model Match {
   queueId      Int
   gameCreation BigInt
   gameDuration Int
+  gameVersion  String?
   payload      Json
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   players PlayerMatch[]
+
+  @@index([gameVersion])
 }
 
 model PlayerMatch {
-  id         String  @id @default(cuid())
-  playerId   String
-  matchId    String
-  championId Int
-  win        Boolean
-  role       String
-  items      Int[]
+  id               String  @id @default(cuid())
+  playerId         String
+  matchId          String
+  championId       Int
+  win              Boolean
+  role             String
+  items            Int[]
+  enemyChampionId  Int?
+  allyChampionIds  Int[]   @default([])
+  primaryStyle     Int?
+  subStyle         Int?
+  keystone         Int?
+  perkIds          Int[]   @default([])
+  runeFingerprint  String?
+  summoner1Id      Int?
+  summoner2Id      Int?
+  spellFingerprint String?
 
   player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
   match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, matchId])
   @@index([playerId, championId])
+  @@index([playerId, role])
+  @@index([playerId, championId, role])
+  @@index([playerId, enemyChampionId])
 }
 
 model AnalysisRun {
@@ -65,11 +140,16 @@ model AnalysisRun {
   result         Json
   createdAt      DateTime @default(now())
 
-  player         Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  championStats  ChampionStat[]
-  buildStats     BuildStat[]
-  matchupStats   MatchupStat[]
-  roleStats      RoleStat[]
+  player            Player              @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  championStats     ChampionStat[]
+  buildStats        BuildStat[]
+  matchupStats      MatchupStat[]
+  roleStats         RoleStat[]
+  runeStats         RuneStat[]
+  allySynergyStats  AllySynergyStat[]
+  matchupBuildStats MatchupBuildStat[]
+  matchupRuneStats  MatchupRuneStat[]
+  matchupSpellStats MatchupSpellStat[]
 
   @@index([playerId, queue, count, createdAt(sort: Desc)])
 }
@@ -147,4 +227,151 @@ model RoleStat {
   analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
 
   @@index([analysisRunId, role])
+}
+
+model RuneStat {
+  id             String @id @default(cuid())
+  analysisRunId  String
+  championId     Int
+  role           String
+  fingerprint    String
+  primaryStyle   Int
+  keystone       Int
+  subStyle       Int
+  primaryPerkIds Int[]  @default([])
+  subPerkIds     Int[]  @default([])
+  perkIds        Int[]  @default([])
+  games          Int
+  wins           Int
+  wr             Float
+  wilsonLower    Float
+  lift           Float
+  confidence     String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, championId, role, wilsonLower(sort: Desc)])
+}
+
+model AllySynergyStat {
+  id               String @id @default(cuid())
+  analysisRunId    String
+  myChampionId     Int
+  allyChampionId   Int
+  allyChampionName String
+  games            Int
+  wins             Int
+  wr               Float
+  wilsonLower      Float
+  lift             Float
+  confidence       String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, wilsonLower(sort: Desc)])
+  @@index([analysisRunId, allyChampionId])
+}
+
+model MatchupBuildStat {
+  id                String @id @default(cuid())
+  analysisRunId     String
+  myChampionId      Int
+  enemyChampionId   Int
+  enemyChampionName String
+  role              String
+  fingerprint       String
+  items             Int[]
+  games             Int
+  wins              Int
+  wr                Float
+  wilsonLower       Float
+  lift              Float
+  confidence        String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, myChampionId, enemyChampionId, wilsonLower(sort: Desc)])
+}
+
+model MatchupRuneStat {
+  id                String @id @default(cuid())
+  analysisRunId     String
+  myChampionId      Int
+  enemyChampionId   Int
+  enemyChampionName String
+  role              String
+  fingerprint       String
+  primaryStyle      Int
+  keystone          Int
+  subStyle          Int
+  primaryPerkIds    Int[]  @default([])
+  subPerkIds        Int[]  @default([])
+  perkIds           Int[]  @default([])
+  games             Int
+  wins              Int
+  wr                Float
+  wilsonLower       Float
+  lift              Float
+  confidence        String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, myChampionId, enemyChampionId, wilsonLower(sort: Desc)])
+}
+
+model MatchupSpellStat {
+  id                String @id @default(cuid())
+  analysisRunId     String
+  myChampionId      Int
+  enemyChampionId   Int
+  enemyChampionName String
+  role              String
+  fingerprint       String
+  spellIds          Int[]
+  games             Int
+  wins              Int
+  wr                Float
+  wilsonLower       Float
+  lift              Float
+  confidence        String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, myChampionId, enemyChampionId, wilsonLower(sort: Desc)])
+}
+
+/** Snapshot de meta externa (mesmo elo / high elo) por campeão. */
+model MetaSnapshot {
+  id            String   @id @default(cuid())
+  platform      String
+  championId    Int
+  band          String   // PEER | HIGH
+  tier          String?
+  division      String?
+  samplePlayers Int
+  sampleGames   Int
+  result        Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([platform, championId, band, tier, division])
+  @@index([platform, championId, band, createdAt(sort: Desc)])
+}
+
+model DraftSession {
+  id                     String   @id @default(cuid())
+  playerId               String
+  role                   String
+  allyChampionIds        Int[]    @default([])
+  enemyChampionIds       Int[]    @default([])
+  bannedChampionIds      Int[]    @default([])
+  recommendedChampionIds Int[]    @default([])
+  pickedChampionId       Int?
+  resultJson             Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt(sort: Desc)])
 }
