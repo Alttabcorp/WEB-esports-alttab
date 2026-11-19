@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Player {
+  id             String   @id @default(cuid())
+  puuid          String   @unique
+  gameName       String
+  tagLine        String
+  platform       String
+  profileIconId  Int?
+  summonerLevel  Int?
+  rankedJson     Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  matches      PlayerMatch[]
+  analysisRuns AnalysisRun[]
+
+  @@index([platform, gameName, tagLine])
+}
+
+model Match {
+  id           String   @id @default(cuid())
+  matchId      String   @unique
+  queueId      Int
+  gameCreation BigInt
+  gameDuration Int
+  payload      Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  players PlayerMatch[]
+}
+
+model PlayerMatch {
+  id         String  @id @default(cuid())
+  playerId   String
+  matchId    String
+  championId Int
+  win        Boolean
+  role       String
+  items      Int[]
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match  Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, matchId])
+  @@index([playerId, championId])
+}
+
+model AnalysisRun {
+  id             String   @id @default(cuid())
+  playerId       String
+  queue          String
+  count          Int
+  analyzedGames  Int
+  wins           Int
+  overallWr      Float
+  result         Json
+  createdAt      DateTime @default(now())
+
+  player         Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  championStats  ChampionStat[]
+  buildStats     BuildStat[]
+  matchupStats   MatchupStat[]
+  roleStats      RoleStat[]
+
+  @@index([playerId, queue, count, createdAt(sort: Desc)])
+}
+
+model ChampionStat {
+  id             String @id @default(cuid())
+  analysisRunId  String
+  championId     Int
+  championName   String
+  games          Int
+  wins           Int
+  wr             Float
+  wilsonLower    Float
+  lift           Float
+  confidence     String
+  kda            Float
+  csPerMin       Float
+  avgDamage      Float
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, wilsonLower(sort: Desc)])
+  @@index([championId])
+}
+
+model BuildStat {
+  id            String @id @default(cuid())
+  analysisRunId String
+  championId    Int
+  fingerprint   String
+  items         Int[]
+  games         Int
+  wins          Int
+  wr            Float
+  wilsonLower   Float
+  lift          Float
+  confidence    String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, championId, wilsonLower(sort: Desc)])
+}
+
+model MatchupStat {
+  id                 String @id @default(cuid())
+  analysisRunId      String
+  myChampionId       Int
+  enemyChampionId    Int
+  enemyChampionName  String
+  role               String
+  games              Int
+  wins               Int
+  wr                 Float
+  wilsonLower        Float
+  lift               Float
+  confidence         String
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, wilsonLower(sort: Desc)])
+}
+
+model RoleStat {
+  id            String @id @default(cuid())
+  analysisRunId String
+  role          String
+  games         Int
+  wins          Int
+  wr            Float
+  wilsonLower   Float
+  lift          Float
+  confidence    String
+  kda           Float
+
+  analysisRun AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([analysisRunId, role])
+}
