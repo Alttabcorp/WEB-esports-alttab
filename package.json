@@ -1,0 +1,47 @@
+{
+  "name": "league-persua",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "infra:up": "docker compose --profile local-db up -d postgres redis",
+    "infra:down": "docker compose --profile local-db --profile app down",
+    "infra:logs": "docker compose --profile local-db logs -f postgres redis",
+    "compose:up": "docker compose --profile local-db --profile app up -d --build",
+    "compose:down": "docker compose --profile local-db --profile app down",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "dotenv": "^17.2.3",
+    "ioredis": "^6.0.0",
+    "next": "16.4.6",
+    "pg": "^8.16.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^20",
+    "@types/pg": "^8.15.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "prisma": "^7.9.1",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}
