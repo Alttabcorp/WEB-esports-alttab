@@ -5,18 +5,26 @@ import {
   setCachedMatch,
 } from "@/lib/cache/matches";
 import {
+  findPlayerByIdentity,
   findPlayerByPuuid,
   getFreshAnalysisRun,
+  getLatestAnalysisRun,
   getMatchFromDb,
+  getStoredMatchesForPlayer,
   persistAnalysisRun,
   persistMatchesForPlayer,
   upsertPlayer,
 } from "@/lib/db/persist";
 import { aggregatePlayerMatches, type AggregateResult } from "@/lib/stats/aggregate";
+import {
+  clampMatchCount,
+  RIOT_MATCH_PAGE_SIZE,
+} from "@/lib/stats/limits";
 import { getRiotClient, resolveRouting } from "./client";
 import type { PlatformRegion } from "./regions";
 import type { LeagueEntryDto, MatchDto, QueueFilter, SummonerDto } from "./types";
 import { QUEUE_IDS } from "./types";
+import type { RoutingRegion } from "./regions";
 
 export type AnalyzeOptions = {
   platform: PlatformRegion;
@@ -25,51 +33,72 @@ export type AnalyzeOptions = {
   count?: number;
   /** When provided, skips Riot identity calls for persistence upsert. */
   profile?: SummonerProfile;
+  /** Força baixar IDs/partidas novas na Riot (ignora preferência de DB). */
+  forceRefresh?: boolean;
+  /**
+   * Prefere análise/partidas já no Postgres (padrão true).
+   * Só chama Riot se não houver dados locais suficientes.
+   */
+  preferDb?: boolean;
 };
 
 export type AnalyzeResponse = AggregateResult & {
   cached: boolean;
   matchIdsFetched: number;
   queue: QueueFilter;
+  source?: "db" | "riot" | "redis";
 };
+
+async function fetchMatchIdPages(
+  routing: RoutingRegion,
+  puuid: string,
+  total: number,
+  queue?: number,
+): Promise<string[]> {
+  const client = getRiotClient();
+  const ids: string[] = [];
+  let start = 0;
+  while (ids.length < total) {
+    const pageSize = Math.min(RIOT_MATCH_PAGE_SIZE, total - ids.length);
+    const page = await client.getMatchIdsByPuuid(routing, puuid, {
+      start,
+      count: pageSize,
+      queue,
+    });
+    if (page.length === 0) break;
+    ids.push(...page);
+    if (page.length < pageSize) break;
+    start += page.length;
+  }
+  return ids;
+}
 
 export async function fetchMatchesForPlayer(
   options: AnalyzeOptions,
 ): Promise<{ matches: MatchDto[]; matchIds: string[] }> {
   const client = getRiotClient();
   const routing = resolveRouting(options.platform);
-  const count = Math.min(Math.max(options.count ?? 50, 1), 100);
+  const count = clampMatchCount(options.count);
   const queue = options.queue ?? "ranked";
 
   let matchIds: string[] = [];
 
   if (queue === "all") {
-    matchIds = await client.getMatchIdsByPuuid(routing, options.puuid, {
-      count,
-    });
+    matchIds = await fetchMatchIdPages(routing, options.puuid, count);
   } else if (queue === "ranked") {
     const [solo, flex] = await Promise.all([
-      client.getMatchIdsByPuuid(routing, options.puuid, {
-        count,
-        queue: 420,
-      }),
-      client.getMatchIdsByPuuid(routing, options.puuid, {
-        count,
-        queue: 440,
-      }),
+      fetchMatchIdPages(routing, options.puuid, count, 420),
+      fetchMatchIdPages(routing, options.puuid, count, 440),
     ]);
     matchIds = mergeNewestFirst(solo, flex).slice(0, count);
   } else {
     const queueIds = QUEUE_IDS[queue];
     const batches = await Promise.all(
       queueIds.map((q) =>
-        client.getMatchIdsByPuuid(routing, options.puuid, {
-          count,
-          queue: q,
-        }),
+        fetchMatchIdPages(routing, options.puuid, count, q),
       ),
     );
-    matchIds = batches.flat().slice(0, count);
+    matchIds = mergeNewestFirst(batches.flat(), []).slice(0, count);
   }
 
   const matches: MatchDto[] = [];
@@ -99,17 +128,25 @@ export async function analyzePlayer(
   options: AnalyzeOptions,
 ): Promise<AnalyzeResponse> {
   const queue = options.queue ?? "ranked";
-  const count = Math.min(Math.max(options.count ?? 50, 1), 100);
-  const cacheKey = `${options.puuid}:${options.platform}:${queue}:${count}`;
+  const count = clampMatchCount(options.count);
+  const forceRefresh = options.forceRefresh === true;
+  const preferDb = options.preferDb !== false;
+  const cacheKey = `${options.puuid}:${options.platform}:${queue}:${count}:v3`;
 
-  const cachedRedis = await getCachedAggregate<AnalyzeResponse>(cacheKey);
-  if (cachedRedis) {
-    return { ...cachedRedis, cached: true };
+  if (!forceRefresh) {
+    const cachedRedis = await getCachedAggregate<AnalyzeResponse>(cacheKey);
+    if (cachedRedis?.temporal?.byDayOfWeek?.length) {
+      return {
+        ...cachedRedis,
+        cached: true,
+        source: cachedRedis.source ?? "redis",
+      };
+    }
   }
 
   let playerId: string | null = null;
 
-  if (options.profile) {
+  if (options.profile && (!preferDb || forceRefresh)) {
     const player = await upsertPlayer({
       puuid: options.profile.puuid,
       gameName: options.profile.gameName,
@@ -119,16 +156,64 @@ export async function analyzePlayer(
       ranked: options.profile.ranked,
     });
     playerId = player.id;
+  } else if (options.profile) {
+    const existing = await findPlayerByPuuid(options.puuid);
+    if (existing) {
+      playerId = existing.id;
+    } else {
+      const player = await upsertPlayer({
+        puuid: options.profile.puuid,
+        gameName: options.profile.gameName,
+        tagLine: options.profile.tagLine,
+        platform: options.profile.platform,
+        summoner: options.profile.summoner,
+        ranked: options.profile.ranked,
+      });
+      playerId = player.id;
+    }
   } else {
     const existing = await findPlayerByPuuid(options.puuid);
     playerId = existing?.id ?? null;
   }
 
-  if (playerId) {
-    const fresh = await getFreshAnalysisRun(playerId, queue, count);
-    if (fresh) {
-      await setCachedAggregate(cacheKey, fresh);
-      return fresh;
+  if (playerId && !forceRefresh) {
+    if (preferDb) {
+      const stored = await getStoredMatchesForPlayer(playerId, {
+        count,
+        queue,
+      });
+      if (stored.length > 0) {
+        const stats = aggregatePlayerMatches(stored, options.puuid);
+        const result: AnalyzeResponse = {
+          ...stats,
+          cached: true,
+          matchIdsFetched: stored.length,
+          queue,
+          source: "db",
+        };
+        await persistAnalysisRun({
+          playerId,
+          queue,
+          count,
+          stats,
+        });
+        await setCachedAggregate(cacheKey, result);
+        return result;
+      }
+
+      const latest = await getLatestAnalysisRun(playerId, queue, count, {
+        allowNearbyCount: true,
+      });
+      if (latest && latest.analyzedGames > 0 && latest.temporal?.byDayOfWeek?.length) {
+        await setCachedAggregate(cacheKey, latest);
+        return latest;
+      }
+    } else {
+      const fresh = await getFreshAnalysisRun(playerId, queue, count);
+      if (fresh?.temporal?.byDayOfWeek?.length) {
+        await setCachedAggregate(cacheKey, fresh);
+        return fresh;
+      }
     }
   }
 
@@ -144,6 +229,7 @@ export async function analyzePlayer(
     cached: false,
     matchIdsFetched: matchIds.length,
     queue,
+    source: "riot",
   };
 
   if (playerId) {
@@ -173,7 +259,16 @@ export async function resolveSummonerProfile(
   platform: PlatformRegion,
   gameName: string,
   tagLine: string,
+  options?: { preferDb?: boolean; forceRefresh?: boolean },
 ): Promise<SummonerProfile> {
+  const preferDb = options?.preferDb !== false;
+  const forceRefresh = options?.forceRefresh === true;
+
+  if (preferDb && !forceRefresh) {
+    const fromDb = await resolveSummonerFromDb(platform, gameName, tagLine);
+    if (fromDb) return fromDb;
+  }
+
   const client = getRiotClient();
   const routing = resolveRouting(platform);
   const account = await client.getAccountByRiotId(routing, gameName, tagLine);
@@ -212,6 +307,38 @@ export async function resolveSummonerProfile(
   });
 
   return profile;
+}
+
+/** Identidade + ranked a partir do Player no Postgres. */
+export async function resolveSummonerFromDb(
+  platform: PlatformRegion,
+  gameName: string,
+  tagLine: string,
+): Promise<SummonerProfile | null> {
+  const player = await findPlayerByIdentity(platform, gameName, tagLine);
+  if (!player) return null;
+
+  const ranked = (player.rankedJson as LeagueEntryDto[] | null) ?? [];
+  const summoner: SummonerDto | null =
+    player.profileIconId != null
+      ? {
+          id: "",
+          accountId: "",
+          puuid: player.puuid,
+          profileIconId: player.profileIconId,
+          revisionDate: 0,
+          summonerLevel: player.summonerLevel ?? 0,
+        }
+      : null;
+
+  return {
+    gameName: player.gameName,
+    tagLine: player.tagLine,
+    puuid: player.puuid,
+    platform: player.platform as PlatformRegion,
+    summoner,
+    ranked,
+  };
 }
 
 export function parseRiotId(

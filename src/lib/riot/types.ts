@@ -25,6 +25,66 @@ export type LeagueEntryDto = {
   veteran: boolean;
   freshBlood: boolean;
   inactive: boolean;
+  /** Presente nas respostas recentes da Riot. */
+  puuid?: string;
+  summonerId?: string;
+};
+
+export type LeagueItemDto = {
+  puuid?: string;
+  summonerId?: string;
+  leaguePoints: number;
+  rank: string;
+  wins: number;
+  losses: number;
+  hotStreak?: boolean;
+  veteran?: boolean;
+  freshBlood?: boolean;
+  inactive?: boolean;
+};
+
+export type LeagueListDto = {
+  tier: string;
+  leagueId: string;
+  queue: string;
+  name: string;
+  entries: LeagueItemDto[];
+};
+
+export type RankedTier =
+  | "IRON"
+  | "BRONZE"
+  | "SILVER"
+  | "GOLD"
+  | "PLATINUM"
+  | "EMERALD"
+  | "DIAMOND"
+  | "MASTER"
+  | "GRANDMASTER"
+  | "CHALLENGER";
+
+export type RankedDivision = "I" | "II" | "III" | "IV";
+
+export type PerkSelection = {
+  perk: number;
+  var1: number;
+  var2: number;
+  var3: number;
+};
+
+export type PerkStyle = {
+  description: string;
+  style: number;
+  selections: PerkSelection[];
+};
+
+export type ParticipantPerks = {
+  statPerks: {
+    defense: number;
+    flex: number;
+    offense: number;
+  };
+  styles: PerkStyle[];
 };
 
 export type MatchParticipant = {
@@ -54,6 +114,9 @@ export type MatchParticipant = {
   champLevel: number;
   goldEarned: number;
   timePlayed: number;
+  summoner1Id?: number;
+  summoner2Id?: number;
+  perks?: ParticipantPerks;
 };
 
 export type MatchDto = {
@@ -66,6 +129,8 @@ export type MatchDto = {
     gameDuration: number;
     gameMode: string;
     gameType: string;
+    /** Ex.: "14.23.590.6953" — usado para filtrar por patch. */
+    gameVersion?: string;
     queueId: number;
     mapId: number;
     participants: MatchParticipant[];
@@ -78,4 +143,35 @@ export const QUEUE_IDS: Record<Exclude<QueueFilter, "all">, number[]> = {
   solo: [420],
   flex: [440],
   ranked: [420, 440],
+};
+
+/** Spectator-V5 — partida em andamento. */
+export type CurrentGameParticipant = {
+  puuid?: string;
+  riotId?: string;
+  summonerName?: string;
+  teamId: number;
+  championId: number;
+  spell1Id: number;
+  spell2Id: number;
+  profileIconId?: number;
+  bot?: boolean;
+  perks?: {
+    perkIds: number[];
+    perkStyle: number;
+    perkSubStyle: number;
+  };
+};
+
+export type CurrentGameInfo = {
+  gameId: number;
+  gameType: string;
+  gameStartTime: number;
+  mapId: number;
+  gameLength: number;
+  platformId: string;
+  gameMode: string;
+  bannedChampions: { championId: number; teamId: number; pickTurn: number }[];
+  gameQueueConfigId?: number;
+  participants: CurrentGameParticipant[];
 };

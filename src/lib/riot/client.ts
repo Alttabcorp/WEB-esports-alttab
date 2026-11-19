@@ -7,8 +7,12 @@ import {
 } from "./regions";
 import type {
   AccountDto,
+  CurrentGameInfo,
   LeagueEntryDto,
+  LeagueListDto,
   MatchDto,
+  RankedDivision,
+  RankedTier,
   SummonerDto,
 } from "./types";
 
@@ -221,6 +225,70 @@ class RiotClient {
     return this.fetchJson(
       routingHost(routing),
       `/lol/match/v5/matches/${encodeURIComponent(matchId)}`,
+    );
+  }
+
+  /** Partida ao vivo; lança RiotApiError 404 se não estiver em game. */
+  getActiveGameByPuuid(
+    platform: PlatformRegion,
+    puuid: string,
+  ): Promise<CurrentGameInfo> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/spectator/v5/active-games/by-summoner/${encodeURIComponent(puuid)}`,
+    );
+  }
+
+  getChallengerLeague(
+    platform: PlatformRegion,
+    queue = "RANKED_SOLO_5x5",
+  ): Promise<LeagueListDto> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/league/v4/challengerleagues/by-queue/${queue}`,
+    );
+  }
+
+  getGrandmasterLeague(
+    platform: PlatformRegion,
+    queue = "RANKED_SOLO_5x5",
+  ): Promise<LeagueListDto> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/league/v4/grandmasterleagues/by-queue/${queue}`,
+    );
+  }
+
+  getMasterLeague(
+    platform: PlatformRegion,
+    queue = "RANKED_SOLO_5x5",
+  ): Promise<LeagueListDto> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/league/v4/masterleagues/by-queue/${queue}`,
+    );
+  }
+
+  getLeagueEntries(
+    platform: PlatformRegion,
+    tier: RankedTier,
+    division: RankedDivision,
+    page = 1,
+    queue = "RANKED_SOLO_5x5",
+  ): Promise<LeagueEntryDto[]> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/league/v4/entries/${queue}/${tier}/${division}?page=${page}`,
+    );
+  }
+
+  getSummonerById(
+    platform: PlatformRegion,
+    summonerId: string,
+  ): Promise<SummonerDto> {
+    return this.fetchJson(
+      platformHost(platform),
+      `/lol/summoner/v4/summoners/${encodeURIComponent(summonerId)}`,
     );
   }
 }
