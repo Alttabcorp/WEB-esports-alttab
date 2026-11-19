@@ -1,5 +1,13 @@
 # 🎮 ALTTAB Esports - Recrutamento & MVP
 
+> **League Persua (Next.js):** coach estatístico LoL na branch `league-persua`.  
+> Setup (Postgres + Redis + Docker) em **[LEAGUE-PERSUA.md](LEAGUE-PERSUA.md)**.  
+> `cp .env.example .env.local && npm install && npm run infra:up && npm run db:migrate && npm run dev`
+
+---
+
+# Landing HTML (legado)
+
 <div align="center">
 
 ![ALTTAB Esports](https://avatars.githubusercontent.com/u/89790306?s=96&v=4)
