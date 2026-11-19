@@ -1,30 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #061018;
-  --foreground: #f4f7f8;
+  --background: #070c10;
+  --foreground: #e8eef1;
   --alttab: #0596aa;
   --alttab-soft: #7dd3de;
-  --surface: rgba(0, 0, 0, 0.4);
+  --alttab-deep: #047a8a;
+  --surface: #0e161c;
+  --surface-2: #121c24;
+  --surface-raised: #162028;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(5, 150, 170, 0.4);
+  --muted: #8b9aa3;
+  --muted-strong: #a8b5bd;
+  --team-blue: #3b82f6;
+  --team-red: #ef4444;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --focus-ring: rgba(5, 150, 170, 0.55);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-alttab: var(--alttab);
+  --color-alttab-soft: var(--alttab-soft);
+  --color-alttab-deep: var(--alttab-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
 }
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(5, 150, 170, 0.28), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(8, 60, 80, 0.45), transparent 50%),
-    linear-gradient(160deg, #041018 0%, #0a1c24 45%, #07141b 100%);
+    linear-gradient(180deg, #0a1218 0%, var(--background) 28%, #060a0e 100%);
   color: var(--foreground);
   min-height: 100vh;
+  min-height: 100dvh;
+  font-feature-settings: "ss01" on, "cv11" on, "tnum" on;
 }
 
 ::selection {
   background: rgba(5, 150, 170, 0.45);
   color: white;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0.75rem;
+}
+
+.panel-strong {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  border-radius: 0.75rem;
+}
+
+.data-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

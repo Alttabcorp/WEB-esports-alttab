@@ -5,12 +5,17 @@ import { useState, type FormEvent } from "react";
 import { PLATFORM_REGIONS, type PlatformRegion } from "@/lib/riot/regions";
 import type { QueueFilter } from "@/lib/riot/types";
 import { encodeRiotId } from "@/lib/format";
+import { MATCH_COUNT_OPTIONS } from "@/lib/stats/limits";
+import { Button } from "@/components/ui";
 
 type Props = {
   defaultRegion?: PlatformRegion;
   defaultQueue?: QueueFilter;
   defaultRiotId?: string;
 };
+
+const fieldClass =
+  "min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white outline-none placeholder:text-[var(--muted)] focus:border-[var(--border-strong)]";
 
 export function SearchForm({
   defaultRegion = "br1",
@@ -21,7 +26,7 @@ export function SearchForm({
   const [riotId, setRiotId] = useState(defaultRiotId);
   const [region, setRegion] = useState<PlatformRegion>(defaultRegion);
   const [queue, setQueue] = useState<QueueFilter>(defaultQueue);
-  const [count, setCount] = useState(50);
+  const [count, setCount] = useState(200);
   const [error, setError] = useState<string | null>(null);
 
   function onSubmit(e: FormEvent) {
@@ -47,12 +52,12 @@ export function SearchForm({
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="w-full max-w-2xl space-y-4 rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur"
-    >
+    <form onSubmit={onSubmit} className="w-full space-y-4">
       <div>
-        <label htmlFor="riotId" className="mb-1.5 block text-sm text-zinc-300">
+        <label
+          htmlFor="riotId"
+          className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+        >
           Riot ID
         </label>
         <input
@@ -60,7 +65,7 @@ export function SearchForm({
           value={riotId}
           onChange={(e) => setRiotId(e.target.value)}
           placeholder="Nome#TAG"
-          className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-lg text-white outline-none ring-[#0596aa]/40 placeholder:text-zinc-500 focus:ring-2"
+          className={`${fieldClass} text-lg`}
           autoComplete="off"
           required
         />
@@ -68,14 +73,17 @@ export function SearchForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
-          <label htmlFor="region" className="mb-1.5 block text-sm text-zinc-300">
+          <label
+            htmlFor="region"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
             Região
           </label>
           <select
             id="region"
             value={region}
             onChange={(e) => setRegion(e.target.value as PlatformRegion)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className={fieldClass}
           >
             {PLATFORM_REGIONS.map((r) => (
               <option key={r.value} value={r.value}>
@@ -86,14 +94,17 @@ export function SearchForm({
         </div>
 
         <div>
-          <label htmlFor="queue" className="mb-1.5 block text-sm text-zinc-300">
+          <label
+            htmlFor="queue"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
             Modo
           </label>
           <select
             id="queue"
             value={queue}
             onChange={(e) => setQueue(e.target.value as QueueFilter)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className={fieldClass}
           >
             <option value="ranked">Ranked (Solo + Flex)</option>
             <option value="solo">Ranked Solo/Duo</option>
@@ -103,31 +114,36 @@ export function SearchForm({
         </div>
 
         <div>
-          <label htmlFor="count" className="mb-1.5 block text-sm text-zinc-300">
+          <label
+            htmlFor="count"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
             Partidas
           </label>
           <select
             id="count"
             value={count}
             onChange={(e) => setCount(Number(e.target.value))}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className={fieldClass}
           >
-            <option value={30}>30</option>
-            <option value={50}>50</option>
-            <option value={80}>80</option>
-            <option value={100}>100</option>
+            {MATCH_COUNT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-red-300" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-      <button
-        type="submit"
-        className="w-full rounded-xl bg-[#0596aa] px-4 py-3 text-base font-semibold text-white transition hover:bg-[#047a8a] focus:outline-none focus:ring-2 focus:ring-[#0596aa]/50"
-      >
+      <Button type="submit" size="lg" className="w-full">
         Analisar histórico
-      </button>
+      </Button>
     </form>
   );
 }
