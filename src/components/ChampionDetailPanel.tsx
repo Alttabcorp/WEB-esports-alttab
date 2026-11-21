@@ -15,9 +15,16 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 import { DataOriginBadge } from "./DataOriginBadge";
 import { MetaComparePanel } from "./MetaComparePanel";
 import { ReferencePlayersPanel } from "./ReferencePlayersPanel";
+import { MatchDetailBody } from "./MatchHistoryPanel";
 import { Button, Panel, Stat, Tabs } from "@/components/ui";
 
-type DetailTab = "overview" | "builds" | "compare" | "matchups" | "history";
+type DetailTab =
+  | "overview"
+  | "builds"
+  | "runes"
+  | "compare"
+  | "matchups"
+  | "history";
 
 type Props = {
   champion: ChampionInsight;
@@ -32,6 +39,8 @@ type Props = {
   lpAvg?: number | null;
   lpGames?: number | null;
   onOpenModal?: (tab: "refs" | "meta" | "more-builds" | "more-runes") => void;
+  /** Esconde busca/select quando a seleção vem de uma lista ao lado (ex.: Ranking). */
+  hidePicker?: boolean;
 };
 
 export function ChampionDetailPanel({
@@ -47,9 +56,11 @@ export function ChampionDetailPanel({
   lpAvg = null,
   lpGames = null,
   onOpenModal,
+  hidePicker = false,
 }: Props) {
   const [tab, setTab] = useState<DetailTab>("overview");
   const [query, setQuery] = useState("");
+  const [openMatchId, setOpenMatchId] = useState<string | null>(null);
 
   // Quando o ranking/pai muda o champ, limpa a busca pra não “prender” o select.
   useEffect(() => {
@@ -112,51 +123,53 @@ export function ChampionDetailPanel({
 
   return (
     <Panel className="min-w-0 space-y-3 p-3 sm:p-4">
-      <div className="space-y-2">
-        <label className="data-label" htmlFor="champ-picker">
-          Selecionar campeão
-        </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              const first = filteredPicker.find(
-                (c) => c.championId !== champion.championId,
-              ) ?? filteredPicker[0];
-              if (first) {
-                onSelect(first.championId);
+      {!hidePicker ? (
+        <div className="space-y-2">
+          <label className="data-label" htmlFor="champ-picker">
+            Selecionar campeão
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const first = filteredPicker.find(
+                  (c) => c.championId !== champion.championId,
+                ) ?? filteredPicker[0];
+                if (first) {
+                  onSelect(first.championId);
+                  setQuery("");
+                }
+              }}
+              placeholder="Buscar e Enter para selecionar…"
+              className="min-h-9 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
+            />
+            <select
+              id="champ-picker"
+              value={champion.championId}
+              onChange={(e) => {
+                onSelect(Number(e.target.value));
                 setQuery("");
-              }
-            }}
-            placeholder="Buscar e Enter para selecionar…"
-            className="min-h-9 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
-          />
-          <select
-            id="champ-picker"
-            value={champion.championId}
-            onChange={(e) => {
-              onSelect(Number(e.target.value));
-              setQuery("");
-            }}
-            className="min-h-9 min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)]"
-          >
-            {filteredPicker.map((c) => (
-              <option key={c.championId} value={c.championId}>
-                {c.championName} · {c.games} jogos · {pct(c.wr)}
-              </option>
-            ))}
-          </select>
+              }}
+              className="min-h-9 min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)]"
+            >
+              {filteredPicker.map((c) => (
+                <option key={c.championId} value={c.championId}>
+                  {c.championName} · {c.games} jogos · {pct(c.wr)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {query && filteredPicker.length === 0 ? (
+            <p className="text-xs text-[var(--muted)]">
+              Nenhum campeão com esse nome na amostra.
+            </p>
+          ) : null}
         </div>
-        {query && filteredPicker.length === 0 ? (
-          <p className="text-xs text-[var(--muted)]">
-            Nenhum campeão com esse nome na amostra.
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3">
         <ChampionIcon
@@ -175,9 +188,18 @@ export function ChampionDetailPanel({
             <ConfidenceBadge level={champion.confidence} />
           </div>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Seus dados com este campeão · {champion.games} partidas na amostra
+            Suas estatísticas · {champion.games} partidas na amostra
           </p>
         </div>
+        {hidePicker ? (
+          <Button
+            href={`/estatisticas?champ=${champion.championId}`}
+            variant="secondary"
+            size="sm"
+          >
+            Por lane
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -205,7 +227,8 @@ export function ChampionDetailPanel({
         size="sm"
         items={[
           { id: "overview", label: "Resumo" },
-          { id: "builds", label: "Build / runas" },
+          { id: "builds", label: "Builds" },
+          { id: "runes", label: "Runas" },
           { id: "compare", label: "Comparar" },
           { id: "matchups", label: "Matchups" },
           {
@@ -293,14 +316,14 @@ export function ChampionDetailPanel({
       ) : null}
 
       {tab === "builds" ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <p className="data-label">Builds mais estáveis</p>
             <DataOriginBadge origin="self" />
           </div>
           {champion.topBuilds.length ? (
             <BuildLeaderboard
-              builds={champion.topBuilds.slice(0, 3)}
+              builds={champion.topBuilds.slice(0, 5)}
               championName={champion.championName}
               ddragonVersion={ddragonVersion}
               large
@@ -308,21 +331,42 @@ export function ChampionDetailPanel({
           ) : (
             <p className="text-sm text-[var(--muted)]">Sem builds agregadas.</p>
           )}
-          <div>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <p className="data-label">Runas</p>
-              <DataOriginBadge origin="self" />
-            </div>
-            {(champion.topRunes ?? []).length ? (
-              <RuneLeaderboard
-                runes={(champion.topRunes ?? []).slice(0, 2)}
-                championName={champion.championName}
-                runeCatalog={runeCatalog}
-              />
-            ) : (
-              <p className="text-sm text-[var(--muted)]">Sem runas agregadas.</p>
-            )}
+          {onOpenModal ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenModal("more-builds")}
+            >
+              Mais builds
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {tab === "runes" ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="data-label">Páginas de runas</p>
+            <DataOriginBadge origin="self" />
           </div>
+          {(champion.topRunes ?? []).length ? (
+            <RuneLeaderboard
+              runes={(champion.topRunes ?? []).slice(0, 5)}
+              championName={champion.championName}
+              runeCatalog={runeCatalog}
+            />
+          ) : (
+            <p className="text-sm text-[var(--muted)]">Sem runas agregadas.</p>
+          )}
+          {onOpenModal ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenModal("more-runes")}
+            >
+              Mais runas
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -335,7 +379,7 @@ export function ChampionDetailPanel({
 
           <div className="space-y-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="data-label">Você</p>
+              <p className="data-label">Sua build</p>
               <DataOriginBadge origin="self" />
             </div>
             {champion.topBuilds[0] ? (
@@ -350,13 +394,24 @@ export function ChampionDetailPanel({
                 Sem build própria ainda neste campeão.
               </p>
             )}
+          </div>
+
+          <div className="space-y-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="data-label">Suas runas</p>
+              <DataOriginBadge origin="self" />
+            </div>
             {(champion.topRunes ?? [])[0] ? (
               <RuneLeaderboard
                 runes={(champion.topRunes ?? []).slice(0, 1)}
                 championName={champion.championName}
                 runeCatalog={runeCatalog}
               />
-            ) : null}
+            ) : (
+              <p className="text-sm text-[var(--muted)]">
+                Sem runas próprias ainda neste campeão.
+              </p>
+            )}
           </div>
 
           <ReferencePlayersPanel
@@ -412,44 +467,60 @@ export function ChampionDetailPanel({
                 hour: "2-digit",
                 minute: "2-digit",
               });
+              const open = openMatchId === m.matchId;
               return (
-                <li
-                  key={m.matchId}
-                  className="flex flex-wrap items-center gap-3 py-2.5 text-sm"
-                >
-                  <span
-                    className={`text-xs font-semibold ${
-                      m.win ? "text-[var(--success)]" : "text-[var(--danger)]"
-                    }`}
+                <li key={m.matchId}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenMatchId((prev) =>
+                        prev === m.matchId ? null : m.matchId,
+                      )
+                    }
+                    className="flex w-full flex-wrap items-center gap-3 py-2.5 text-left text-sm hover:bg-[var(--surface-2)]"
+                    aria-expanded={open}
                   >
-                    {m.win ? "W" : "L"}
-                  </span>
-                  <span className="text-[var(--muted)]">
-                    {ROLE_LABELS[m.role] ?? m.role}
-                  </span>
-                  <span className="tabular text-[var(--foreground)]">
-                    {m.kills}/{m.deaths}/{m.assists}
-                  </span>
-                  <span className="text-[var(--muted)]">{m.cs} CS</span>
-                  {m.enemyChampionName ? (
-                    <span className="flex items-center gap-1.5 text-[var(--muted)]">
-                      vs
-                      <ChampionIcon
-                        ddragonVersion={ddragonVersion}
-                        championId={m.enemyChampionId}
-                        nameOrKey={m.enemyChampionName}
-                        idToKey={idToKey}
-                        alt={m.enemyChampionName}
-                        width={22}
-                        height={22}
-                        className="rounded"
-                      />
-                      {m.enemyChampionName}
+                    <span
+                      className={`text-xs font-semibold ${
+                        m.win ? "text-[var(--success)]" : "text-[var(--danger)]"
+                      }`}
+                    >
+                      {m.win ? "W" : "L"}
                     </span>
+                    <span className="text-[var(--muted)]">
+                      {ROLE_LABELS[m.role] ?? m.role}
+                    </span>
+                    <span className="tabular text-[var(--foreground)]">
+                      {m.kills}/{m.deaths}/{m.assists}
+                    </span>
+                    <span className="text-[var(--muted)]">{m.cs} CS</span>
+                    {m.enemyChampionName ? (
+                      <span className="flex items-center gap-1.5 text-[var(--muted)]">
+                        vs
+                        <ChampionIcon
+                          ddragonVersion={ddragonVersion}
+                          championId={m.enemyChampionId}
+                          nameOrKey={m.enemyChampionName}
+                          idToKey={idToKey}
+                          alt={m.enemyChampionName}
+                          width={22}
+                          height={22}
+                          className="rounded"
+                        />
+                        {m.enemyChampionName}
+                      </span>
+                    ) : null}
+                    <span className="ml-auto text-xs text-[var(--muted)]">
+                      {when} · {open ? "fechar" : "detalhes"}
+                    </span>
+                  </button>
+                  {open ? (
+                    <MatchDetailBody
+                      m={m}
+                      ddragonVersion={ddragonVersion}
+                      idToKey={idToKey}
+                    />
                   ) : null}
-                  <span className="ml-auto text-xs text-[var(--muted)]">
-                    {when}
-                  </span>
                 </li>
               );
             })}

@@ -1,6 +1,10 @@
 import type { MatchDto, MatchParticipant } from "@/lib/riot/types";
 import { buildFingerprint } from "./builds";
-import { extractRunesFromParticipant, parseRuneFingerprint } from "./runes";
+import {
+  coreRuneFingerprint,
+  extractRunesFromParticipant,
+  parseRuneFingerprint,
+} from "./runes";
 import { extractSpells, parseSpellFingerprint } from "./spells";
 import {
   buildTemporalInsights,
@@ -156,6 +160,18 @@ function addGame(bucket: StatBucket, p: MatchParticipant, duration: number) {
   bucket.cs += p.totalMinionsKilled + p.neutralMinionsKilled;
   bucket.vision += p.visionScore;
   bucket.durationSec += duration;
+}
+
+function mergeBuckets(into: StatBucket, from: StatBucket) {
+  into.games += from.games;
+  into.wins += from.wins;
+  into.kills += from.kills;
+  into.deaths += from.deaths;
+  into.assists += from.assists;
+  into.damage += from.damage;
+  into.cs += from.cs;
+  into.vision += from.vision;
+  into.durationSec += from.durationSec;
 }
 
 function finalize(bucket: StatBucket, baselineWr: number): RankedStat {
@@ -399,14 +415,43 @@ export function aggregatePlayerMatches(
         .sort((a, b) => b.wilsonLower - a.wilsonLower)
         .slice(0, 5);
 
-      const topRunes: RuneInsight[] = [...data.runes.entries()]
-        .map(([runeKey, entry]) => {
-          const fingerprint = runeKey.slice(entry.role.length + 1);
-          const parsed = parseRuneFingerprint(fingerprint);
+      // Une a mesma página visual (sem shards / ordem de secundárias / roles
+      // diferentes) — evita “runas duplicadas” na UI.
+      const runeMerged = new Map<
+        string,
+        {
+          fingerprint: string;
+          role: RoleKey;
+          roleGames: number;
+          bucket: StatBucket;
+        }
+      >();
+      for (const [runeKey, entry] of data.runes.entries()) {
+        const fingerprint = runeKey.slice(entry.role.length + 1);
+        const core = coreRuneFingerprint(fingerprint) ?? fingerprint;
+        const existing = runeMerged.get(core);
+        if (!existing) {
+          runeMerged.set(core, {
+            fingerprint: core,
+            role: entry.role,
+            roleGames: entry.bucket.games,
+            bucket: { ...entry.bucket },
+          });
+        } else {
+          mergeBuckets(existing.bucket, entry.bucket);
+          if (entry.bucket.games > existing.roleGames) {
+            existing.role = entry.role;
+            existing.roleGames = entry.bucket.games;
+          }
+        }
+      }
+      const topRunes: RuneInsight[] = [...runeMerged.values()]
+        .map((entry) => {
+          const parsed = parseRuneFingerprint(entry.fingerprint);
           if (!parsed) return null;
           return {
             ...finalize(entry.bucket, baselineWr),
-            fingerprint,
+            fingerprint: entry.fingerprint,
             primaryStyle: parsed.primaryStyle,
             keystone: parsed.keystone,
             subStyle: parsed.subStyle,

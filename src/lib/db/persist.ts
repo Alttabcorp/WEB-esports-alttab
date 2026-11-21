@@ -115,6 +115,15 @@ export type MatchHistoryRow = {
   items: number[];
   enemyChampionId: number | null;
   enemyChampionName: string | null;
+  /** Detalhes extras (expandível na UI). */
+  champLevel: number;
+  goldEarned: number;
+  damageToChamps: number;
+  visionScore: number;
+  summoner1Id: number | null;
+  summoner2Id: number | null;
+  killParticipation: number | null;
+  teamKills: number | null;
 };
 
 /** Histórico recente a partir do Postgres (sem Riot). */
@@ -148,6 +157,14 @@ export async function listMatchHistory(
       enemyId != null
         ? dto.info.participants.find((p) => p.championId === enemyId)
         : null;
+    const teammates = dto.info.participants.filter(
+      (p) => p.teamId === me.teamId,
+    );
+    const teamKills = teammates.reduce((s, p) => s + p.kills, 0);
+    const kp =
+      teamKills > 0
+        ? Math.round(((me.kills + me.assists) / teamKills) * 100)
+        : null;
     out.push({
       matchId: row.match.matchId,
       gameCreation: Number(row.match.gameCreation),
@@ -167,6 +184,14 @@ export async function listMatchHistory(
       items: row.items.filter((id) => id > 0),
       enemyChampionId: enemyId,
       enemyChampionName: enemy?.championName ?? null,
+      champLevel: me.champLevel ?? 0,
+      goldEarned: me.goldEarned ?? 0,
+      damageToChamps: me.totalDamageDealtToChampions ?? 0,
+      visionScore: me.visionScore ?? 0,
+      summoner1Id: me.summoner1Id ?? null,
+      summoner2Id: me.summoner2Id ?? null,
+      killParticipation: kp,
+      teamKills,
     });
   }
   return out;

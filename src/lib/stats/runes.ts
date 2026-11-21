@@ -116,7 +116,8 @@ export function extractRunesFromParticipant(
 
 /**
  * Fingerprint da página completa:
- * `8000:8005-9111-9104-8014|8100:8139-8135|5008-5008-5002`
+ * `8000:8005-9111-9104-8014|8100:8135-8139|5005-5008-5002`
+ * Secundárias ordenadas para não gerar “duplicatas” por ordem da Riot.
  */
 export function buildRuneFingerprint(input: {
   primaryStyle: number | null;
@@ -135,12 +136,34 @@ export function buildRuneFingerprint(input: {
     return null;
   }
   const primary = `${primaryStyle}:${primaryPerkIds.join("-")}`;
-  const secondary = `${subStyle}:${subPerkIds.join("-")}`;
+  const secondarySorted = [...subPerkIds].sort((a, b) => a - b);
+  const secondary = `${subStyle}:${secondarySorted.join("-")}`;
   const stats =
     input.statPerkIds && input.statPerkIds.length > 0
       ? `|${input.statPerkIds.join("-")}`
       : "";
   return `${primary}|${secondary}${stats}`;
+}
+
+/**
+ * Página “visual” (árvores + perks), sem shards de stats.
+ * Usado para fundir entradas que parecem iguais na UI.
+ */
+export function coreRuneFingerprint(fp: string | null | undefined): string | null {
+  if (!fp) return null;
+  if (!fp.includes(":")) return fp;
+  const parts = fp.split("|");
+  if (parts.length < 2) return fp;
+  const [primaryPart, subPart] = parts;
+  if (!primaryPart || !subPart) return fp;
+  const [subStyleRaw, subPerksRaw = ""] = subPart.split(":");
+  const subSorted = subPerksRaw
+    .split("-")
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n > 0)
+    .sort((a, b) => a - b)
+    .join("-");
+  return `${primaryPart}|${subStyleRaw}:${subSorted}`;
 }
 
 export function parseRuneFingerprint(
@@ -164,7 +187,8 @@ export function parseRuneFingerprint(
     const subPerkIds = (subPerksRaw ?? "")
       .split("-")
       .map(Number)
-      .filter((n) => Number.isFinite(n) && n > 0);
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
     const statPerkIds = (statsPart ?? "")
       .split("-")
       .map(Number)

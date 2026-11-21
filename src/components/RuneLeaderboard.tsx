@@ -1,6 +1,10 @@
+"use client";
+
+import { useMemo } from "react";
 import type { RuneInsight } from "@/lib/stats/aggregate";
 import type { RuneCatalog } from "@/lib/ddragon";
 import { pct } from "@/lib/format";
+import { coreRuneFingerprint } from "@/lib/stats/runes";
 import { ROLE_LABELS } from "@/lib/stats/roles";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { RunePageIcons } from "./RunePageIcons";
@@ -16,7 +20,22 @@ export function RuneLeaderboard({
   championName,
   runeCatalog,
 }: Props) {
-  if (runes.length === 0) {
+  // Rede de segurança: mesma página visual só uma vez na lista.
+  const unique = useMemo(() => {
+    const seen = new Set<string>();
+    const out: RuneInsight[] = [];
+    for (const rune of runes) {
+      const key =
+        coreRuneFingerprint(rune.fingerprint) ??
+        `${rune.primaryStyle}:${rune.keystone}|${rune.subStyle}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(rune);
+    }
+    return out;
+  }, [runes]);
+
+  if (unique.length === 0) {
     return (
       <p className="text-sm text-[var(--muted)]">
         Sem páginas de runas recorrentes para {championName}.
@@ -26,11 +45,14 @@ export function RuneLeaderboard({
 
   return (
     <ul className="space-y-3">
-      {runes.map((rune) => {
+      {unique.map((rune) => {
         const keystoneMeta = runeCatalog.byId[rune.keystone];
+        const listKey =
+          coreRuneFingerprint(rune.fingerprint) ??
+          `${rune.role}-${rune.fingerprint}`;
         return (
           <li
-            key={`${rune.role}-${rune.fingerprint}`}
+            key={listKey}
             className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"
           >
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">

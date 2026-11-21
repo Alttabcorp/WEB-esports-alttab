@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ParticipantPerks } from "@/lib/riot/types";
 import {
   buildRuneFingerprint,
+  coreRuneFingerprint,
   extractRunes,
   parseRuneFingerprint,
 } from "./runes";
@@ -41,7 +42,7 @@ describe("extractRunes", () => {
     expect(result.statPerkIds).toEqual([5005, 5008, 5002]);
     expect(result.perkIds).toEqual([8005, 9111, 9104, 8014, 8139, 8135]);
     expect(result.runeFingerprint).toBe(
-      "8000:8005-9111-9104-8014|8100:8139-8135|5005-5008-5002",
+      "8000:8005-9111-9104-8014|8100:8135-8139|5005-5008-5002",
     );
   });
 
@@ -69,17 +70,38 @@ describe("rune fingerprint", () => {
       statPerkIds: [5005, 5008, 5002],
     });
     expect(fp).toBe(
-      "8000:8005-9111-9104-8014|8100:8139-8135|5005-5008-5002",
+      "8000:8005-9111-9104-8014|8100:8135-8139|5005-5008-5002",
     );
     expect(parseRuneFingerprint(fp)).toEqual({
       primaryStyle: 8000,
       keystone: 8005,
       subStyle: 8100,
       primaryPerkIds: [8005, 9111, 9104, 8014],
+      subPerkIds: [8135, 8139],
+      statPerkIds: [5005, 5008, 5002],
+      perkIds: [8005, 9111, 9104, 8014, 8135, 8139],
+    });
+  });
+
+  it("normaliza ordem das secundárias e ignora shards no core", () => {
+    const a = buildRuneFingerprint({
+      primaryStyle: 8000,
+      subStyle: 8100,
+      primaryPerkIds: [8005, 9111, 9104, 8014],
       subPerkIds: [8139, 8135],
       statPerkIds: [5005, 5008, 5002],
-      perkIds: [8005, 9111, 9104, 8014, 8139, 8135],
     });
+    const b = buildRuneFingerprint({
+      primaryStyle: 8000,
+      subStyle: 8100,
+      primaryPerkIds: [8005, 9111, 9104, 8014],
+      subPerkIds: [8135, 8139],
+      statPerkIds: [5008, 5008, 5002],
+    });
+    expect(coreRuneFingerprint(a)).toBe(coreRuneFingerprint(b));
+    expect(coreRuneFingerprint(a)).toBe(
+      "8000:8005-9111-9104-8014|8100:8135-8139",
+    );
   });
 
   it("parses legacy fingerprint", () => {

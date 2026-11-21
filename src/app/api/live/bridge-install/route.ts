@@ -39,8 +39,8 @@ export async function GET() {
   ];
   let body = FALLBACK;
   for (const path of candidates) {
-    if (existsSync(path)) {
-      body = readFileSync(path, "utf8");
+    if (existsSync(/*turbopackIgnore: true*/ path)) {
+      body = readFileSync(/*turbopackIgnore: true*/ path, "utf8");
       break;
     }
   }
