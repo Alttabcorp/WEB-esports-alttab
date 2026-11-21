@@ -1,8 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { ChampionInsight } from "@/lib/stats/aggregate";
-import type { PoolPick } from "@/lib/stats/contextualPool";
+import {
+  groupPoolByRole,
+  type PoolPick,
+} from "@/lib/stats/contextualPool";
+import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import type { RuneCatalog } from "@/lib/ddragon";
 import { itemIconUrl } from "@/lib/ddragon";
 import { pct } from "@/lib/format";
@@ -17,6 +22,8 @@ type Props = {
   ddragonVersion: string;
   idToKey: Record<number, string>;
   runeCatalog: RuneCatalog;
+  /** Lane principal do perfil — aba padrão. */
+  preferredRole?: RoleKey | null;
   /** Champ em destaque neste quadro (estado próprio). */
   featuredId?: number | null;
   onFeature?: (championId: number) => void;
@@ -28,7 +35,7 @@ type Props = {
 };
 
 /**
- * Quadro de decisão do momento: 1 pick em destaque + alternativas.
+ * Quadro de decisão do momento: picks separados por lane.
  * Estado independente do ranking geral.
  */
 export function TodayPoolPanel({
@@ -37,6 +44,7 @@ export function TodayPoolPanel({
   ddragonVersion,
   idToKey,
   runeCatalog,
+  preferredRole = null,
   featuredId = null,
   onFeature,
   champHref,
@@ -44,6 +52,25 @@ export function TodayPoolPanel({
   statsHref = "/estatisticas",
   coachHref = "/coach",
 }: Props) {
+  const lanes = useMemo(
+    () => groupPoolByRole(picks, preferredRole),
+    [picks, preferredRole],
+  );
+
+  const defaultLane: RoleKey =
+    preferredRole && lanes.some((l) => l.role === preferredRole)
+      ? preferredRole
+      : (lanes[0]?.role ?? "MIDDLE");
+
+  const [laneTab, setLaneTab] = useState<RoleKey>(defaultLane);
+
+  const activeLane: RoleKey = lanes.some((l) => l.role === laneTab)
+    ? laneTab
+    : defaultLane;
+
+  const lanePicks =
+    lanes.find((l) => l.role === activeLane)?.picks ?? picks.slice(0, 1);
+
   if (picks.length === 0) {
     return (
       <Panel className="p-4">
@@ -58,17 +85,21 @@ export function TodayPoolPanel({
   }
 
   const activeFeaturedId =
-    featuredId && picks.some((p) => p.championId === featuredId)
+    featuredId && lanePicks.some((p) => p.championId === featuredId)
       ? featuredId
-      : picks[0].championId;
+      : lanePicks[0]?.championId ?? picks[0].championId;
   const featured =
-    picks.find((p) => p.championId === activeFeaturedId) ?? picks[0];
+    lanePicks.find((p) => p.championId === activeFeaturedId) ??
+    lanePicks[0] ??
+    picks[0];
   const featuredChamp = champions.find(
     (c) => c.championId === featured.championId,
   );
   const topBuild = featuredChamp?.topBuilds[0] ?? null;
   const topRune = featuredChamp?.topRunes?.[0] ?? null;
-  const alternatives = picks.filter((p) => p.championId !== featured.championId);
+  const alternatives = lanePicks.filter(
+    (p) => p.championId !== featured.championId,
+  );
   const evPositive = featured.expectedLp >= 0;
 
   return (
@@ -81,14 +112,52 @@ export function TodayPoolPanel({
               O que jogar neste horário
             </h2>
             <p className="mt-0.5 max-w-xl text-xs text-[var(--muted)] sm:text-sm">
-              Clique numa alternativa para destacar. Abra o ranking para ver
-              suas estatísticas com o campeão.
+              Separado por lane. Clique numa alternativa para destacar.
             </p>
           </div>
           <p className="text-[11px] text-[var(--muted)]">
-            {picks.length} opções
+            {picks.length} opções · {lanes.length} lanes
           </p>
         </div>
+
+        {lanes.length > 1 ? (
+          <div
+            className="mt-3 flex flex-wrap gap-1.5"
+            role="tablist"
+            aria-label="Lanes"
+          >
+            {lanes.map(({ role, picks: rolePicks }) => {
+              const active = role === activeLane;
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => {
+                    setLaneTab(role);
+                    const first = rolePicks[0];
+                    if (first) onFeature?.(first.championId);
+                  }}
+                  className={`rounded-[var(--radius)] px-2.5 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "bg-[var(--alttab)] text-white"
+                      : "bg-[var(--surface-2)] text-[var(--muted-strong)] ring-1 ring-[var(--border)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {ROLE_LABELS[role]}
+                  <span
+                    className={`ml-1.5 tabular ${
+                      active ? "text-white/80" : "text-[var(--muted)]"
+                    }`}
+                  >
+                    {rolePicks.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
@@ -107,7 +176,7 @@ export function TodayPoolPanel({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-[var(--alttab)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                  Destaque
+                  {ROLE_LABELS[featured.role]}
                 </span>
                 <ConfidenceBadge level={featured.confidence} />
               </div>
@@ -216,10 +285,12 @@ export function TodayPoolPanel({
         </div>
 
         <div className="min-w-0 border-t border-[var(--border)] bg-[var(--surface-2)] px-3 py-4 lg:border-l lg:border-t-0 sm:px-4">
-          <p className="data-label mb-2">Alternativas</p>
+          <p className="data-label mb-2">
+            Alternativas · {ROLE_LABELS[activeLane]}
+          </p>
           {alternatives.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">
-              Só um pick passou no filtro deste horário.
+              Só um pick forte nesta lane neste horário.
             </p>
           ) : (
             <ul className="space-y-1.5">

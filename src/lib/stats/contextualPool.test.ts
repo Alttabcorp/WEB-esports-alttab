@@ -72,7 +72,19 @@ describe("buildContextualPool", () => {
           avgDamage: 1,
           topBuilds: [],
           topRunes: [],
-          matchups: [],
+          matchups: [
+            {
+              role: "MIDDLE",
+              enemyChampionId: 99,
+              enemyName: "Lux",
+              games: 10,
+              wins: 7,
+              wr: 0.7,
+              wilsonLower: 0.4,
+              lift: 0.2,
+              confidence: "medium",
+            },
+          ],
           allySynergies: [],
           matchupBuilds: [],
           matchupRunes: [],
@@ -92,7 +104,19 @@ describe("buildContextualPool", () => {
           avgDamage: 1,
           topBuilds: [],
           topRunes: [],
-          matchups: [],
+          matchups: [
+            {
+              role: "MIDDLE",
+              enemyChampionId: 99,
+              enemyName: "Lux",
+              games: 10,
+              wins: 2,
+              wr: 0.2,
+              wilsonLower: 0.05,
+              lift: -0.2,
+              confidence: "medium",
+            },
+          ],
           allySynergies: [],
           matchupBuilds: [],
           matchupRunes: [],
@@ -105,11 +129,13 @@ describe("buildContextualPool", () => {
     // Fix hour window to 18 for deterministic test
     const picks = buildContextualPool({
       analysis,
-      limit: 5,
+      preferredRole: "MIDDLE",
+      limitPerRole: 3,
       now: Date.parse("2024-06-03T19:00:00-03:00"),
     });
 
     expect(picks.some((p) => p.championId === 2)).toBe(false);
     expect(picks[0]?.championId).toBe(1);
+    expect(picks[0]?.role).toBe("MIDDLE");
   });
 });

@@ -62,6 +62,7 @@ export type PrepContextOk = {
   matchHistory: MatchHistoryRow[];
   dayLp: DayLpSummary | null;
   todayPool: PoolPick[];
+  preferredRole: RoleKey;
   dayGoal: DayGoalProgress | null;
   sessionEv: SessionEvResult | null;
   lpInsights: MatchLpInsights;
@@ -258,7 +259,7 @@ export async function loadPrepContext(
   const todayPool = buildContextualPool({
     analysis,
     preferredRole,
-    limit: 5,
+    limitPerRole: 3,
     avgLpPerWin: lpInsights.avgLpPerWin,
     avgLpPerLoss: lpInsights.avgLpPerLoss,
   });
@@ -324,6 +325,7 @@ export async function loadPrepContext(
     matchHistory,
     dayLp,
     todayPool,
+    preferredRole,
     dayGoal,
     sessionEv,
     lpInsights,

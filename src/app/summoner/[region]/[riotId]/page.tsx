@@ -140,7 +140,7 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
     const todayPool = buildContextualPool({
       analysis,
       preferredRole,
-      limit: 5,
+      limitPerRole: 3,
       avgLpPerWin: lpInsights.avgLpPerWin,
       avgLpPerLoss: lpInsights.avgLpPerLoss,
     });
@@ -207,6 +207,7 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
           runeCatalog={runeCatalog}
           dayLp={dayLp}
           todayPool={todayPool}
+          preferredRole={preferredRole}
           dayGoal={dayGoal}
           sessionEv={sessionEv}
           queue={queue}

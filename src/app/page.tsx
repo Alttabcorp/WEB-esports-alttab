@@ -123,7 +123,7 @@ export default async function HomePage() {
       pool = buildContextualPool({
         analysis,
         preferredRole: profile.preferredRole as RoleKey,
-        limit: 4,
+        limitPerRole: 2,
         avgLpPerWin: ledger.avgLpPerWin,
         avgLpPerLoss: ledger.avgLpPerLoss,
       });

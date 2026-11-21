@@ -9,6 +9,7 @@ import { encodeRiotId, pct } from "@/lib/format";
 import type { MatchHistoryRow } from "@/lib/db/persist";
 import type { DayLpSummary } from "@/lib/stats/lpLedger";
 import type { PoolPick } from "@/lib/stats/contextualPool";
+import type { RoleKey } from "@/lib/stats/roles";
 import { SummonerHeader } from "./SummonerHeader";
 import { ChampionRecommendations } from "./ChampionRecommendations";
 import { ChampionDetailPanel } from "./ChampionDetailPanel";
@@ -70,6 +71,7 @@ type Props = {
   initialTab?: PrepTab;
   dayLp?: DayLpSummary | null;
   todayPool?: PoolPick[];
+  preferredRole?: RoleKey | null;
   dayGoal?: DayGoalProgress | null;
   sessionEv?: SessionEvResult | null;
   lpInsights?: MatchLpInsights | null;
@@ -100,6 +102,7 @@ export function CoachDashboard({
   initialTab = "play",
   dayLp = null,
   todayPool = [],
+  preferredRole = null,
   dayGoal = null,
   sessionEv = null,
   lpInsights = null,
@@ -359,6 +362,7 @@ export function CoachDashboard({
             ddragonVersion={ddragonVersion}
             idToKey={idToKey}
             runeCatalog={runeCatalog}
+            preferredRole={preferredRole}
             featuredId={poolFeaturedId}
             onFeature={(id) => {
               setPoolFeaturedId(id);

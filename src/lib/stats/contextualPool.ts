@@ -1,6 +1,6 @@
 import type { AggregateResult, ChampionInsight } from "./aggregate";
 import type { TemporalInsights } from "./temporal";
-import type { RoleKey } from "./roles";
+import { ROLE_LABELS, type RoleKey } from "./roles";
 import {
   confidenceFromSample,
   type ConfidenceLevel,
@@ -24,7 +24,40 @@ export type PoolPick = {
   contextBonus: number;
   /** EV estimado de PDL por fila neste contexto. */
   expectedLp: number;
+  /** Lane principal estimada deste pick. */
+  role: RoleKey;
 };
+
+/** Ordem de exibição das lanes no pool. */
+export const POOL_LANE_ORDER: RoleKey[] = [
+  "TOP",
+  "JUNGLE",
+  "MIDDLE",
+  "BOTTOM",
+  "UTILITY",
+];
+
+/** Infere a lane mais jogada do campeão (matchups + runas). */
+export function inferChampionRole(champ: ChampionInsight): RoleKey {
+  const byRole = new Map<RoleKey, number>();
+  for (const m of champ.matchups) {
+    if (m.role === "UNKNOWN") continue;
+    byRole.set(m.role, (byRole.get(m.role) ?? 0) + m.games);
+  }
+  for (const r of champ.topRunes ?? []) {
+    if (r.role === "UNKNOWN") continue;
+    byRole.set(r.role, (byRole.get(r.role) ?? 0) + r.games);
+  }
+  let best: RoleKey = "UNKNOWN";
+  let bestGames = 0;
+  for (const [role, games] of byRole) {
+    if (games > bestGames) {
+      best = role;
+      bestGames = games;
+    }
+  }
+  return best;
+}
 
 function currentHourWindow(now = Date.now(), timeZone = PLAYER_TIMEZONE): number {
   const fmt = new Intl.DateTimeFormat("en-US", {
@@ -52,12 +85,15 @@ function recentChampWr(
 }
 
 /**
- * Pool do momento: top champs para agora (role + horário + forma + avoid).
+ * Pool do momento: top champs para agora (role + horário + forma + avoid),
+ * separados por lane (até `limitPerRole` por role).
  */
 export function buildContextualPool(input: {
   analysis: AggregateResult;
   preferredRole?: RoleKey;
+  /** @deprecated use limitPerRole — mantido como teto total aproximado */
   limit?: number;
+  limitPerRole?: number;
   now?: number;
   enemyChampionId?: number | null;
   avgLpPerWin?: number;
@@ -66,7 +102,7 @@ export function buildContextualPool(input: {
   const {
     analysis,
     preferredRole,
-    limit = 5,
+    limitPerRole = 3,
     now = Date.now(),
     enemyChampionId = null,
     avgLpPerWin = DEFAULT_AVG_LP_PER_WIN,
@@ -100,13 +136,19 @@ export function buildContextualPool(input: {
     let score = champ.wilsonLower + Math.max(0, champ.lift) * 0.25;
     let contextBonus = 0;
 
+    const role = inferChampionRole(champ);
+
     if (preferredRole && preferredRole !== "UNKNOWN") {
       const roleGames = champ.matchups
         .filter((m) => m.role === preferredRole)
         .reduce((s, m) => s + m.games, 0);
-      if (roleGames >= 3) {
+      if (role === preferredRole || roleGames >= 3) {
         score += 0.04;
-        reasons.push(`Presença em ${preferredRole}`);
+        if (role === preferredRole) {
+          reasons.push(`Sua lane · ${ROLE_LABELS[preferredRole]}`);
+        } else {
+          reasons.push(`Presença em ${ROLE_LABELS[preferredRole]}`);
+        }
       }
     }
 
@@ -210,10 +252,55 @@ export function buildContextualPool(input: {
       reasons: reasons.slice(0, 3),
       contextBonus,
       expectedLp,
+      role,
     });
   }
 
-  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+  // Top N por lane (UNKNOWN no fim / excluído da grade principal)
+  const byRole = new Map<RoleKey, PoolPick[]>();
+  for (const pick of scored.sort((a, b) => b.score - a.score)) {
+    const list = byRole.get(pick.role) ?? [];
+    if (list.length >= limitPerRole) continue;
+    list.push(pick);
+    byRole.set(pick.role, list);
+  }
+
+  const laneOrder = [
+    ...(preferredRole && preferredRole !== "UNKNOWN" ? [preferredRole] : []),
+    ...POOL_LANE_ORDER.filter((r) => r !== preferredRole),
+  ];
+
+  const out: PoolPick[] = [];
+  for (const lane of laneOrder) {
+    out.push(...(byRole.get(lane) ?? []));
+  }
+  // Champions sem lane clara só entram se ainda sobrar espaço visual
+  const unknown = byRole.get("UNKNOWN") ?? [];
+  if (out.length < limitPerRole * 2) {
+    out.push(...unknown.slice(0, limitPerRole));
+  }
+  return out;
+}
+
+export function groupPoolByRole(
+  picks: PoolPick[],
+  preferredRole?: RoleKey | null,
+): { role: RoleKey; picks: PoolPick[] }[] {
+  const map = new Map<RoleKey, PoolPick[]>();
+  for (const p of picks) {
+    const role = p.role === "UNKNOWN" ? "UNKNOWN" : p.role;
+    const list = map.get(role) ?? [];
+    list.push(p);
+    map.set(role, list);
+  }
+  const order = [
+    ...(preferredRole && preferredRole !== "UNKNOWN" ? [preferredRole] : []),
+    ...POOL_LANE_ORDER.filter((r) => r !== preferredRole),
+    "UNKNOWN" as RoleKey,
+  ];
+  return order
+    .filter((r) => (map.get(r)?.length ?? 0) > 0)
+    .map((role) => ({ role, picks: map.get(role)! }));
 }
 
 /** Ajuste o score de draft com bônus contextual do pool. */

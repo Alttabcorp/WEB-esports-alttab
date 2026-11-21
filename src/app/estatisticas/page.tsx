@@ -131,7 +131,7 @@ export default async function EstatisticasPage({ searchParams }: PageProps) {
   const pool = buildContextualPool({
     analysis,
     preferredRole: profile.preferredRole as RoleKey,
-    limit: 5,
+    limitPerRole: 3,
     avgLpPerWin: ledger.avgLpPerWin,
     avgLpPerLoss: ledger.avgLpPerLoss,
   });

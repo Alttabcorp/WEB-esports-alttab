@@ -11,6 +11,7 @@ import type { SessionEvResult } from "@/lib/stats/sessionEv";
 import type { DecisionModel } from "@/lib/alerts/decision";
 import { withPracticeHint } from "@/lib/alerts/decision";
 import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
+import type { RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
 import { SummonerHeader } from "./SummonerHeader";
 import { TodayPoolPanel } from "./TodayPoolPanel";
@@ -35,6 +36,7 @@ type Props = {
   runeCatalog: RuneCatalog;
   dayLp?: DayLpSummary | null;
   todayPool?: PoolPick[];
+  preferredRole?: RoleKey | null;
   dayGoal?: DayGoalProgress | null;
   sessionEv?: SessionEvResult | null;
   practiceCandidates?: PracticeCandidate[];
@@ -57,6 +59,7 @@ export function PrepDecisionView({
   runeCatalog,
   dayLp = null,
   todayPool = [],
+  preferredRole = null,
   dayGoal = null,
   sessionEv = null,
   practiceCandidates = [],
@@ -238,6 +241,7 @@ export function PrepDecisionView({
         ddragonVersion={ddragonVersion}
         idToKey={idToKey}
         runeCatalog={runeCatalog}
+        preferredRole={preferredRole}
         featuredId={poolFeaturedId}
         onFeature={setPoolFeaturedId}
         champHref={featuredHref}
