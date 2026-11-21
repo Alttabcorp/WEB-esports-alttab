@@ -4,9 +4,18 @@ import {
   findPlayerByPuuid,
   getAppProfile,
   getDayLpSummaryForPlayer,
+  getStoredMatchesForPlayer,
   listMatchHistory,
+  listRankSnapshots,
 } from "@/lib/db/persist";
 import { buildContextualPool } from "@/lib/stats/contextualPool";
+import { computeDayGoalProgress } from "@/lib/stats/dayGoal";
+import { buildEndgameBaselines } from "@/lib/stats/endgameMetrics";
+import { buildLpCalendar } from "@/lib/stats/lpCalendar";
+import { buildMatchLpLedger } from "@/lib/stats/matchLpLedger";
+import { filterMatchesByRecentPatches } from "@/lib/stats/patchGate";
+import { computeSessionEv } from "@/lib/stats/sessionEv";
+import { SESSION_GAP_MS } from "@/lib/stats/temporal";
 import type { RoleKey } from "@/lib/stats/roles";
 import {
   getChampionIdToKey,
@@ -33,6 +42,7 @@ type PageProps = {
     count?: string;
     refresh?: string;
     mode?: string;
+    tab?: string;
   }>;
 };
 
@@ -166,7 +176,7 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
   const dbPlayer = await findPlayerByPuuid(profile.puuid);
   const matchHistory = dbPlayer
     ? await listMatchHistory(dbPlayer.id, profile.puuid, {
-        count: 40,
+        count: 80,
         queue,
       })
     : [];
@@ -175,14 +185,100 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
     ? await getDayLpSummaryForPlayer(dbPlayer.id, profile.puuid)
     : null;
 
-  const preferredRole = (appProfile?.preferredRole as RoleKey | undefined) ?? "MIDDLE";
+  const preferredRole =
+    (appProfile?.preferredRole as RoleKey | undefined) ?? "MIDDLE";
+
+  const storedForLp = dbPlayer
+    ? await getStoredMatchesForPlayer(dbPlayer.id, {
+        count: Number.isFinite(count) ? count : 50,
+        queue,
+      })
+    : [];
+  const snapshots = dbPlayer
+    ? await listRankSnapshots(dbPlayer.id, {
+        sinceMs: 30 * 24 * 60 * 60_000,
+        limit: 400,
+      })
+    : [];
+
+  const patchGate = filterMatchesByRecentPatches(storedForLp, 1);
+  const lpInsights = buildMatchLpLedger({
+    matches: patchGate.filtered.length
+      ? patchGate.filtered
+      : storedForLp,
+    puuid: profile.puuid,
+    snapshots: snapshots.map((s) => ({
+      ladderScore: s.ladderScore,
+      createdAt: s.createdAt,
+    })),
+  });
+  const lpCalendar = buildLpCalendar({
+    snapshots,
+    days: 28,
+  });
+  const endgameBaselines = buildEndgameBaselines(storedForLp, profile.puuid);
+  const patchNote =
+    patchGate.currentPatch &&
+    patchGate.filtered.length < storedForLp.length
+      ? `EV de PDL usa só patch ${patchGate.currentPatch} (${patchGate.filtered.length}/${storedForLp.length} jogos).`
+      : null;
+
   const todayPool = buildContextualPool({
     analysis,
     preferredRole,
     limit: 5,
+    avgLpPerWin: lpInsights.avgLpPerWin,
+    avgLpPerLoss: lpInsights.avgLpPerLoss,
+  });
+
+  const dayGoal = computeDayGoalProgress({
+    target: appProfile?.dailyLpTarget,
+    stopLoss: appProfile?.dailyLpStop,
+    delta: dayLp?.lpDelta ?? null,
+    perHour: dayLp?.lpPerHour ?? null,
+    avgLpPerWin: lpInsights.avgLpPerWin,
+  });
+
+  const chrono = storedForLp
+    .map((m) => {
+      const me = m.info.participants.find((p) => p.puuid === profile.puuid);
+      if (!me) return null;
+      return { createdAt: m.info.gameCreation, win: me.win };
+    })
+    .filter((g): g is { createdAt: number; win: boolean } => g != null)
+    .sort((a, b) => a.createdAt - b.createdAt);
+  const now = Date.now();
+  let sessionStart = chrono.length;
+  for (let i = chrono.length - 1; i >= 0; i--) {
+    if (now - chrono[i].createdAt > SESSION_GAP_MS) break;
+    sessionStart = i;
+  }
+  const session = chrono.slice(sessionStart);
+  let lossStreak = 0;
+  let winStreak = 0;
+  for (let i = session.length - 1; i >= 0; i--) {
+    if (session[i].win) {
+      if (lossStreak > 0) break;
+      winStreak += 1;
+    } else {
+      if (winStreak > 0) break;
+      lossStreak += 1;
+    }
+  }
+  const sessionEv = computeSessionEv({
+    temporal: analysis.temporal,
+    goal: dayGoal,
+    nextSessionIndex: session.length + 1,
+    lossStreak,
+    winStreak,
+    topPick: todayPool[0] ?? null,
   });
 
   const initialMode = sp.mode === "live" ? "live" : "prep";
+  const initialTab =
+    sp.tab === "timing" || sp.tab === "history" || sp.tab === "play"
+      ? sp.tab
+      : "play";
 
   return (
     <div className="space-y-4 pb-10">
@@ -204,8 +300,16 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
         count={Number.isFinite(count) ? count : 50}
         isCurrentProfile={isCurrentProfile}
         initialMode={initialMode}
+        initialTab={initialTab}
         dayLp={dayLp}
         todayPool={todayPool}
+        dayGoal={dayGoal}
+        sessionEv={sessionEv}
+        lpInsights={lpInsights}
+        lpCalendar={lpCalendar}
+        endgameBaselines={endgameBaselines}
+        currentPatch={patchGate.currentPatch}
+        patchNote={patchNote}
       />
     </div>
   );
@@ -214,7 +318,7 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
 function ErrorState({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="mx-auto max-w-lg rounded-2xl border border-[var(--danger)]/30 bg-[var(--danger)]/10 p-8 text-center">
-      <h1 className="text-xl font-semibold text-white">{title}</h1>
+      <h1 className="text-xl font-semibold text-[var(--foreground)]">{title}</h1>
       <p className="mt-3 text-sm text-[var(--muted-strong)]">{detail}</p>
       <Link
         href="/"

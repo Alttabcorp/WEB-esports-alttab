@@ -1,29 +1,39 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import type { PerformanceAlert } from "@/lib/stats/temporal";
+import { toDecisionFromAlerts } from "@/lib/alerts/decision";
+import { DecisionCard } from "./DecisionCard";
 
 type Props = {
   alerts: PerformanceAlert[];
+  prepHref?: string;
+  timingHref?: string;
+  /** Quando já estamos em Preparar: troca de aba sem depender só da URL. */
+  onGoTiming?: () => void;
 };
 
-export function PerformanceAlerts({ alerts }: Props) {
-  if (!alerts.length) return null;
+export function PerformanceAlerts({
+  alerts,
+  prepHref,
+  timingHref,
+  onGoTiming,
+}: Props) {
+  const [dismissed, setDismissed] = useState(false);
+  const decision = useMemo(
+    () => toDecisionFromAlerts(alerts, { prepHref, timingHref }),
+    [alerts, prepHref, timingHref],
+  );
+
+  if (!decision || dismissed) return null;
 
   return (
-    <section className="space-y-2">
-      {alerts.map((a) => (
-        <div
-          key={a.id}
-          className={`rounded-lg border px-4 py-3 text-sm ${
-            a.severity === "good"
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-50"
-              : a.severity === "warn"
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-50"
-                : "border-[#0596aa]/30 bg-[#0596aa]/10 text-[#c7eef2]"
-          }`}
-        >
-          <p className="font-semibold">{a.title}</p>
-          <p className="mt-1 opacity-90">{a.detail}</p>
-        </div>
-      ))}
-    </section>
+    <DecisionCard
+      decision={decision}
+      onDismiss={() => setDismissed(true)}
+      onAction={(label) => {
+        if (label === "Ver horários" && onGoTiming) onGoTiming();
+      }}
+    />
   );
 }

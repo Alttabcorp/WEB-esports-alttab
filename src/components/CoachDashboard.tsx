@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AggregateResult } from "@/lib/stats/aggregate";
 import type { LeagueEntryDto, SummonerDto } from "@/lib/riot/types";
 import type { RuneCatalog } from "@/lib/ddragon";
-import { encodeRiotId } from "@/lib/format";
+import { encodeRiotId, pct } from "@/lib/format";
 import type { MatchHistoryRow } from "@/lib/db/persist";
 import type { DayLpSummary } from "@/lib/stats/lpLedger";
 import type { PoolPick } from "@/lib/stats/contextualPool";
 import { SummonerHeader } from "./SummonerHeader";
 import { ChampionRecommendations } from "./ChampionRecommendations";
+import { ChampionDetailPanel } from "./ChampionDetailPanel";
 import { BuildLeaderboard } from "./BuildLeaderboard";
 import { RuneLeaderboard } from "./RuneLeaderboard";
 import { MatchupTable } from "./MatchupTable";
@@ -18,26 +19,35 @@ import { RoleBreakdown } from "./RoleBreakdown";
 import { SaveProfileButton } from "./SaveProfileButton";
 import { MetaComparePanel } from "./MetaComparePanel";
 import { PerformanceAlerts } from "./PerformanceAlerts";
-import { PerformanceInsights } from "./PerformanceInsights";
+import { TimingDecisionPanel } from "./TimingDecisionPanel";
 import { MatchHistoryPanel } from "./MatchHistoryPanel";
 import { ReferencePlayersPanel } from "./ReferencePlayersPanel";
-import { LiveGamePanel } from "./LiveGamePanel";
 import { DayLpCard } from "./DayLpCard";
-import { SessionPlanCard } from "./SessionPlanCard";
+import { DayGoalCard } from "./DayGoalCard";
 import { TodayPoolPanel } from "./TodayPoolPanel";
+import { DecisionCard } from "./DecisionCard";
 import { Modal } from "./Modal";
-import { Button, Menu, MenuItem, Panel, Tabs } from "@/components/ui";
+import { Button, Menu, MenuItem, Panel, Stat, Tabs } from "@/components/ui";
+import type { DayGoalProgress } from "@/lib/stats/dayGoal";
+import type { MatchLpInsights } from "@/lib/stats/matchLpLedger";
+import type { DayLpCalendarEntry } from "@/lib/stats/lpCalendar";
+import type { ChampEndgameBaseline } from "@/lib/stats/endgameMetrics";
+import type { SessionEvResult } from "@/lib/stats/sessionEv";
+import type { DecisionModel } from "@/lib/alerts/decision";
 
-type ModeId = "prep" | "live";
-type PrepTab = "play" | "timing" | "history" | "matchups";
+type PrepTab = "play" | "timing" | "history";
 type ChampModalTab = "refs" | "meta" | "more-builds" | "more-runes";
 
 const PREP_TABS: { id: PrepTab; label: string; hint: string }[] = [
-  { id: "play", label: "O que jogar", hint: "Picks, builds e runas" },
-  { id: "timing", label: "Quando jogar", hint: "Horário, dia e alertas" },
-  { id: "history", label: "Histórico", hint: "Partidas salvas" },
-  { id: "matchups", label: "Matchups", hint: "Lanes e roles" },
+  { id: "play", label: "O que jogar", hint: "Picks, builds e matchups" },
+  { id: "timing", label: "Quando", hint: "PDL, horário e calendário" },
+  { id: "history", label: "Histórico", hint: "Partidas com páginas" },
 ];
+
+function parsePrepTab(raw: string | null | undefined): PrepTab {
+  if (raw === "timing" || raw === "history" || raw === "play") return raw;
+  return "play";
+}
 
 type Props = {
   gameName: string;
@@ -56,9 +66,17 @@ type Props = {
   queue?: string;
   count?: number;
   isCurrentProfile?: boolean;
-  initialMode?: ModeId;
+  initialMode?: "prep" | "live";
+  initialTab?: PrepTab;
   dayLp?: DayLpSummary | null;
   todayPool?: PoolPick[];
+  dayGoal?: DayGoalProgress | null;
+  sessionEv?: SessionEvResult | null;
+  lpInsights?: MatchLpInsights | null;
+  lpCalendar?: DayLpCalendarEntry[];
+  endgameBaselines?: ChampEndgameBaseline[];
+  currentPatch?: string | null;
+  patchNote?: string | null;
 };
 
 export function CoachDashboard({
@@ -79,19 +97,67 @@ export function CoachDashboard({
   count = 50,
   isCurrentProfile = false,
   initialMode = "prep",
+  initialTab = "play",
   dayLp = null,
   todayPool = [],
+  dayGoal = null,
+  sessionEv = null,
+  lpInsights = null,
+  lpCalendar = [],
+  endgameBaselines = [],
+  currentPatch = null,
+  patchNote = null,
 }: Props) {
   const initialId =
+    todayPool[0]?.championId ??
     analysis.topRecommendations[0]?.championId ??
     analysis.champions[0]?.championId ??
     null;
   const [selectedId, setSelectedId] = useState<number | null>(initialId);
-  const [mode, setMode] = useState<ModeId>(initialMode);
-  const [prepTab, setPrepTab] = useState<PrepTab>("play");
+  const [prepTab, setPrepTab] = useState<PrepTab>(
+    initialMode === "live" ? "play" : parsePrepTab(initialTab),
+  );
   const [champModalOpen, setChampModalOpen] = useState(false);
   const [champModalTab, setChampModalTab] = useState<ChampModalTab>("refs");
   const [liveDetected, setLiveDetected] = useState(false);
+
+  // Só estado local — NÃO alterar a URL (replaceState/router.replace
+  // no App Router dispara loading.tsx e faz a tela “piscar”).
+  const changeTab = useCallback((id: PrepTab) => {
+    setPrepTab(id);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(
+          `/api/live/client?puuid=${encodeURIComponent(puuid)}`,
+        );
+        const data = (await res.json()) as {
+          bridgeOnline?: boolean;
+          phase?: string | null;
+        };
+        if (cancelled) return;
+        const phase = data.phase;
+        const next = Boolean(
+          data.bridgeOnline &&
+            (phase === "inGame" || phase === "draft" || phase === "loading"),
+        );
+        setLiveDetected((prev) => (prev === next ? prev : next));
+      } catch {
+        if (!cancelled) {
+          setLiveDetected((prev) => (prev === false ? prev : false));
+        }
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), 12_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [puuid]);
 
   const selected = useMemo(
     () => analysis.champions.find((c) => c.championId === selectedId) ?? null,
@@ -100,7 +166,10 @@ export function CoachDashboard({
 
   const alertCount = analysis.temporal?.alerts?.length ?? 0;
   const slug = encodeRiotId(gameName, tagLine);
+  const prepHref = `/summoner/${platform}/${slug}?queue=${queue}&count=${count}`;
+  const timingHref = `${prepHref}&tab=timing`;
   const draftHref = `/summoner/${platform}/${slug}/draft?queue=${queue}&count=${count}`;
+  const syncHref = `${prepHref}&refresh=1`;
   const sourceLabel =
     source === "db"
       ? "Banco local"
@@ -109,6 +178,29 @@ export function CoachDashboard({
         : cached
           ? "Cache"
           : "Riot API";
+  const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
+  const topPick = todayPool[0] ?? null;
+  const hasAlerts = Boolean(analysis.temporal?.alerts?.length);
+  const playDecision: DecisionModel | null =
+    !hasAlerts && sessionEv
+      ? {
+          id: "prep-session-ev",
+          tone:
+            sessionEv.label === "stop"
+              ? "stop"
+              : sessionEv.label === "go"
+                ? "go"
+                : "warn",
+          verb: sessionEv.verb,
+          detail: sessionEv.reasons[0]
+            ? `${sessionEv.detail} · ${sessionEv.reasons[0]}`
+            : sessionEv.detail,
+          actions: [
+            { label: "Abrir Coach", href: "/coach", kind: "primary" },
+            { label: "Ver horários", kind: "secondary" },
+          ],
+        }
+      : null;
 
   return (
     <div className="space-y-4">
@@ -126,40 +218,107 @@ export function CoachDashboard({
         dayLpDelta={dayLp?.lpDelta ?? null}
       />
 
-      <DayLpCard summary={dayLp} />
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Stat
+          label="WR amostra"
+          value={pct(analysis.overallWr)}
+          hint={`${analysis.analyzedGames} jogos`}
+        />
+        <Stat
+          label="PDL hoje"
+          value={
+            dayLp?.lpDelta == null
+              ? "—"
+              : dayLp.lpDelta > 0
+                ? `+${dayLp.lpDelta}`
+                : String(dayLp.lpDelta)
+          }
+        />
+        <Stat
+          label="Melhor horário"
+          value={bestWindow ?? "—"}
+          hint={bestWindow ? "ver aba Quando" : "precisa de mais dados"}
+        />
+      </div>
+
+      {dayGoal ? (
+        <DayGoalCard goal={dayGoal} sessionEv={sessionEv} />
+      ) : (
+        <DayLpCard summary={dayLp} />
+      )}
+
+      {hasAlerts && analysis.temporal?.alerts?.length ? (
+        <PerformanceAlerts
+          alerts={analysis.temporal.alerts}
+          prepHref={prepHref}
+          timingHref={timingHref}
+          onGoTiming={() => changeTab("timing")}
+        />
+      ) : playDecision && prepTab !== "timing" ? (
+        <DecisionCard
+          decision={playDecision}
+          onAction={(label) => {
+            if (label === "Ver horários") changeTab("timing");
+          }}
+        />
+      ) : null}
+
+      <Panel
+        strong
+        className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="data-label">Próximo passo</p>
+          <p className="text-sm text-[var(--muted-strong)]">
+            {liveDetected
+              ? "Bridge detectou atividade — abra o Coach no 2º monitor."
+              : topPick
+                ? `Estude ${topPick.championName} abaixo, depois abra o Coach na fila.`
+                : "Escolha um champ, revise build/runas e abra o Coach na fila."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button href="/coach" size="sm">
+            Abrir Coach
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => changeTab("timing")}
+          >
+            Ver horários
+          </Button>
+          <Button href={syncHref} variant="ghost" size="sm">
+            Sync Riot
+          </Button>
+        </div>
+      </Panel>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs
-          ariaLabel="Modo do companion"
-          value={mode}
-          onChange={setMode}
-          items={[
-            { id: "prep", label: "Preparar" },
-            {
-              id: "live",
-              label: "Em partida",
-              badge: liveDetected ? "AO VIVO" : undefined,
-            },
-          ]}
-        />
+        <nav
+          aria-label="Seções de preparação"
+          className="min-w-0 flex-1 overflow-x-auto"
+        >
+          <Tabs
+            ariaLabel="Preparar"
+            value={prepTab}
+            onChange={changeTab}
+            size="sm"
+            items={PREP_TABS.map((t) => ({
+              id: t.id,
+              label: t.label,
+              hint: t.hint,
+              badge:
+                t.id === "timing" && alertCount > 0 ? alertCount : undefined,
+            }))}
+          />
+        </nav>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button href={draftHref} variant="secondary" size="sm">
-            Seleção
+          <Button href={draftHref} variant="ghost" size="sm">
+            Seleção manual
           </Button>
-          {alertCount > 0 ? (
-            <Button
-              variant="warn"
-              size="sm"
-              onClick={() => {
-                setMode("prep");
-                setPrepTab("timing");
-              }}
-            >
-              {alertCount} alerta{alertCount > 1 ? "s" : ""}
-            </Button>
-          ) : null}
-          <Menu label="Perfil">
+          <Menu label="Mais">
             <SaveProfileButton
               region={platform}
               riotId={`${gameName}#${tagLine}`}
@@ -168,13 +327,10 @@ export function CoachDashboard({
               isCurrentProfile={isCurrentProfile}
               variant="menu"
             />
-            <MenuItem
-              href={`/summoner/${platform}/${slug}?queue=${queue}&count=${count}&refresh=1`}
-            >
-              Atualizar da Riot
-            </MenuItem>
+            <MenuItem href={syncHref}>Atualizar da Riot</MenuItem>
             <MenuItem href="/referencias">Referências</MenuItem>
             <MenuItem href="/config">Configuração</MenuItem>
+            <MenuItem href="/">Hub</MenuItem>
             <div className="border-t border-[var(--border)] px-3 py-2 text-[11px] text-[var(--muted)]">
               Fonte: {sourceLabel}
             </div>
@@ -182,80 +338,27 @@ export function CoachDashboard({
         </div>
       </div>
 
-      {liveDetected && mode === "prep" ? (
-        <Panel className="flex flex-wrap items-center justify-between gap-3 border-[var(--success)]/30 bg-[var(--success)]/10 px-4 py-3">
-          <p className="text-sm text-emerald-50">
-            Partida detectada. Abra o modo Em partida para builds e itens.
-          </p>
-          <Button size="sm" onClick={() => setMode("live")}>
-            Ir para Em partida
-          </Button>
-        </Panel>
-      ) : null}
-
       {analysis.analyzedGames < 10 ? (
-        <Panel className="border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm text-amber-50">
+        <Panel className="border-[var(--warn)]/30 bg-[var(--warn)]/10 px-4 py-3 text-sm text-[var(--warn)]">
           Amostra pequena ({analysis.analyzedGames} partidas). Em Config,
           sincronize 200–500 para recomendações mais firmes.
         </Panel>
       ) : null}
 
-      <section className={mode === "live" ? "space-y-3" : "hidden"}>
-        <div>
-          <h2 className="text-lg font-semibold text-white">Em partida</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Build e itens primeiro. KDA e time em seguida.
-          </p>
-        </div>
-        <LiveGamePanel
-          platform={platform}
-          puuid={puuid}
-          ddragonVersion={ddragonVersion}
-          idToKey={idToKey}
-          runeCatalog={runeCatalog}
-          active={mode === "live"}
-          draftHref={draftHref}
-          onInGameChange={setLiveDetected}
-        />
-      </section>
-
-      {mode === "prep" ? (
+      {prepTab === "play" ? (
         <div className="space-y-4">
-          <nav
-            aria-label="Seções de preparação"
-            className="sticky top-0 z-20 -mx-1 overflow-x-auto bg-[var(--background)]/90 px-1 py-2 backdrop-blur-md"
-          >
-            <Tabs
-              ariaLabel="Preparar"
-              value={prepTab}
-              onChange={setPrepTab}
-              size="sm"
-              items={PREP_TABS.map((t) => ({
-                id: t.id,
-                label: t.label,
-                hint: t.hint,
-                badge: t.id === "timing" && alertCount > 0 ? alertCount : undefined,
-              }))}
-            />
-          </nav>
-
-          {prepTab === "play" ? (
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <div className="space-y-4">
-              <SessionPlanCard platform={platform} puuid={puuid} />
-              <section className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <div className="space-y-4">
-                <TodayPoolPanel
-                  picks={todayPool}
-                  ddragonVersion={ddragonVersion}
-                  idToKey={idToKey}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                />
-                <Panel className="space-y-3 p-4">
+              <TodayPoolPanel
+                picks={todayPool}
+                ddragonVersion={ddragonVersion}
+                idToKey={idToKey}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+              <Panel className="space-y-3 p-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    Ranking geral
-                  </h2>
+                  <h2 className="type-title">Ranking geral</h2>
                   <p className="mt-1 text-sm text-[var(--muted)]">
                     Escolha o champ — a build principal aparece ao lado.
                   </p>
@@ -270,7 +373,7 @@ export function CoachDashboard({
                 {analysis.champions.length >
                 analysis.topRecommendations.length ? (
                   <details className="pt-1">
-                    <summary className="cursor-pointer text-sm text-[var(--muted)] hover:text-white">
+                    <summary className="cursor-pointer text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
                       Ver mais campeões ({analysis.champions.length})
                     </summary>
                     <div className="mt-3">
@@ -285,124 +388,132 @@ export function CoachDashboard({
                   </details>
                 ) : null}
               </Panel>
-              </div>
-
-              <Panel className="space-y-4 p-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    {selected ? selected.championName : "Build do champ"}
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    Ordem de itens e runa mais estáveis no seu histórico.
-                  </p>
-                </div>
-                {selected ? (
-                  <>
-                    <div>
-                      <p className="data-label mb-2">Build principal</p>
-                      <BuildLeaderboard
-                        builds={selected.topBuilds.slice(0, 2)}
-                        championName={selected.championName}
-                        ddragonVersion={ddragonVersion}
-                        large
-                      />
-                    </div>
-                    <div>
-                      <p className="data-label mb-2">Runas</p>
-                      <RuneLeaderboard
-                        runes={(selected.topRunes ?? []).slice(0, 1)}
-                        championName={selected.championName}
-                        runeCatalog={runeCatalog}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          setChampModalTab("refs");
-                          setChampModalOpen(true);
-                        }}
-                      >
-                        Referências e meta
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setChampModalTab("more-builds");
-                          setChampModalOpen(true);
-                        }}
-                      >
-                        Mais builds
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-[var(--muted)]">
-                    Selecione um campeão na lista.
-                  </p>
-                )}
-              </Panel>
-            </section>
             </div>
-          ) : null}
 
-          {prepTab === "timing" ? (
-            <div className="space-y-4">
-              {analysis.temporal?.alerts?.length ? (
-                <PerformanceAlerts alerts={analysis.temporal.alerts} />
-              ) : null}
-              {analysis.temporal ? (
-                <PerformanceInsights
-                  temporal={analysis.temporal}
-                  overallWr={analysis.overallWr}
-                />
-              ) : (
+            {selected ? (
+              <ChampionDetailPanel
+                champion={selected}
+                champions={analysis.champions}
+                onSelect={setSelectedId}
+                matchHistory={matchHistory}
+                ddragonVersion={ddragonVersion}
+                idToKey={idToKey}
+                runeCatalog={runeCatalog}
+                platform={platform}
+                ranked={ranked}
+                lpAvg={
+                  lpInsights?.byChampion.find(
+                    (r) => r.label === selected.championName,
+                  )?.lpAvg ?? null
+                }
+                lpGames={
+                  lpInsights?.byChampion.find(
+                    (r) => r.label === selected.championName,
+                  )?.games ?? null
+                }
+                onOpenModal={(t) => {
+                  setChampModalTab(t);
+                  setChampModalOpen(true);
+                }}
+              />
+            ) : (
+              <Panel className="space-y-3 p-4">
+                <h2 className="type-title">Dados do campeão</h2>
                 <p className="text-sm text-[var(--muted)]">
-                  Sem dados temporais ainda.
+                  Selecione um campeão na lista ou no pool para ver WR, builds,
+                  matchups e partidas recentes.
                 </p>
-              )}
-            </div>
-          ) : null}
+              </Panel>
+            )}
+          </section>
 
-          {prepTab === "history" ? (
-            <MatchHistoryPanel
-              matches={matchHistory}
-              ddragonVersion={ddragonVersion}
-              idToKey={idToKey}
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-1">
+              <h2 className="type-title text-base">Matchups</h2>
+              <RoleBreakdown roles={analysis.roles} />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Panel className="p-4">
+                <MatchupTable
+                  title="Melhores matchups"
+                  matchups={analysis.bestMatchups}
+                  ddragonVersion={ddragonVersion}
+                  idToKey={idToKey}
+                  emptyText="Sem matchups repetidos ainda (mín. 2 jogos no mesmo confronto)."
+                />
+              </Panel>
+              <Panel className="p-4">
+                <MatchupTable
+                  title="Piores matchups"
+                  matchups={analysis.worstMatchups}
+                  ddragonVersion={ddragonVersion}
+                  idToKey={idToKey}
+                  emptyText="Sem matchups fracos repetidos ainda (mín. 2 jogos)."
+                />
+              </Panel>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {prepTab === "timing" ? (
+        <div className="space-y-4">
+          {analysis.temporal ? (
+            <TimingDecisionPanel
+              temporal={analysis.temporal}
+              overallWr={analysis.overallWr}
+              sessionEv={sessionEv}
+              lpInsights={lpInsights}
+              calendar={lpCalendar}
+              currentPatch={currentPatch}
+              patchNote={patchNote}
+              prepHref={prepHref}
+              timingHref={timingHref}
             />
-          ) : null}
-
-          {prepTab === "matchups" ? (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-1">
-                <p className="text-sm text-[var(--muted)]">Por role</p>
-                <RoleBreakdown roles={analysis.roles} />
+          ) : (
+            <p className="text-sm text-[var(--muted)]">
+              Sem dados temporais ainda.
+            </p>
+          )}
+          {endgameBaselines.length > 0 ? (
+            <details className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)]">
+              <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-[var(--foreground)] marker:content-none [&::-webkit-details-marker]:hidden">
+                Baseline de farm (fim de jogo)
+              </summary>
+              <div className="space-y-2 border-t border-[var(--border)] px-4 pb-4 pt-2">
+                <p className="text-sm text-[var(--muted)]">
+                  CS/min e gold/min médios — proxy sem timeline Riot.
+                </p>
+                <ul className="space-y-2">
+                  {endgameBaselines.slice(0, 6).map((b) => (
+                    <li
+                      key={b.championId}
+                      className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                    >
+                      <span className="font-medium text-[var(--foreground)]">
+                        {b.championName}
+                      </span>
+                      <span className="tabular text-[var(--muted)]">
+                        {b.avgCsPerMin} CS/min · {b.avgGoldPerMin} g/min
+                        {b.wrWhenBehindCs != null
+                          ? ` · atrás em CS: ${Math.round(b.wrWhenBehindCs * 100)}% WR (${b.behindCsGames})`
+                          : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <section className="grid gap-4 lg:grid-cols-2">
-                <Panel className="p-4">
-                  <MatchupTable
-                    title="Melhores matchups"
-                    matchups={analysis.bestMatchups}
-                    ddragonVersion={ddragonVersion}
-                    idToKey={idToKey}
-                    emptyText="Sem matchups repetidos ainda (mín. 2 jogos no mesmo confronto)."
-                  />
-                </Panel>
-                <Panel className="p-4">
-                  <MatchupTable
-                    title="Piores matchups"
-                    matchups={analysis.worstMatchups}
-                    ddragonVersion={ddragonVersion}
-                    idToKey={idToKey}
-                    emptyText="Sem matchups fracos repetidos ainda (mín. 2 jogos)."
-                  />
-                </Panel>
-              </section>
-            </div>
+            </details>
           ) : null}
         </div>
+      ) : null}
+
+      {prepTab === "history" ? (
+        <MatchHistoryPanel
+          matches={matchHistory}
+          ddragonVersion={ddragonVersion}
+          idToKey={idToKey}
+        />
       ) : null}
 
       <Modal
