@@ -54,7 +54,7 @@ const PREP_PREFIXES = [
 export function MainNav({ hasProfile }: Props) {
   const pathname = usePathname();
   const onCoach = pathname === "/coach";
-  const onConfig = pathname === "/config" || pathname.startsWith("/referencias");
+  const onConfig = pathname === "/config";
   const onStats = pathname.startsWith("/estatisticas");
   const onRanking = pathname === "/ranking";
   const onTiming = pathname === "/timing";

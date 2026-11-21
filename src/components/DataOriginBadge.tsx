@@ -1,15 +1,12 @@
-type Origin = "self" | "reference" | "meta";
+type Origin = "self" | "meta";
 
 const LABEL: Record<Origin, string> = {
   self: "Seus dados",
-  reference: "externo · referência",
   meta: "externo · meta",
 };
 
 const TONE: Record<Origin, string> = {
   self: "bg-[var(--alttab)]/12 text-[var(--alttab)] ring-[var(--alttab)]/25",
-  reference:
-    "bg-[var(--surface-2)] text-[var(--muted-strong)] ring-[var(--border-strong)]",
   meta: "bg-amber-500/10 text-[var(--warn)] ring-amber-500/25",
 };
 

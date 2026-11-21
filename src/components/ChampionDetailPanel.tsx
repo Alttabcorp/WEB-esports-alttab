@@ -14,7 +14,6 @@ import { ChampionIcon } from "./ChampionIcon";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { DataOriginBadge } from "./DataOriginBadge";
 import { MetaComparePanel } from "./MetaComparePanel";
-import { ReferencePlayersPanel } from "./ReferencePlayersPanel";
 import { MatchDetailBody } from "./MatchHistoryPanel";
 import { Button, Panel, Stat, Tabs } from "@/components/ui";
 
@@ -38,7 +37,7 @@ type Props = {
   ranked: LeagueEntryDto[];
   lpAvg?: number | null;
   lpGames?: number | null;
-  onOpenModal?: (tab: "refs" | "meta" | "more-builds" | "more-runes") => void;
+  onOpenModal?: (tab: "meta" | "more-builds" | "more-runes") => void;
   /** Esconde busca/select quando a seleção vem de uma lista ao lado (ex.: Ranking). */
   hidePicker?: boolean;
 };
@@ -373,8 +372,8 @@ export function ChampionDetailPanel({
       {tab === "compare" ? (
         <div className="space-y-5">
           <p className="text-sm text-[var(--muted)]">
-            Compare sua build com dados externos. Badges marcam a origem —
-            externo nunca altera seu WR, PDL ou Coach.
+            Compare sua build com a meta do ladder. Badges marcam a origem —
+            meta nunca altera seu WR, PDL ou Coach.
           </p>
 
           <div className="space-y-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-3">
@@ -413,14 +412,6 @@ export function ChampionDetailPanel({
               </p>
             )}
           </div>
-
-          <ReferencePlayersPanel
-            championId={champion.championId}
-            championName={champion.championName}
-            ddragonVersion={ddragonVersion}
-            runeCatalog={runeCatalog}
-            embedded
-          />
 
           <MetaComparePanel
             championId={champion.championId}

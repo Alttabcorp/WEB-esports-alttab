@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ChampionInsight, RoleInsight } from "@/lib/stats/aggregate";
 import type { MatchHistoryRow } from "@/lib/db/persist";
@@ -632,13 +631,6 @@ export function StatsExplorer({
         </Panel>
       </div>
 
-      <p className="text-sm text-[var(--muted)]">
-        Quer comparar com outros players? Use{" "}
-        <Link href="/referencias" className="text-[var(--alttab)] hover:underline">
-          Referências
-        </Link>{" "}
-        — dados externos ficam separados das suas stats.
-      </p>
     </div>
   );
 }

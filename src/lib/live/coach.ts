@@ -1,13 +1,11 @@
 import {
   findPlayerByPuuid,
-  getReferenceInsightsForChampion,
   getStoredMatchesForPlayer,
-  type ReferenceChampionInsight,
 } from "@/lib/db/persist";
 import { buildFingerprint } from "@/lib/stats/builds";
 import { extractRunesFromParticipant, parseRuneFingerprint } from "@/lib/stats/runes";
 import { normalizeRole, type RoleKey } from "@/lib/stats/roles";
-import { winRate } from "@/lib/stats/wilson";
+import { wilsonLowerBound, winRate } from "@/lib/stats/wilson";
 import { getRiotClient } from "@/lib/riot/client";
 import type { PlatformRegion } from "@/lib/riot/regions";
 import type { CurrentGameInfo, CurrentGameParticipant } from "@/lib/riot/types";
@@ -73,7 +71,6 @@ export type LiveCoachTips = {
   } | null;
   vsLanerBuild: AdaptBuildTip | null;
   vsCompBuild: AdaptBuildTip | null;
-  references: ReferenceChampionInsight[];
   notes: string[];
 };
 
@@ -127,11 +124,7 @@ async function buildPersonalTips(
 ): Promise<
   Omit<
     LiveCoachTips,
-    | "references"
-    | "notes"
-    | "championId"
-    | "vsLanerBuild"
-    | "vsCompBuild"
+    "notes" | "championId" | "vsLanerBuild" | "vsCompBuild"
   >
 > {
   const matches = await getStoredMatchesForPlayer(playerId, {
@@ -188,12 +181,16 @@ async function buildPersonalTips(
     }
   }
 
-  const topBuildEntry = [...builds.entries()].sort(
-    (a, b) => b[1].games - a[1].games,
-  )[0];
-  const topRuneEntry = [...runes.entries()].sort(
-    (a, b) => b[1].games - a[1].games,
-  )[0];
+  const topBuildEntry = [...builds.entries()].sort((a, b) => {
+    const wa = wilsonLowerBound(a[1].wins, a[1].games);
+    const wb = wilsonLowerBound(b[1].wins, b[1].games);
+    return wb - wa || b[1].games - a[1].games;
+  })[0];
+  const topRuneEntry = [...runes.entries()].sort((a, b) => {
+    const wa = wilsonLowerBound(a[1].wins, a[1].games);
+    const wb = wilsonLowerBound(b[1].wins, b[1].games);
+    return wb - wa || b[1].games - a[1].games;
+  })[0];
   const parsed = topRuneEntry
     ? parseRuneFingerprint(topRuneEntry[0])
     : null;
@@ -302,14 +299,13 @@ export async function getLiveCoachPayload(
 
   if (player) {
     const enemyIds = enemies.map((e) => e.championId);
-    const [personal, references, adapt] = await Promise.all([
+    const [personal, adapt] = await Promise.all([
       buildPersonalTips(
         player.id,
         puuid,
         me.championId,
         enemyLaner?.championId ?? null,
       ),
-      getReferenceInsightsForChampion(me.championId),
       buildAdaptTips(
         puuid,
         me.championId,
@@ -320,12 +316,7 @@ export async function getLiveCoachPayload(
 
     if (personal.personalGames < 5) {
       notes.push(
-        "Poucos jogos seus com esse champ no banco — confie mais nas referências/meta.",
-      );
-    }
-    if (references.length === 0) {
-      notes.push(
-        "Nenhuma referência com esse champ. Cadastre monos em Config.",
+        "Poucos jogos seus com esse champ no banco — sync mais partidas em Config.",
       );
     }
     if (personal.matchup && personal.matchup.games >= 3) {
@@ -344,7 +335,6 @@ export async function getLiveCoachPayload(
       ...personal,
       vsLanerBuild: adapt.vsLanerBuild,
       vsCompBuild: adapt.vsCompBuild,
-      references,
       notes,
     };
   } else {
@@ -359,7 +349,6 @@ export async function getLiveCoachPayload(
       matchup: null,
       vsLanerBuild: null,
       vsCompBuild: null,
-      references: await getReferenceInsightsForChampion(me.championId),
       notes,
     };
   }
@@ -390,9 +379,11 @@ export async function getLiveCoachPayload(
 function topBuildFromMap(
   builds: Map<string, { items: number[]; games: number; wins: number }>,
 ): LiveBuildTip | null {
-  const entry = [...builds.entries()].sort(
-    (a, b) => b[1].games - a[1].games,
-  )[0];
+  const entry = [...builds.entries()].sort((a, b) => {
+    const wa = wilsonLowerBound(a[1].wins, a[1].games);
+    const wb = wilsonLowerBound(b[1].wins, b[1].games);
+    return wb - wa || b[1].games - a[1].games;
+  })[0];
   if (!entry || entry[1].games < 1) return null;
   return {
     items: entry[1].items,

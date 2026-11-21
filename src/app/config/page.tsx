@@ -28,16 +28,6 @@ export default async function ConfigPage() {
             Hub
           </Button>
         </div>
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          Jogadores de referência:{" "}
-          <Link
-            href="/referencias"
-            className="text-[var(--alttab-soft)] hover:underline"
-          >
-            Referências
-          </Link>
-          .
-        </p>
       </div>
 
       <section className="space-y-3" aria-labelledby="cfg-bridge">

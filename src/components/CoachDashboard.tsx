@@ -22,7 +22,6 @@ import { MetaComparePanel } from "./MetaComparePanel";
 import { PerformanceAlerts } from "./PerformanceAlerts";
 import { TimingDecisionPanel } from "./TimingDecisionPanel";
 import { MatchHistoryPanel } from "./MatchHistoryPanel";
-import { ReferencePlayersPanel } from "./ReferencePlayersPanel";
 import { DayLpCard } from "./DayLpCard";
 import { DayGoalCard } from "./DayGoalCard";
 import { TodayPoolPanel } from "./TodayPoolPanel";
@@ -37,7 +36,7 @@ import type { SessionEvResult } from "@/lib/stats/sessionEv";
 import type { DecisionModel } from "@/lib/alerts/decision";
 
 type PrepTab = "play" | "timing" | "history";
-type ChampModalTab = "refs" | "meta" | "more-builds" | "more-runes";
+type ChampModalTab = "meta" | "more-builds" | "more-runes";
 
 const PREP_TABS: { id: PrepTab; label: string; hint: string }[] = [
   { id: "play", label: "O que jogar", hint: "Picks, builds e matchups" },
@@ -126,7 +125,7 @@ export function CoachDashboard({
     initialMode === "live" ? "play" : parsePrepTab(initialTab),
   );
   const [champModalOpen, setChampModalOpen] = useState(false);
-  const [champModalTab, setChampModalTab] = useState<ChampModalTab>("refs");
+  const [champModalTab, setChampModalTab] = useState<ChampModalTab>("meta");
   const [liveDetected, setLiveDetected] = useState(false);
 
   // Só estado local — NÃO alterar a URL (replaceState/router.replace
@@ -337,7 +336,6 @@ export function CoachDashboard({
             />
             <MenuItem href={syncHref}>Atualizar da Riot</MenuItem>
             <MenuItem href="/estatisticas">Estatísticas</MenuItem>
-            <MenuItem href="/referencias">Referências</MenuItem>
             <MenuItem href="/config">Configuração</MenuItem>
             <MenuItem href="/">Hub</MenuItem>
             <div className="border-t border-[var(--border)] px-3 py-2 text-[11px] text-[var(--muted)]">
@@ -552,7 +550,6 @@ export function CoachDashboard({
               onChange={setChampModalTab}
               size="sm"
               items={[
-                { id: "refs", label: "Referências" },
                 { id: "meta", label: "Meta" },
                 { id: "more-builds", label: "Builds" },
                 { id: "more-runes", label: "Runas" },
@@ -572,15 +569,6 @@ export function CoachDashboard({
               <RuneLeaderboard
                 runes={selected.topRunes ?? []}
                 championName={selected.championName}
-                runeCatalog={runeCatalog}
-              />
-            ) : null}
-
-            {champModalTab === "refs" ? (
-              <ReferencePlayersPanel
-                championId={selected.championId}
-                championName={selected.championName}
-                ddragonVersion={ddragonVersion}
                 runeCatalog={runeCatalog}
               />
             ) : null}

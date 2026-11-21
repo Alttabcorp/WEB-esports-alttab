@@ -12,6 +12,10 @@ import { pct } from "@/lib/format";
 import type { AdaptTips } from "@/lib/live/coach";
 import type { LiveClientSnapshot, LivePhase } from "@/lib/live/clientData";
 import type { LiveGamePayload } from "@/lib/live/coach";
+import {
+  resolveDynamicBuild,
+  toBuildCandidate,
+} from "@/lib/live/dynamicBuild";
 import { buildInGameDecision } from "@/lib/live/lcdSignals";
 import type { SessionAdvice } from "@/lib/live/sessionAdvice";
 import type { DraftRecommendation } from "@/lib/stats/draft";
@@ -361,12 +365,47 @@ export function MatchCoachScreen({
     () => new Set((me?.items ?? []).map((it) => it.itemID)),
     [me?.items],
   );
+
+  const enemyLanerLabel = useMemo(() => {
+    if (live?.enemyLaner?.championId) {
+      return idToKey[live.enemyLaner.championId] ?? "laner";
+    }
+    return "laner";
+  }, [live?.enemyLaner?.championId, idToKey]);
+
+  const dynamicBuild = useMemo(() => {
+    return resolveDynamicBuild({
+      ownedIds,
+      personal: toBuildCandidate(
+        tips?.topBuild ?? null,
+        "personal",
+        "Ordem pessoal",
+      ),
+      vsLaner: toBuildCandidate(
+        adapt?.vsLanerBuild ?? tips?.vsLanerBuild ?? null,
+        "vs-laner",
+        `Vs ${enemyLanerLabel}`,
+      ),
+      vsComp: toBuildCandidate(
+        adapt?.vsCompBuild ?? tips?.vsCompBuild ?? null,
+        "vs-comp",
+        "Vs esta comp",
+      ),
+    });
+  }, [
+    ownedIds,
+    tips?.topBuild,
+    tips?.vsLanerBuild,
+    tips?.vsCompBuild,
+    adapt?.vsLanerBuild,
+    adapt?.vsCompBuild,
+    enemyLanerLabel,
+  ]);
+
   const nextItem = useMemo(() => {
-    const items = tips?.topBuild?.items ?? [];
-    const idx = items.findIndex((id) => !ownedIds.has(id));
-    if (idx < 0) return null;
-    return { id: items[idx], index: idx };
-  }, [tips?.topBuild?.items, ownedIds]);
+    if (!dynamicBuild?.nextItemId) return null;
+    return { id: dynamicBuild.nextItemId, index: dynamicBuild.nextIndex };
+  }, [dynamicBuild]);
 
   const draftRole = (lcd?.draft?.myPosition || preferredRole) as RoleKey;
   const lockedChampId = lcd?.draft?.myChampionId ?? null;
@@ -500,9 +539,9 @@ export function MatchCoachScreen({
     return buildInGameDecision(lcd, {
       nextItemId: nextItem?.id ?? null,
       enemyLanerName,
-      buildComplete: Boolean(tips?.topBuild && !nextItem),
+      buildComplete: Boolean(dynamicBuild && !nextItem),
     });
-  }, [uiPhase, lcd, nextItem, enemyLanerName, tips?.topBuild]);
+  }, [uiPhase, lcd, nextItem, enemyLanerName, dynamicBuild]);
 
   const draftEmptyHint = !bridgeOnline
     ? "Bridge offline — abra o bat antes da fila."
@@ -986,7 +1025,7 @@ export function MatchCoachScreen({
               ) : null}
             </div>
 
-            {nextItem ? (
+            {nextItem && dynamicBuild ? (
               <div className="mt-6 flex items-center gap-5 rounded-[var(--radius)] border border-[var(--border-strong)] bg-[var(--alttab)]/8 px-5 py-4">
                 <Image
                   src={itemIconUrl(ddragonVersion, nextItem.id)}
@@ -995,36 +1034,43 @@ export function MatchCoachScreen({
                   height={72}
                   className="rounded-[var(--radius)] ring-2 ring-[var(--alttab)]"
                 />
-                <div>
-                  <p className="data-label">Seu próximo item</p>
+                <div className="min-w-0">
+                  <p className="data-label">Próximo item · dinâmico</p>
                   <p className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
                     Slot {nextItem.index + 1}
+                    <span className="ml-2 text-sm font-medium text-[var(--muted-strong)]">
+                      · {dynamicBuild.label}
+                    </span>
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted-strong)]">
+                    {pct(dynamicBuild.wr)} WR · {dynamicBuild.games}j ·{" "}
+                    {dynamicBuild.reason}
                   </p>
                   {me ? (
-                    <p className="text-sm text-[var(--muted-strong)]">
+                    <p className="text-sm text-[var(--muted)]">
                       {Math.round(me.currentGold)} ouro
                     </p>
                   ) : null}
                 </div>
               </div>
-            ) : tips?.topBuild ? (
+            ) : dynamicBuild ? (
               <p className="mt-6 text-sm text-[var(--success)]">
-                Build completa neste momento.
+                Build ativa completa neste momento ({dynamicBuild.label}).
               </p>
             ) : (
               <p className="mt-6 text-sm text-[var(--muted)]">
-                Sem build recorrente salva para este campeão ainda.
+                Sem build contextual ainda — jogue mais partidas neste champ.
               </p>
             )}
 
-            {tips?.topBuild ? (
+            {dynamicBuild ? (
               <div className="mt-5">
                 <ItemRow
-                  items={tips.topBuild.items}
+                  items={dynamicBuild.items}
                   ddragonVersion={ddragonVersion}
-                  label={`Ordem pessoal`}
-                  wr={tips.topBuild.wr}
-                  games={tips.topBuild.games}
+                  label={dynamicBuild.label}
+                  wr={dynamicBuild.wr}
+                  games={dynamicBuild.games}
                 />
               </div>
             ) : null}
@@ -1049,7 +1095,7 @@ export function MatchCoachScreen({
 
             {tips?.topRune ? (
               <div className="mt-4">
-                <p className="data-label mb-2">Runas de referência</p>
+                <p className="data-label mb-2">Suas runas</p>
                 <RunePageIcons
                   primaryStyle={tips.topRune.primaryStyle}
                   subStyle={tips.topRune.subStyle}
