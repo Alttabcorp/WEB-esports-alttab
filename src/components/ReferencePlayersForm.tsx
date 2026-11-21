@@ -57,7 +57,9 @@ export function ReferencePlayersForm({
         setRefs(data.references ?? []);
         setRiotId("");
         setLabel("");
-        setMessage("Referência adicionada e histórico sincronizado.");
+        setMessage(
+          "Referência adicionada e histórico sincronizado (dados externos — não altera seu PDL/Coach).",
+        );
         router.refresh();
       } catch {
         setError("Erro de rede");
@@ -130,7 +132,7 @@ export function ReferencePlayersForm({
           {refs.map((r) => (
             <li
               key={r.id}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-white/8 bg-black/25 px-3 py-2"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
             >
               <Image
                 src={profileIconUrl(ddragonVersion, r.profileIconId ?? 29)}
@@ -140,14 +142,14 @@ export function ReferencePlayersForm({
                 className="rounded-lg"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-white">
+                <p className="text-sm text-[var(--foreground)]">
                   {r.gameName}
                   <span className="text-[#0596aa]">#{r.tagLine}</span>
                   {r.label ? (
-                    <span className="ml-2 text-xs text-zinc-500">{r.label}</span>
+                    <span className="ml-2 text-xs text-[var(--muted)]">{r.label}</span>
                   ) : null}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--muted)]">
                   {r.storedMatchCount} partidas · {r.platform.toUpperCase()}
                   {r.lastSyncedAt
                     ? ` · sync ${new Date(r.lastSyncedAt).toLocaleString("pt-BR")}`
@@ -158,7 +160,7 @@ export function ReferencePlayersForm({
                 type="button"
                 disabled={pending}
                 onClick={() => remove(r.id)}
-                className="text-xs text-zinc-500 hover:text-rose-300"
+                className="text-xs text-[var(--muted)] hover:text-[var(--danger)]"
               >
                 Remover
               </button>
@@ -168,7 +170,7 @@ export function ReferencePlayersForm({
       ) : null}
 
       <form onSubmit={add} className="space-y-3 border-t border-[var(--border)] pt-4">
-        <p className="text-sm font-semibold text-white">Adicionar referência</p>
+        <p className="text-sm font-semibold text-[var(--foreground)]">Adicionar referência</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm text-[var(--muted-strong)]">
@@ -178,7 +180,7 @@ export function ReferencePlayersForm({
               value={riotId}
               onChange={(e) => setRiotId(e.target.value)}
               placeholder="MonoTop#BR1"
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white outline-none focus:border-[var(--border-strong)]"
+              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--border-strong)]"
               required
             />
           </div>
@@ -189,7 +191,7 @@ export function ReferencePlayersForm({
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value as PlatformRegion)}
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white"
+              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--foreground)]"
             >
               {PLATFORM_REGIONS.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -205,7 +207,7 @@ export function ReferencePlayersForm({
             <select
               value={matchCount}
               onChange={(e) => setMatchCount(Number(e.target.value))}
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white"
+              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--foreground)]"
             >
               {MATCH_COUNT_OPTIONS.filter((n) => n <= 200).map((n) => (
                 <option key={n} value={n}>
@@ -222,12 +224,12 @@ export function ReferencePlayersForm({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="ex.: mono Ornn, coach top"
-              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white outline-none focus:border-[var(--border-strong)]"
+              className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--foreground)] outline-none focus:border-[var(--border-strong)]"
             />
           </div>
         </div>
 
-        {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+        {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
         {message ? (
           <p className="text-sm text-[var(--alttab-soft)]">{message}</p>
         ) : null}

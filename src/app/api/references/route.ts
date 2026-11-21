@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       region,
       parsed.gameName,
       parsed.tagLine,
-      { forceRefresh: true, preferDb: false },
+      { forceRefresh: true, preferDb: false, purpose: "reference" },
     );
 
     if (resolved.puuid === profile.puuid) {
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         profile: resolved,
         forceRefresh: true,
         preferDb: false,
+        purpose: "reference",
       });
     }
 

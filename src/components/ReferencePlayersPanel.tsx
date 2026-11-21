@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { itemIconUrl, type RuneCatalog } from "@/lib/ddragon";
 import type { ReferenceChampionInsight } from "@/lib/db/persist";
 import { pct } from "@/lib/format";
+import { DataOriginBadge } from "./DataOriginBadge";
 import { RunePageIcons } from "./RunePageIcons";
 
 type Props = {
@@ -12,6 +14,8 @@ type Props = {
   championName: string | null;
   ddragonVersion: string;
   runeCatalog: RuneCatalog;
+  /** Sem panel externo (ex.: aba Comparar). */
+  embedded?: boolean;
 };
 
 export function ReferencePlayersPanel({
@@ -19,6 +23,7 @@ export function ReferencePlayersPanel({
   championName,
   ddragonVersion,
   runeCatalog,
+  embedded = false,
 }: Props) {
   const [insights, setInsights] = useState<ReferenceChampionInsight[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -52,28 +57,39 @@ export function ReferencePlayersPanel({
 
   if (!championId) return null;
 
-  return (
-    <section className="panel space-y-3 p-4">
-      <div>
-        <h2 className="font-[family-name:var(--font-display)] text-lg text-white">
-          Referências · {championName}
-        </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Builds e runas dos monos que você cadastrou em Referências
-        </p>
+  const body = (
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg text-[var(--foreground)]">
+              Referências · {championName}
+            </h2>
+            <DataOriginBadge origin="reference" />
+          </div>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Builds e runas dos monos que você cadastrou — não entram no seu WR,
+            PDL nem Coach.
+          </p>
+        </div>
       </div>
 
       {pending ? (
-        <p className="text-sm text-[var(--alttab-soft)]">Carregando referências…</p>
+        <p className="text-sm text-[var(--alttab-soft)]">
+          Carregando referências…
+        </p>
       ) : null}
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
 
       {!pending && !error && insights.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">
           Nenhuma referência com jogos de {championName}. Adicione monos em{" "}
-          <a href="/referencias" className="text-[var(--alttab-soft)] hover:underline">
+          <Link
+            href="/referencias"
+            className="text-[var(--alttab-soft)] hover:underline"
+          >
             Referências
-          </a>{" "}
+          </Link>{" "}
           e sincronize o histórico deles.
         </p>
       ) : null}
@@ -82,20 +98,20 @@ export function ReferencePlayersPanel({
         {insights.map((ins) => (
           <li
             key={ins.referenceId}
-            className="rounded-lg border border-white/8 bg-black/25 p-3"
+            className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"
           >
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-sm text-white">
+                <p className="text-sm text-[var(--foreground)]">
                   {ins.gameName}
                   <span className="text-[#0596aa]">#{ins.tagLine}</span>
                   {ins.label ? (
-                    <span className="ml-2 text-xs text-zinc-500">
+                    <span className="ml-2 text-xs text-[var(--muted)]">
                       · {ins.label}
                     </span>
                   ) : null}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--muted)]">
                   {ins.games} jogos · {pct(ins.wr)} WR neste champ
                 </p>
               </div>
@@ -103,8 +119,9 @@ export function ReferencePlayersPanel({
 
             {ins.topBuild ? (
               <div className="mb-2">
-                <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-600">
-                  Build mais usada · {pct(ins.topBuild.wr)} · {ins.topBuild.games}x
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+                  Build mais usada · {pct(ins.topBuild.wr)} ·{" "}
+                  {ins.topBuild.games} jogos
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {ins.topBuild.items.map((id) => (
@@ -123,8 +140,8 @@ export function ReferencePlayersPanel({
 
             {ins.topRune ? (
               <div>
-                <p className="mb-1 text-[11px] uppercase tracking-wide text-zinc-600">
-                  Runas · {pct(ins.topRune.wr)} · {ins.topRune.games}x
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-[var(--muted)]">
+                  Runas · {pct(ins.topRune.wr)} · {ins.topRune.games} jogos
                 </p>
                 <RunePageIcons
                   primaryStyle={ins.topRune.primaryStyle}
@@ -142,6 +159,12 @@ export function ReferencePlayersPanel({
           </li>
         ))}
       </ul>
-    </section>
+    </>
   );
+
+  if (embedded) {
+    return <div className="space-y-3">{body}</div>;
+  }
+
+  return <section className="panel space-y-3 p-4">{body}</section>;
 }

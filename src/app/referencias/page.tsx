@@ -21,21 +21,39 @@ export default async function ReferenciasPage() {
         >
           ← Início
         </Link>
-        <h1 className="mt-3 text-3xl font-bold text-white">
+        <h1 className="mt-3 type-display text-3xl text-[var(--foreground)]">
           Jogadores de referência
         </h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Cadastre monos e mains. No coach, compare builds e runas deles com as
-          suas no campeão selecionado.
+        <p className="mt-2 type-body text-sm">
+          Cadastre monos e mains para comparar builds. Isso{" "}
+          <strong className="font-semibold text-[var(--foreground)]">
+            não altera
+          </strong>{" "}
+          seu WR, PDL, horários nem o Coach — os dados ficam no player deles,
+          separados do seu perfil.
         </p>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          No Preparar → campeão → aba Comparar você vê você | referências |
+          meta (amostra anônima do ladder).
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button href="/config" variant="secondary" size="sm">
+            Config / bridge
+          </Button>
+          <Button href="/coach" variant="ghost" size="sm">
+            Coach
+          </Button>
+        </div>
       </div>
 
       {profile ? (
-        <ReferencePlayersForm
-          initial={references}
-          ddragonVersion={ddragonVersion}
-          defaultRegion={profile.platform as PlatformRegion}
-        />
+        <Panel className="p-5">
+          <ReferencePlayersForm
+            initial={references}
+            ddragonVersion={ddragonVersion}
+            defaultRegion={profile.platform as PlatformRegion}
+          />
+        </Panel>
       ) : (
         <Panel className="space-y-4 p-5">
           <p className="text-sm text-[var(--muted-strong)]">

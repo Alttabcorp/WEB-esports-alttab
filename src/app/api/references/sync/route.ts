@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
           ref.platform,
           ref.gameName,
           ref.tagLine,
-          { forceRefresh: true, preferDb: false },
+          { forceRefresh: true, preferDb: false, purpose: "reference" },
         );
         const analysis = await analyzePlayer({
           platform: ref.platform,
@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
           profile: resolved,
           forceRefresh: true,
           preferDb: false,
+          purpose: "reference",
         });
         results.push({ id: ref.id, games: analysis.analyzedGames });
         await findPlayerByPuuid(resolved.puuid);

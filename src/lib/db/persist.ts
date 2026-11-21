@@ -180,6 +180,11 @@ export async function upsertPlayer(input: {
   summoner: SummonerDto | null;
   ranked: LeagueEntryDto[];
   rankSource?: string;
+  /**
+   * Quando false (ex.: sync de referência), não grava RankSnapshot.
+   * Stats/PDL do “eu” só usam snapshots do AppProfile.
+   */
+  recordRank?: boolean;
 }) {
   const player = await db.player.upsert({
     where: { puuid: input.puuid },
@@ -202,7 +207,13 @@ export async function upsertPlayer(input: {
     },
   });
 
-  await recordRankSnapshots(player.id, input.ranked, input.rankSource ?? "sync");
+  if (input.recordRank !== false) {
+    await recordRankSnapshots(
+      player.id,
+      input.ranked,
+      input.rankSource ?? "sync",
+    );
+  }
   return player;
 }
 
@@ -749,6 +760,8 @@ export type AppProfileView = {
   preferredRole: string;
   queue: string;
   matchCount: number;
+  dailyLpTarget: number;
+  dailyLpStop: number;
   storedMatchCount: number;
   lastSyncedAt: string | null;
 };
@@ -757,6 +770,8 @@ async function toAppProfileView(row: {
   preferredRole: string;
   queue: string;
   matchCount: number;
+  dailyLpTarget?: number;
+  dailyLpStop?: number;
   player: {
     id: string;
     puuid: string;
@@ -781,6 +796,8 @@ async function toAppProfileView(row: {
     preferredRole: row.preferredRole,
     queue: row.queue,
     matchCount: row.matchCount,
+    dailyLpTarget: row.dailyLpTarget ?? 30,
+    dailyLpStop: row.dailyLpStop ?? -40,
     storedMatchCount,
     lastSyncedAt: lastSyncedAt?.toISOString() ?? null,
   };
@@ -816,6 +833,8 @@ export async function upsertAppProfile(input: {
   preferredRole?: string;
   queue?: string;
   matchCount?: number;
+  dailyLpTarget?: number;
+  dailyLpStop?: number;
 }): Promise<AppProfileView> {
   const row = await db.appProfile.upsert({
     where: { id: "default" },
@@ -825,6 +844,8 @@ export async function upsertAppProfile(input: {
       preferredRole: input.preferredRole ?? "MIDDLE",
       queue: input.queue ?? "ranked",
       matchCount: input.matchCount ?? 50,
+      dailyLpTarget: input.dailyLpTarget ?? 30,
+      dailyLpStop: input.dailyLpStop ?? -40,
     },
     update: {
       playerId: input.playerId,
@@ -833,6 +854,10 @@ export async function upsertAppProfile(input: {
         : {}),
       ...(input.queue != null ? { queue: input.queue } : {}),
       ...(input.matchCount != null ? { matchCount: input.matchCount } : {}),
+      ...(input.dailyLpTarget != null
+        ? { dailyLpTarget: input.dailyLpTarget }
+        : {}),
+      ...(input.dailyLpStop != null ? { dailyLpStop: input.dailyLpStop } : {}),
     },
     include: {
       player: {
@@ -987,10 +1012,36 @@ export async function addReferencePlayer(input: {
   };
 }
 
+/**
+ * Remove o link de referência. Se o Player não for o AppProfile e não tiver
+ * outras referências, apaga o Player (cascade em matches/snapshots/analyses).
+ */
 export async function removeReferencePlayer(id: string): Promise<void> {
-  await db.referencePlayer.deleteMany({
+  const row = await db.referencePlayer.findFirst({
     where: { id, appProfileId: "default" },
+    select: { id: true, playerId: true },
   });
+  if (!row) return;
+
+  await db.referencePlayer.delete({ where: { id: row.id } });
+  await cleanupOrphanReferencePlayer(row.playerId);
+}
+
+/** Apaga Player órfão de referência — nunca o AppProfile. */
+export async function cleanupOrphanReferencePlayer(
+  playerId: string,
+): Promise<boolean> {
+  const [appProfile, otherRefs] = await Promise.all([
+    db.appProfile.findFirst({
+      where: { id: "default", playerId },
+      select: { id: true },
+    }),
+    db.referencePlayer.count({ where: { playerId } }),
+  ]);
+  if (appProfile || otherRefs > 0) return false;
+
+  await db.player.delete({ where: { id: playerId } });
+  return true;
 }
 
 export type ReferenceChampionInsight = {

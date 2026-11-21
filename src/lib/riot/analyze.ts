@@ -26,6 +26,8 @@ import type { LeagueEntryDto, MatchDto, QueueFilter, SummonerDto } from "./types
 import { QUEUE_IDS } from "./types";
 import type { RoutingRegion } from "./regions";
 
+export type AnalyzePurpose = "self" | "reference";
+
 export type AnalyzeOptions = {
   platform: PlatformRegion;
   puuid: string;
@@ -40,6 +42,11 @@ export type AnalyzeOptions = {
    * Só chama Riot se não houver dados locais suficientes.
    */
   preferDb?: boolean;
+  /**
+   * `self` = perfil principal (PDL/snapshots).
+   * `reference` = mono externo — grava PlayerMatch deles, sem RankSnapshot do eu.
+   */
+  purpose?: AnalyzePurpose;
 };
 
 export type AnalyzeResponse = AggregateResult & {
@@ -131,6 +138,8 @@ export async function analyzePlayer(
   const count = clampMatchCount(options.count);
   const forceRefresh = options.forceRefresh === true;
   const preferDb = options.preferDb !== false;
+  const purpose: AnalyzePurpose = options.purpose ?? "self";
+  const recordRank = purpose === "self";
   const cacheKey = `${options.puuid}:${options.platform}:${queue}:${count}:v3`;
 
   if (!forceRefresh) {
@@ -154,6 +163,8 @@ export async function analyzePlayer(
       platform: options.profile.platform,
       summoner: options.profile.summoner,
       ranked: options.profile.ranked,
+      recordRank,
+      rankSource: purpose === "reference" ? "reference-sync" : "sync",
     });
     playerId = player.id;
   } else if (options.profile) {
@@ -168,6 +179,8 @@ export async function analyzePlayer(
         platform: options.profile.platform,
         summoner: options.profile.summoner,
         ranked: options.profile.ranked,
+        recordRank,
+        rankSource: purpose === "reference" ? "reference-sync" : "sync",
       });
       playerId = player.id;
     }
@@ -259,10 +272,16 @@ export async function resolveSummonerProfile(
   platform: PlatformRegion,
   gameName: string,
   tagLine: string,
-  options?: { preferDb?: boolean; forceRefresh?: boolean },
+  options?: {
+    preferDb?: boolean;
+    forceRefresh?: boolean;
+    purpose?: AnalyzePurpose;
+  },
 ): Promise<SummonerProfile> {
   const preferDb = options?.preferDb !== false;
   const forceRefresh = options?.forceRefresh === true;
+  const purpose: AnalyzePurpose = options?.purpose ?? "self";
+  const recordRank = purpose === "self";
 
   if (preferDb && !forceRefresh) {
     const fromDb = await resolveSummonerFromDb(platform, gameName, tagLine);
@@ -304,6 +323,8 @@ export async function resolveSummonerProfile(
     platform: profile.platform,
     summoner: profile.summoner,
     ranked: profile.ranked,
+    recordRank,
+    rankSource: purpose === "reference" ? "reference-sync" : "sync",
   });
 
   return profile;

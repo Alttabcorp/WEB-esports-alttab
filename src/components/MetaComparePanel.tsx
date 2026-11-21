@@ -8,6 +8,7 @@ import { pct } from "@/lib/format";
 import type { MetaBand, MetaChampionResult } from "@/lib/meta/types";
 import type { LeagueEntryDto } from "@/lib/riot/types";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { DataOriginBadge } from "./DataOriginBadge";
 import { RunePageIcons } from "./RunePageIcons";
 
 type Props = {
@@ -17,6 +18,8 @@ type Props = {
   ranked: LeagueEntryDto[];
   ddragonVersion: string;
   runeCatalog: RuneCatalog;
+  /** Sem panel externo (ex.: aba Comparar). */
+  embedded?: boolean;
 };
 
 export function MetaComparePanel({
@@ -26,6 +29,7 @@ export function MetaComparePanel({
   ranked,
   ddragonVersion,
   runeCatalog,
+  embedded = false,
 }: Props) {
   const [band, setBand] = useState<MetaBand>("HIGH");
   const [meta, setMeta] = useState<MetaChampionResult | null>(null);
@@ -63,18 +67,22 @@ export function MetaComparePanel({
     });
   }, [championId, platform, band, rankedKey]);
 
-  return (
-    <section className="panel space-y-4 p-4">
+  const body = (
+    <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-[family-name:var(--font-display)] text-lg text-white">
-            Comparativo · {championName}
-          </h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Builds e runas amostradas no ladder Riot (cache 12h)
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg text-[var(--foreground)]">
+              Meta · {championName}
+            </h2>
+            <DataOriginBadge origin="meta" />
+          </div>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Amostra anônima do ladder Riot (cache 12h) — não grava no seu
+            histórico nem altera PDL/Coach.
           </p>
         </div>
-        <div className="flex gap-1 rounded-lg bg-black/30 p-1">
+        <div className="flex gap-1 rounded-lg bg-[var(--surface-inset)] p-1">
           <BandBtn
             active={band === "HIGH"}
             onClick={() => setBand("HIGH")}
@@ -89,20 +97,20 @@ export function MetaComparePanel({
       </div>
 
       {pending ? (
-        <p className="text-sm text-[#7dd3de]">
+        <p className="text-sm text-[var(--alttab)]">
           Coletando amostra no ladder… (pode levar ~1 min na 1ª vez)
         </p>
       ) : null}
 
       {error ? (
-        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-[var(--danger)]">
           {error}
         </p>
       ) : null}
 
       {meta && !pending ? (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+          <div className="flex flex-wrap gap-3 text-xs text-[var(--muted)]">
             <span>
               {meta.sampleGames} jogos · {meta.samplePlayers} players
             </span>
@@ -114,24 +122,26 @@ export function MetaComparePanel({
             </span>
             <span>{pct(meta.overallWr)} WR amostra</span>
             {meta.cached ? <span>cache</span> : null}
-            {meta.partial ? <span className="text-amber-300/90">parcial</span> : null}
+            {meta.partial ? (
+              <span className="text-amber-300/90">parcial</span>
+            ) : null}
           </div>
-          <p className="text-xs text-zinc-600">{meta.note}</p>
+          <p className="text-xs text-[var(--muted)]">{meta.note}</p>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div>
               <p className="data-label mb-2">Builds mais comuns</p>
               {meta.builds.length === 0 ? (
-                <p className="text-sm text-zinc-500">Sem builds na amostra</p>
+                <p className="text-sm text-[var(--muted)]">Sem builds na amostra</p>
               ) : (
                 <ul className="space-y-2">
                   {meta.builds.map((b) => (
                     <li
                       key={b.fingerprint}
-                      className="rounded-lg border border-white/8 bg-black/25 p-3"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"
                     >
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-sm text-zinc-300">
+                        <span className="text-sm text-[var(--muted-strong)]">
                           {pct(b.wr)} · {b.games} jogos
                         </span>
                         <ConfidenceBadge level={b.confidence} />
@@ -157,16 +167,16 @@ export function MetaComparePanel({
             <div>
               <p className="data-label mb-2">Runas mais comuns</p>
               {meta.runes.length === 0 ? (
-                <p className="text-sm text-zinc-500">Sem runas na amostra</p>
+                <p className="text-sm text-[var(--muted)]">Sem runas na amostra</p>
               ) : (
                 <ul className="space-y-2">
                   {meta.runes.map((r) => (
                     <li
                       key={r.fingerprint}
-                      className="rounded-lg border border-white/8 bg-black/25 p-3"
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"
                     >
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="text-sm text-zinc-300">
+                        <span className="text-sm text-[var(--muted-strong)]">
                           {pct(r.wr)} · {r.games} jogos
                         </span>
                         <ConfidenceBadge level={r.confidence} />
@@ -194,7 +204,7 @@ export function MetaComparePanel({
               Monos / one-tricks na amostra (≥{4} jogos do champ)
             </p>
             {meta.monos.length === 0 ? (
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm text-[var(--muted)]">
                 Nenhum mono claro nesta amostra. Tente altos elos ou aguarde
                 mais cache.
               </p>
@@ -203,12 +213,12 @@ export function MetaComparePanel({
                 {meta.monos.map((m) => (
                   <li
                     key={m.puuid}
-                    className="rounded-lg border border-white/8 bg-black/25 p-3"
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"
                   >
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm text-white">
+                      <p className="text-sm text-[var(--foreground)]">
                         {m.tier}{" "}
-                        <span className="text-zinc-500">
+                        <span className="text-[var(--muted)]">
                           · {m.games} jogos · {pct(m.wr)} WR
                         </span>
                       </p>
@@ -247,8 +257,14 @@ export function MetaComparePanel({
           </div>
         </div>
       ) : null}
-    </section>
+    </>
   );
+
+  if (embedded) {
+    return <div className="space-y-4">{body}</div>;
+  }
+
+  return <section className="panel space-y-4 p-4">{body}</section>;
 }
 
 function BandBtn({
@@ -266,8 +282,8 @@ function BandBtn({
       onClick={onClick}
       className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
         active
-          ? "bg-[#0596aa] text-white"
-          : "text-zinc-400 hover:text-zinc-200"
+          ? "bg-[var(--alttab)] text-white"
+          : "text-[var(--muted)] hover:text-[var(--foreground)]"
       }`}
     >
       {label}
