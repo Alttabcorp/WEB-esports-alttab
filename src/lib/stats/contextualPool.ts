@@ -6,6 +6,11 @@ import {
   type ConfidenceLevel,
 } from "./wilson";
 import { PLAYER_TIMEZONE } from "./temporal";
+import {
+  DEFAULT_AVG_LP_PER_LOSS,
+  DEFAULT_AVG_LP_PER_WIN,
+} from "./dayGoal";
+import { expectedLpForChampion } from "./matchLpLedger";
 
 export type PoolPick = {
   championId: number;
@@ -17,6 +22,8 @@ export type PoolPick = {
   reasons: string[];
   /** Bônus da janela horária / forma. */
   contextBonus: number;
+  /** EV estimado de PDL por fila neste contexto. */
+  expectedLp: number;
 };
 
 function currentHourWindow(now = Date.now(), timeZone = PLAYER_TIMEZONE): number {
@@ -53,6 +60,8 @@ export function buildContextualPool(input: {
   limit?: number;
   now?: number;
   enemyChampionId?: number | null;
+  avgLpPerWin?: number;
+  avgLpPerLoss?: number;
 }): PoolPick[] {
   const {
     analysis,
@@ -60,6 +69,8 @@ export function buildContextualPool(input: {
     limit = 5,
     now = Date.now(),
     enemyChampionId = null,
+    avgLpPerWin = DEFAULT_AVG_LP_PER_WIN,
+    avgLpPerLoss = DEFAULT_AVG_LP_PER_LOSS,
   } = input;
   const temporal = analysis.temporal;
   const hourWindow = currentHourWindow(now);
@@ -168,6 +179,21 @@ export function buildContextualPool(input: {
       reasons.push("Quente no recorte recente");
     }
 
+    const expectedLp = expectedLpForChampion({
+      wr: champ.wr,
+      avgLpPerWin,
+      avgLpPerLoss,
+      contextLift: contextBonus,
+    });
+    // Ranqueia também por EV de LP (mistura com score wilson).
+    score += expectedLp / 40;
+
+    if (expectedLp >= 2) {
+      reasons.unshift(`EV ~+${expectedLp} PDL/fila`);
+    } else if (expectedLp <= -2) {
+      reasons.unshift(`EV ~${expectedLp} PDL/fila — evitar`);
+    }
+
     if (reasons.length === 0) {
       reasons.push(
         `${Math.round(champ.wr * 100)}% WR · ${champ.games} jogos`,
@@ -183,6 +209,7 @@ export function buildContextualPool(input: {
       games: champ.games,
       reasons: reasons.slice(0, 3),
       contextBonus,
+      expectedLp,
     });
   }
 
@@ -201,9 +228,10 @@ export function contextualDraftBoost(
     (c) => c.championId === champion.championId && c.hourWindow === hourWindow,
   );
   if (hit && hit.games >= 3 && hit.lift >= 0.05) {
+    const approxLp = Math.round(hit.lift * 18 * 10) / 10;
     return {
       boost: Math.min(0.08, hit.lift * 0.25),
-      reason: `Bom neste horário (${Math.round(hit.wr * 100)}% WR)`,
+      reason: `Bom neste horário (~+${approxLp} PDL EV · ${Math.round(hit.wr * 100)}% WR)`,
     };
   }
   if (

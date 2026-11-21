@@ -263,8 +263,12 @@ export function recommendDraftPicks(
 
     if (laneMatchup && laneMatchup.games >= 2) {
       laneScore = laneMatchup.wilsonLower;
+      const lpEv = Math.round(laneMatchup.lift * 18 * 10) / 10;
       reasons.push(
-        `${pctLabel(laneMatchup.wr)} WR vs ${laneMatchup.enemyChampionName} em ${laneMatchup.games} jogos`,
+        `${pctLabel(laneMatchup.wr)} WR vs ${laneMatchup.enemyChampionName} em ${laneMatchup.games} jogos` +
+          (Math.abs(lpEv) >= 0.5
+            ? ` (~${lpEv > 0 ? "+" : ""}${lpEv} PDL EV vs média)`
+            : ""),
       );
     } else if (laneEnemyId != null) {
       reasons.push(
