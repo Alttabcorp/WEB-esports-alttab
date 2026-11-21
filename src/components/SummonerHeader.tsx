@@ -61,9 +61,9 @@ export function SummonerHeader({
       />
       <div className="min-w-0 flex-1 space-y-1">
         <p className="data-label">{platform.toUpperCase()}</p>
-        <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
+        <h1 className="truncate text-2xl font-bold text-[var(--foreground)] sm:text-3xl">
           {gameName}
-          <span className="text-[var(--alttab-soft)]">#{tagLine}</span>
+          <span className="font-medium text-[var(--alttab)]">#{tagLine}</span>
         </h1>
         <p className="text-sm text-[var(--muted)]">
           {formatRank(ranked)}

@@ -30,10 +30,10 @@ export function DraftContextTips({
   if (!hasSynergy && !hasBuild && !hasRune && !hasSpells) return null;
 
   return (
-    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+    <div className="mt-3 space-y-2 border-t border-[var(--border)] pt-3">
       {hasSynergy
         ? rec.allySynergies.slice(0, 2).map((s) => (
-            <p key={s.allyChampionId} className="text-xs text-[#7dd3de]">
+            <p key={s.allyChampionId} className="text-xs text-[var(--alttab)]">
               Sinergia: {pct(s.wr)} WR com {s.allyChampionName} ({s.games} jogos)
             </p>
           ))
@@ -41,7 +41,7 @@ export function DraftContextTips({
 
       {rec.vsBuild ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--muted)]">
             Build vs {rec.vsBuild.enemyChampionName} ({pct(rec.vsBuild.wr)})
           </span>
           {rec.vsBuild.items.map((itemId) => (
@@ -51,7 +51,7 @@ export function DraftContextTips({
               alt={`Item ${itemId}`}
               width={28}
               height={28}
-              className="rounded-md ring-1 ring-white/10"
+              className="rounded-md ring-1 ring-[var(--border)]"
             />
           ))}
         </div>
@@ -59,7 +59,7 @@ export function DraftContextTips({
 
       {rec.vsRune ? (
         <div className="space-y-1">
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--muted)]">
             Página vs {rec.vsRune.enemyChampionName} ({pct(rec.vsRune.wr)} ·{" "}
             {rec.vsRune.games} jogos)
           </span>
@@ -79,7 +79,7 @@ export function DraftContextTips({
 
       {rec.vsSpells ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--muted)]">
             Feitiços vs {rec.vsSpells.enemyChampionName} ({pct(rec.vsSpells.wr)})
           </span>
           {rec.vsSpells.spellIds.map((spellId) => {
@@ -88,7 +88,7 @@ export function DraftContextTips({
               return (
                 <span
                   key={spellId}
-                  className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-zinc-300"
+                  className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] text-[var(--muted-strong)]"
                 >
                   {spellId}
                 </span>
@@ -101,7 +101,7 @@ export function DraftContextTips({
                 alt={meta.name}
                 width={28}
                 height={28}
-                className="rounded-md ring-1 ring-white/10"
+                className="rounded-md ring-1 ring-[var(--border)]"
                 title={meta.name}
               />
             );

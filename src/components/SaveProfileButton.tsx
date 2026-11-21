@@ -71,12 +71,12 @@ export function SaveProfileButton({
           type="button"
           onClick={save}
           disabled={pending || saved}
-          className="block w-full px-3 py-2.5 text-left text-sm text-[var(--muted-strong)] hover:bg-white/5 hover:text-white disabled:cursor-default disabled:opacity-70"
+          className="block w-full px-3 py-2.5 text-left text-sm text-[var(--muted-strong)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] disabled:cursor-default disabled:opacity-70"
         >
           {label}
         </button>
         {error ? (
-          <p className="px-3 pb-1 text-xs text-rose-300">{error}</p>
+          <p className="px-3 pb-1 text-xs text-[var(--danger)]">{error}</p>
         ) : null}
       </div>
     );
@@ -88,11 +88,11 @@ export function SaveProfileButton({
         type="button"
         onClick={save}
         disabled={pending || saved}
-        className="inline-flex rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-zinc-100 transition hover:border-[#0596aa]/50 hover:bg-[#0596aa]/15 disabled:opacity-60"
+        className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--border-strong)] hover:bg-[var(--alttab)]/15 disabled:opacity-60"
       >
         {label}
       </button>
-      {error ? <p className="text-xs text-rose-300">{error}</p> : null}
+      {error ? <p className="text-xs text-[var(--danger)]">{error}</p> : null}
     </div>
   );
 }

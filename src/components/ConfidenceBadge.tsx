@@ -7,9 +7,9 @@ const LABELS: Record<ConfidenceLevel, string> = {
 };
 
 const STYLES: Record<ConfidenceLevel, string> = {
-  high: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
-  medium: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-  low: "bg-rose-500/15 text-rose-300 ring-rose-500/30",
+  high: "bg-emerald-50 text-[var(--success)] ring-emerald-600/25",
+  medium: "bg-amber-50 text-[var(--warn)] ring-amber-600/25",
+  low: "bg-rose-50 text-[var(--danger)] ring-rose-600/25",
 };
 
 export function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {

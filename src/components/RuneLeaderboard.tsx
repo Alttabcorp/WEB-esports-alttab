@@ -18,7 +18,7 @@ export function RuneLeaderboard({
 }: Props) {
   if (runes.length === 0) {
     return (
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-[var(--muted)]">
         Sem páginas de runas recorrentes para {championName}.
       </p>
     );
@@ -31,11 +31,11 @@ export function RuneLeaderboard({
         return (
           <li
             key={`${rune.role}-${rune.fingerprint}`}
-            className="rounded-xl border border-white/10 bg-white/5 p-4"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"
           >
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0 flex-1 space-y-2">
-                <p className="font-medium text-white">
+                <p className="font-medium text-[var(--foreground)]">
                   {keystoneMeta?.name ?? `Keystone ${rune.keystone}`}
                 </p>
                 <RunePageIcons
@@ -50,7 +50,7 @@ export function RuneLeaderboard({
               </div>
               <ConfidenceBadge level={rune.confidence} />
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-[var(--muted)]">
               {ROLE_LABELS[rune.role]} · {pct(rune.wr)} WR · {rune.games} jogos
               · Wilson {pct(rune.wilsonLower)}
             </p>

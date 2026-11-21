@@ -15,14 +15,12 @@ export function EmptyState({
 }: Props) {
   return (
     <div
-      className={`flex flex-col items-start gap-3 rounded-xl border border-dashed border-[var(--border)] bg-black/20 px-4 py-6 ${className}`}
+      className={`flex flex-col items-start gap-3 rounded-[var(--radius)] border border-dashed border-[var(--border)] bg-[var(--surface-inset)] px-4 py-6 ${className}`}
     >
       <div>
-        <p className="font-semibold text-white">{title}</p>
+        <p className="type-title text-base">{title}</p>
         {description ? (
-          <p className="mt-1 max-w-md text-sm text-[var(--muted)]">
-            {description}
-          </p>
+          <p className="mt-1 max-w-md type-body text-sm">{description}</p>
         ) : null}
       </div>
       {action}

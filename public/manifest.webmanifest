@@ -4,8 +4,8 @@
   "description": "Companion de ranked ALTTAB — picks, builds e PDL do dia.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070c10",
-  "theme_color": "#070c10",
+  "background_color": "#F4F6F8",
+  "theme_color": "#F4F6F8",
   "lang": "pt-BR",
   "orientation": "any",
   "icons": [

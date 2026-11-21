@@ -33,6 +33,10 @@ export function ProfileSettingsForm({ initial = null }: Props) {
   const [preferredRole, setPreferredRole] = useState<RoleKey>(
     (initial?.preferredRole as RoleKey) ?? "MIDDLE",
   );
+  const [dailyLpTarget, setDailyLpTarget] = useState(
+    initial?.dailyLpTarget ?? 30,
+  );
+  const [dailyLpStop, setDailyLpStop] = useState(initial?.dailyLpStop ?? -40);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -61,6 +65,8 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             queue,
             matchCount,
             preferredRole,
+            dailyLpTarget,
+            dailyLpStop,
             analyze: sync,
           }),
         });
@@ -138,17 +144,17 @@ export function ProfileSettingsForm({ initial = null }: Props) {
   return (
     <form className="panel w-full max-w-2xl space-y-5 p-5" onSubmit={(e) => save(e, !initial)}>
       <div>
-        <h2 className="font-[family-name:var(--font-display)] text-lg text-white">
+        <h2 className="text-lg text-[var(--foreground)]">
           Meu perfil
         </h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="mt-1 text-sm text-[var(--muted)]">
           Salve uma vez e o coach lê as estatísticas do Postgres — sem buscar
           partidas na Riot a cada abertura.
         </p>
       </div>
 
       {initial || stats.stored > 0 ? (
-        <div className="rounded-lg border border-white/8 bg-black/25 px-3 py-2 text-sm text-zinc-300">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--muted-strong)]">
           <p>
             {stats.stored} partidas no banco
             {stats.lastSyncedAt
@@ -159,7 +165,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
       ) : null}
 
       <div>
-        <label htmlFor="cfg-riotId" className="mb-1.5 block text-sm text-zinc-300">
+        <label htmlFor="cfg-riotId" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
           Riot ID
         </label>
         <input
@@ -167,21 +173,21 @@ export function ProfileSettingsForm({ initial = null }: Props) {
           value={riotId}
           onChange={(e) => setRiotId(e.target.value)}
           placeholder="Nome#TAG"
-          className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-lg text-white outline-none ring-[#0596aa]/40 placeholder:text-zinc-500 focus:ring-2"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-lg text-[var(--foreground)] outline-none ring-[var(--focus-ring)] placeholder:text-[var(--muted)] focus:ring-2"
           required
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="cfg-region" className="mb-1.5 block text-sm text-zinc-300">
+          <label htmlFor="cfg-region" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
             Região
           </label>
           <select
             id="cfg-region"
             value={region}
             onChange={(e) => setRegion(e.target.value as PlatformRegion)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           >
             {PLATFORM_REGIONS.map((r) => (
               <option key={r.value} value={r.value}>
@@ -192,14 +198,14 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         </div>
 
         <div>
-          <label htmlFor="cfg-role" className="mb-1.5 block text-sm text-zinc-300">
+          <label htmlFor="cfg-role" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
             Lane preferida
           </label>
           <select
             id="cfg-role"
             value={preferredRole}
             onChange={(e) => setPreferredRole(e.target.value as RoleKey)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           >
             {ROLES.map((r) => (
               <option key={r} value={r}>
@@ -210,14 +216,50 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         </div>
 
         <div>
-          <label htmlFor="cfg-queue" className="mb-1.5 block text-sm text-zinc-300">
+          <label
+            htmlFor="cfg-lp-target"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
+            Meta PDL / dia
+          </label>
+          <input
+            id="cfg-lp-target"
+            type="number"
+            min={5}
+            max={100}
+            value={dailyLpTarget}
+            onChange={(e) => setDailyLpTarget(Number(e.target.value))}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="cfg-lp-stop"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
+            Stop-loss PDL
+          </label>
+          <input
+            id="cfg-lp-stop"
+            type="number"
+            min={-100}
+            max={-5}
+            value={dailyLpStop}
+            onChange={(e) => setDailyLpStop(Number(e.target.value))}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="cfg-queue" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
             Modo
           </label>
           <select
             id="cfg-queue"
             value={queue}
             onChange={(e) => setQueue(e.target.value as QueueFilter)}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           >
             <option value="ranked">Ranked (Solo + Flex)</option>
             <option value="solo">Ranked Solo/Duo</option>
@@ -227,14 +269,14 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         </div>
 
         <div>
-          <label htmlFor="cfg-count" className="mb-1.5 block text-sm text-zinc-300">
+          <label htmlFor="cfg-count" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
             Partidas a sincronizar
           </label>
           <select
             id="cfg-count"
             value={matchCount}
             onChange={(e) => setMatchCount(Number(e.target.value))}
-            className="w-full rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-3 text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           >
             {MATCH_COUNT_OPTIONS.map((n) => (
               <option key={n} value={n}>
@@ -246,14 +288,14 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-      {message ? <p className="text-sm text-[#7dd3de]">{message}</p> : null}
+      {error ? <p className="text-sm text-[var(--danger)]">{error}</p> : null}
+      {message ? <p className="text-sm text-[var(--alttab)]">{message}</p> : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <button
           type="submit"
           disabled={busy}
-          className="flex-1 rounded-xl bg-[#0596aa] px-4 py-3 text-sm font-semibold text-white hover:bg-[#047a8a] disabled:opacity-60"
+          className="flex-1 rounded-xl bg-[var(--alttab)] px-4 py-3 text-sm font-semibold text-white hover:bg-[var(--alttab-deep)] disabled:opacity-60"
         >
           {busy
             ? "Salvando…"
@@ -267,7 +309,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             type="button"
             onClick={syncOnly}
             disabled={busy}
-            className="rounded-xl border border-[#0596aa]/40 bg-[#0596aa]/10 px-4 py-3 text-sm font-semibold text-[#7dd3de] hover:bg-[#0596aa]/20 disabled:opacity-60"
+            className="rounded-xl border border-[var(--border-strong)] bg-[var(--alttab)]/10 px-4 py-3 text-sm font-semibold text-[var(--alttab)] hover:bg-[var(--alttab)]/20 disabled:opacity-60"
           >
             {syncing ? "Sincronizando…" : "Atualizar histórico (Riot)"}
           </button>
@@ -279,7 +321,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
           type="button"
           disabled={busy}
           onClick={(e) => save(e, true)}
-          className="text-xs text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline disabled:opacity-50"
+          className="text-xs text-[var(--muted)] underline-offset-2 hover:text-[var(--muted-strong)] hover:underline disabled:opacity-50"
         >
           Salvar e sincronizar agora
         </button>

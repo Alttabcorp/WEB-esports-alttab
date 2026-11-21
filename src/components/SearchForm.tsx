@@ -15,7 +15,7 @@ type Props = {
 };
 
 const fieldClass =
-  "min-h-11 w-full rounded-lg border border-[var(--border)] bg-black/40 px-3 py-2.5 text-white outline-none placeholder:text-[var(--muted)] focus:border-[var(--border-strong)]";
+  "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-[var(--foreground)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--border-strong)]";
 
 export function SearchForm({
   defaultRegion = "br1",

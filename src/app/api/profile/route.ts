@@ -14,6 +14,7 @@ import {
 } from "@/lib/riot/analyze";
 import { isPlatformRegion } from "@/lib/riot/regions";
 import { clampMatchCount } from "@/lib/stats/limits";
+import { clampLpStop, clampLpTarget } from "@/lib/stats/dayGoal";
 import type { RoleKey } from "@/lib/stats/roles";
 import type { QueueFilter } from "@/lib/riot/types";
 
@@ -47,6 +48,8 @@ export async function PUT(request: NextRequest) {
       preferredRole?: string;
       queue?: QueueFilter;
       matchCount?: number;
+      dailyLpTarget?: number;
+      dailyLpStop?: number;
       /** If true, refresh analysis while saving. */
       analyze?: boolean;
     };
@@ -55,6 +58,8 @@ export async function PUT(request: NextRequest) {
     const queue = (body.queue ?? "ranked") as QueueFilter;
     const matchCount = clampMatchCount(body.matchCount, 200);
     const preferredRole = (body.preferredRole ?? "MIDDLE").toUpperCase();
+    const dailyLpTarget = clampLpTarget(body.dailyLpTarget);
+    const dailyLpStop = clampLpStop(body.dailyLpStop);
 
     if (!isPlatformRegion(region)) {
       return NextResponse.json({ error: "Região inválida" }, { status: 400 });
@@ -138,6 +143,8 @@ export async function PUT(request: NextRequest) {
       preferredRole,
       queue,
       matchCount,
+      dailyLpTarget,
+      dailyLpStop,
     });
 
     return NextResponse.json({ profile });

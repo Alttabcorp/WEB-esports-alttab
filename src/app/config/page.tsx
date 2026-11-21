@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BridgeSetupPanel } from "@/components/BridgeSetupPanel";
 import { ProfileSettingsForm } from "@/components/ProfileSettingsForm";
+import { Button } from "@/components/ui";
 import { getAppProfile } from "@/lib/db/persist";
 
 export default async function ConfigPage() {
@@ -15,12 +16,20 @@ export default async function ConfigPage() {
         >
           ← Início
         </Link>
-        <h1 className="mt-3 text-3xl font-bold text-white">Configuração</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Perfil, sincronização e bridge do PC de jogo.
+        <h1 className="mt-3 type-display text-3xl text-[var(--foreground)]">Configuração</h1>
+        <p className="mt-2 type-body text-sm">
+          Perfil, sync Riot e bridge automático do PC de jogo.
         </p>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Jogadores de referência ficam em{" "}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button href="/coach" size="sm">
+            Abrir Coach
+          </Button>
+          <Button href="/" variant="ghost" size="sm">
+            Hub
+          </Button>
+        </div>
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          Jogadores de referência:{" "}
           <Link
             href="/referencias"
             className="text-[var(--alttab-soft)] hover:underline"
@@ -31,9 +40,21 @@ export default async function ConfigPage() {
         </p>
       </div>
 
+      <section className="space-y-3" aria-labelledby="cfg-bridge">
+        <div>
+          <h2 id="cfg-bridge" className="type-title">
+            Bridge do PC de jogo
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Três passos: Node → bootstrap → Coach no 2º monitor.
+          </p>
+        </div>
+        <BridgeSetupPanel />
+      </section>
+
       <section className="space-y-3" aria-labelledby="cfg-profile">
         <div>
-          <h2 id="cfg-profile" className="text-lg font-semibold text-white">
+          <h2 id="cfg-profile" className="type-title">
             Perfil e sync
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -42,19 +63,6 @@ export default async function ConfigPage() {
           </p>
         </div>
         <ProfileSettingsForm initial={profile} />
-      </section>
-
-      <section className="space-y-3" aria-labelledby="cfg-bridge">
-        <div>
-          <h2 id="cfg-bridge" className="text-lg font-semibold text-white">
-            Bridge (Em partida)
-          </h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Conecta o cliente LoL no PC de jogo ao companion — builds e itens ao
-            vivo.
-          </p>
-        </div>
-        <BridgeSetupPanel />
       </section>
     </div>
   );

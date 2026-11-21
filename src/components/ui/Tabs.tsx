@@ -30,7 +30,7 @@ export function Tabs<T extends string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`flex min-w-max gap-1 rounded-xl border border-[var(--border)] bg-black/30 p-1 ${className}`}
+      className={`flex min-w-max gap-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] p-1 ${className}`}
     >
       {items.map((item) => {
         const active = value === item.id;
@@ -42,10 +42,10 @@ export function Tabs<T extends string>({
             aria-selected={active}
             title={item.hint}
             onClick={() => onChange(item.id)}
-            className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg font-medium transition ${pad} ${
+            className={`inline-flex min-h-9 items-center gap-1.5 rounded-[calc(var(--radius)-2px)] font-medium transition ${pad} ${
               active
-                ? "bg-[var(--alttab)] text-white"
-                : "text-[var(--muted)] hover:text-white"
+                ? "bg-[var(--surface)] text-[var(--foreground)] shadow-sm ring-1 ring-[var(--border)]"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             {item.label}
@@ -53,8 +53,8 @@ export function Tabs<T extends string>({
               <span
                 className={`rounded-md px-1.5 text-[11px] font-semibold ${
                   active
-                    ? "bg-white/20 text-white"
-                    : "bg-[var(--warn)]/20 text-amber-100"
+                    ? "bg-[var(--alttab)]/12 text-[var(--alttab)]"
+                    : "bg-[var(--warn)]/15 text-[var(--warn)]"
                 }`}
               >
                 {item.badge}

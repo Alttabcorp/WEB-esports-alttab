@@ -8,12 +8,12 @@ const variantClass: Record<Variant, string> = {
   primary:
     "bg-[var(--alttab)] text-white hover:bg-[var(--alttab-deep)] border border-transparent",
   secondary:
-    "border border-[var(--border-strong)] bg-[var(--alttab)]/10 text-[var(--alttab-soft)] hover:bg-[var(--alttab)]/20 hover:text-white",
+    "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-2)]",
   ghost:
-    "border border-[var(--border)] bg-transparent text-[var(--muted-strong)] hover:bg-white/5 hover:text-white",
+    "border border-transparent bg-transparent text-[var(--muted-strong)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]",
   danger:
-    "border border-[var(--danger)]/35 bg-[var(--danger)]/10 text-red-100 hover:bg-[var(--danger)]/20",
-  warn: "border border-[var(--warn)]/35 bg-[var(--warn)]/10 text-amber-100 hover:bg-[var(--warn)]/20",
+    "border border-[var(--danger)]/30 bg-[var(--danger)]/8 text-[var(--danger)] hover:bg-[var(--danger)]/12",
+  warn: "border border-[var(--warn)]/30 bg-[var(--warn)]/8 text-[var(--warn)] hover:bg-[var(--warn)]/12",
 };
 
 const sizeClass: Record<Size, string> = {
@@ -23,7 +23,7 @@ const sizeClass: Record<Size, string> = {
 };
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
 
 type Common = {
   variant?: Variant;
@@ -39,34 +39,33 @@ type ButtonAsButton = Common &
 
 type ButtonAsLink = Common & {
   href: string;
-  onClick?: () => void;
+  type?: never;
+  onClick?: never;
+  disabled?: never;
 };
 
-export function Button(props: ButtonAsButton | ButtonAsLink) {
-  const variant = props.variant ?? "primary";
-  const size = props.size ?? "md";
-  const className = props.className ?? "";
-  const classes = `${base} ${variantClass[variant]} ${sizeClass[size]} ${className}`;
+type Props = ButtonAsButton | ButtonAsLink;
 
-  if (props.href) {
+export function Button(props: Props) {
+  const {
+    variant = "primary",
+    size = "md",
+    className = "",
+    children,
+  } = props;
+  const cls = `${base} ${variantClass[variant]} ${sizeClass[size]} ${className}`;
+
+  if ("href" in props && props.href) {
     return (
-      <Link href={props.href} className={classes} onClick={props.onClick}>
-        {props.children}
+      <Link href={props.href} className={cls}>
+        {children}
       </Link>
     );
   }
 
-  const {
-    variant: _variant,
-    size: _size,
-    className: _className,
-    children,
-    href: _href,
-    ...rest
-  } = props as ButtonAsButton;
-
+  const { type = "button", ...rest } = props as ButtonAsButton;
   return (
-    <button type="button" className={classes} {...rest}>
+    <button type={type} className={cls} {...rest}>
       {children}
     </button>
   );

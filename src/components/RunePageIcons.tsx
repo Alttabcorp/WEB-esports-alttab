@@ -63,7 +63,7 @@ export function RunePageIcons({
           />
         ) : null}
         {showLabels ? (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--muted)]">
             {primaryTree?.name ?? runeStyleLabel(primaryStyle)}
           </span>
         ) : null}
@@ -74,7 +74,7 @@ export function RunePageIcons({
             return (
               <span
                 key={`p-${id}-${index}`}
-                className="rounded bg-white/10 px-1 text-[10px] text-zinc-400"
+                className="rounded bg-[var(--surface-2)] px-1 text-[10px] text-[var(--muted)]"
               >
                 {id}
               </span>
@@ -87,7 +87,7 @@ export function RunePageIcons({
               alt={meta.name}
               width={dim}
               height={dim}
-              className="rounded-md bg-black/40"
+              className="rounded-md bg-[var(--surface-2)]"
               title={meta.name}
             />
           );
@@ -106,7 +106,7 @@ export function RunePageIcons({
           />
         ) : null}
         {showLabels ? (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-[var(--muted)]">
             {subTree?.name ?? runeStyleLabel(subStyle)}
           </span>
         ) : null}
@@ -116,7 +116,7 @@ export function RunePageIcons({
             return (
               <span
                 key={`s-${id}-${index}`}
-                className="rounded bg-white/10 px-1 text-[10px] text-zinc-400"
+                className="rounded bg-[var(--surface-2)] px-1 text-[10px] text-[var(--muted)]"
               >
                 {id}
               </span>
@@ -129,7 +129,7 @@ export function RunePageIcons({
               alt={meta.name}
               width={icon}
               height={icon}
-              className="rounded-md bg-black/40"
+              className="rounded-md bg-[var(--surface-2)]"
               title={meta.name}
             />
           );

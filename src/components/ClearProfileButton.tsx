@@ -19,7 +19,7 @@ export function ClearProfileButton() {
       type="button"
       onClick={clear}
       disabled={pending}
-      className="text-xs text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline disabled:opacity-50"
+      className="text-xs text-[var(--muted)] underline-offset-2 hover:text-[var(--muted-strong)] hover:underline disabled:opacity-50"
     >
       {pending ? "Removendo…" : "Trocar perfil"}
     </button>

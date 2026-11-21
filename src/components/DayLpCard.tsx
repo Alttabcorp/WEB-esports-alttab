@@ -23,12 +23,12 @@ export function DayLpCard({ summary, className = "" }: Props) {
     delta == null ? "—" : delta > 0 ? `+${delta}` : String(delta);
   const deltaColor =
     delta == null
-      ? "text-white"
+      ? "text-[var(--foreground)]"
       : delta > 0
-        ? "text-emerald-300"
+        ? "text-[var(--success)]"
         : delta < 0
-          ? "text-rose-300"
-          : "text-white";
+          ? "text-[var(--danger)]"
+          : "text-[var(--foreground)]";
 
   return (
     <Panel strong className={`px-4 py-3 ${className}`}>

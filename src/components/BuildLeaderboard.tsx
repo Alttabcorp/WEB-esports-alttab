@@ -32,7 +32,7 @@ export function BuildLeaderboard({
       {builds.map((build, buildIdx) => (
         <li
           key={build.fingerprint}
-          className="rounded-xl border border-[var(--border)] bg-black/25 p-3 sm:p-4"
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 sm:p-4"
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-[var(--muted-strong)]">
@@ -52,10 +52,10 @@ export function BuildLeaderboard({
                   alt={`Item ${itemId}`}
                   width={icon}
                   height={icon}
-                  className="rounded-md ring-1 ring-white/10"
+                  className="rounded-md ring-1 ring-[var(--border)]"
                 />
                 {large ? (
-                  <span className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded bg-black/85 text-[9px] font-bold text-white">
+                  <span className="absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded bg-[var(--foreground)] text-[9px] font-bold text-white">
                     {idx + 1}
                   </span>
                 ) : null}

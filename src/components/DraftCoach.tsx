@@ -279,7 +279,7 @@ export function DraftCoach({
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-[var(--border-strong)] bg-[var(--alttab)]/10 px-4 py-3 text-sm">
-        <p className="font-semibold text-white">Seleção manual</p>
+        <p className="font-semibold text-[var(--foreground)]">Seleção manual</p>
         <p className="mt-1 text-[var(--muted-strong)]">
           Espelhe o champ select do LoL: bans → picks → seu pick. O ranking
           atualiza sozinho com o seu histórico.
@@ -288,14 +288,14 @@ export function DraftCoach({
 
       <div className="panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="mr-2 flex gap-1 rounded-lg bg-black/30 p-1">
+          <div className="mr-2 flex gap-1 rounded-lg bg-[var(--surface-inset)] p-1">
             <button
               type="button"
               onClick={() => setPhase("ban")}
               className={`min-h-9 rounded-md px-3 py-1.5 text-sm font-medium ${
                 phase === "ban"
-                  ? "bg-[var(--danger)]/80 text-white"
-                  : "text-[var(--muted)] hover:text-white"
+                  ? "bg-[var(--danger)]/80 text-[var(--foreground)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               1. Bans
@@ -306,7 +306,7 @@ export function DraftCoach({
               className={`min-h-9 rounded-md px-3 py-1.5 text-sm font-medium ${
                 phase === "pick"
                   ? "bg-[var(--alttab)] text-white"
-                  : "text-[var(--muted)] hover:text-white"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               2. Picks
@@ -321,7 +321,7 @@ export function DraftCoach({
               className={`min-h-9 rounded-md px-2.5 py-1.5 text-sm font-medium transition ${
                 role === r
                   ? "bg-[var(--alttab)] text-white"
-                  : "bg-white/5 text-[var(--muted-strong)] hover:bg-white/10"
+                  : "bg-[var(--surface-2)] text-[var(--muted-strong)] hover:bg-[var(--surface-2)]"
               }`}
             >
               {ROLE_LABELS[r]}
@@ -359,7 +359,7 @@ export function DraftCoach({
               <p className="data-label">
                 Bans{phase === "ban" ? " · fase atual" : ""}
               </p>
-              <p className="text-[11px] text-zinc-600">
+              <p className="text-[11px] text-[var(--muted)]">
                 clique vazio = escolher · preenchido = remover
               </p>
             </div>
@@ -446,7 +446,7 @@ export function DraftCoach({
         {/* Recommendations column */}
         <section className="panel-strong flex min-h-[420px] flex-col px-4 py-4 xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">
               Top picks neste board
             </h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
@@ -490,7 +490,7 @@ export function DraftCoach({
                     className={`rounded-xl border p-3 transition ${
                       activePick
                         ? "border-[var(--alttab)] bg-[var(--alttab)]/12"
-                        : "border-[var(--border)] bg-black/25 hover:border-white/15"
+                        : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--border)]"
                     }`}
                   >
                     <div className="flex gap-3">
@@ -502,13 +502,13 @@ export function DraftCoach({
                           height={52}
                           className="rounded-lg"
                         />
-                        <span className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded bg-black/85 text-[10px] font-bold text-[var(--alttab-soft)]">
+                        <span className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded bg-[var(--foreground)] text-[10px] font-bold text-white">
                           {index + 1}
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-white">
+                          <p className="font-semibold text-[var(--foreground)]">
                             {rec.championName}
                           </p>
                           <ConfidenceBadge level={rec.confidence} />
@@ -552,7 +552,7 @@ export function DraftCoach({
                         className={`min-h-9 shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold transition disabled:opacity-60 ${
                           activePick
                             ? "bg-[var(--alttab)] text-white"
-                            : "border border-[var(--border)] text-[var(--muted-strong)] hover:border-[var(--border-strong)] hover:text-white"
+                            : "border border-[var(--border)] text-[var(--muted-strong)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
                         }`}
                       >
                         {activePick ? "Pick" : "Usar"}
@@ -569,41 +569,41 @@ export function DraftCoach({
       {/* Champion picker modal */}
       {pickerOpen && active ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
           onClick={closePicker}
           role="presentation"
         >
           <div
-            className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-t-2xl border border-white/10 bg-[#0a161c] shadow-2xl sm:rounded-2xl"
+            className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-t-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Escolher campeão"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-sm font-semibold text-[var(--foreground)]">
                   {slotLabel(active, role)}
                 </p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-[var(--muted)]">
                   Digite para filtrar · Esc para fechar
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closePicker}
-                className="rounded-md px-2 py-1 text-sm text-zinc-400 hover:bg-white/5 hover:text-white"
+                className="rounded-md px-2 py-1 text-sm text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]"
               >
                 Fechar
               </button>
             </div>
-            <div className="border-b border-white/8 px-4 py-3">
+            <div className="border-b border-[var(--border)] px-4 py-3">
               <input
                 ref={searchRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar campeão…"
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-[#0596aa]/50 focus:ring-2 focus:ring-[#0596aa]/25"
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--border-strong)] focus:ring-2 focus:ring-[var(--focus-ring)]"
               />
             </div>
             <div className="grid grid-cols-5 gap-2 overflow-y-auto p-4 sm:grid-cols-8 md:grid-cols-10">
@@ -613,7 +613,7 @@ export function DraftCoach({
                   type="button"
                   title={c.name}
                   onClick={() => placeChampion(c.id)}
-                  className="group flex flex-col items-center gap-1 rounded-lg border border-transparent p-1 transition hover:border-[#0596aa]/50 hover:bg-[#0596aa]/10"
+                  className="group flex flex-col items-center gap-1 rounded-lg border border-transparent p-1 transition hover:border-[var(--border-strong)] hover:bg-[var(--alttab)]/10"
                 >
                   <Image
                     src={championIconUrl(ddragonVersion, c.key)}
@@ -622,13 +622,13 @@ export function DraftCoach({
                     height={52}
                     className="w-full rounded-md"
                   />
-                  <span className="w-full truncate text-center text-[10px] text-zinc-500 group-hover:text-zinc-300">
+                  <span className="w-full truncate text-center text-[10px] text-[var(--muted)] group-hover:text-[var(--muted-strong)]">
                     {c.name}
                   </span>
                 </button>
               ))}
               {filtered.length === 0 ? (
-                <p className="col-span-full py-8 text-center text-sm text-zinc-500">
+                <p className="col-span-full py-8 text-center text-sm text-[var(--muted)]">
                   Nenhum campeão encontrado
                 </p>
               ) : null}
@@ -668,7 +668,7 @@ function BanChip({
         active
           ? "border-[var(--alttab)] ring-2 ring-[var(--alttab)]/40"
           : "border-[var(--border)] hover:border-white/25"
-      } ${championId ? "opacity-70 grayscale" : "bg-black/30"}`}
+      } ${championId ? "opacity-70 grayscale" : "bg-[var(--surface-inset)]"}`}
     >
       {key ? (
         <Image
@@ -730,7 +730,7 @@ function TeamPanel({
     <div className={`overflow-hidden rounded-xl border ${accent}`}>
       <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2">
         <span className={`h-2 w-2 rounded-full ${bar}`} />
-        <p className="text-sm font-semibold text-white">{title}</p>
+        <p className="text-sm font-semibold text-[var(--foreground)]">{title}</p>
       </div>
       <div className="divide-y divide-white/5">
         {roles.map((r, index) => {
@@ -808,7 +808,7 @@ function SlotRow({
           ? "bg-[var(--alttab)]/20"
           : highlight
             ? "bg-[var(--warn)]/10 hover:bg-[var(--warn)]/15"
-            : "hover:bg-white/[0.03]"
+            : "hover:bg-[var(--surface-2)]"
       }`}
     >
       {key ? (
@@ -830,7 +830,7 @@ function SlotRow({
           {roleLabel ? ` · ${roleLabel}` : ""}
           {highlight ? " · lane" : ""}
         </span>
-        <span className="block truncate text-sm font-medium text-white">
+        <span className="block truncate text-sm font-medium text-[var(--foreground)]">
           {name ?? "Selecionar"}
         </span>
       </span>

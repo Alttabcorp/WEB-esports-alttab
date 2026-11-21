@@ -43,10 +43,10 @@ export function Menu({
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex min-h-9 items-center rounded-lg border px-3 py-1.5 text-sm transition ${
+        className={`inline-flex min-h-9 items-center rounded-[var(--radius)] border px-3 py-1.5 text-sm transition ${
           open
-            ? "border-[var(--border-strong)] text-white"
-            : "border-[var(--border)] text-[var(--muted-strong)] hover:text-white"
+            ? "border-[var(--border-strong)] text-[var(--foreground)] bg-[var(--surface)]"
+            : "border-[var(--border)] text-[var(--muted-strong)] hover:text-[var(--foreground)] hover:bg-[var(--surface-2)]"
         }`}
       >
         {label}
@@ -55,7 +55,7 @@ export function Menu({
         <div
           id={menuId}
           role="menu"
-          className={`absolute z-50 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-1 shadow-2xl ${
+          className={`absolute z-50 mt-1 w-56 overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] py-1 shadow-[var(--shadow-md)] ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -77,7 +77,7 @@ export function MenuItem({
   onClick?: () => void;
   className?: string;
 }) {
-  const classes = `block w-full px-3 py-2.5 text-left text-sm text-[var(--muted-strong)] hover:bg-white/5 hover:text-white ${className}`;
+  const classes = `block w-full px-3 py-2.5 text-left text-sm text-[var(--muted-strong)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] ${className}`;
   if (href) {
     return (
       <a role="menuitem" href={href} className={classes} onClick={onClick}>

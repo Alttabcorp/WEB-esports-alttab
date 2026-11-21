@@ -59,12 +59,12 @@ export function SessionPlanCard({ platform, puuid }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="data-label">Sessão de hoje · pré-fila</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">
+          <h3 className="mt-1 text-lg font-semibold text-[var(--foreground)]">
             {advice?.title ?? (pending ? "Calculando plano…" : "Plano do dia")}
           </h3>
         </div>
         {advice ? (
-          <span className="rounded-lg bg-black/30 px-2.5 py-1 text-xs font-semibold text-white">
+          <span className="rounded-lg bg-[var(--surface-inset)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]">
             {badge}
           </span>
         ) : null}
