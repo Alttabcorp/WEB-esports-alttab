@@ -1,29 +1,44 @@
-# Live Client Bridge (PC → League Persua)
+# Live Bridge (PC → League Persua)
 
-Roda **no PC onde o LoL está aberto**. Lê `https://127.0.0.1:2999` e envia pro servidor.
+Roda **no PC onde o LoL está aberto**. Lê:
 
-## Jeito mais fácil (Windows)
+- **LCU** (champ select / draft) via `lockfile`
+- **Live Client** `https://127.0.0.1:2999` (em partida)
 
-1. No servidor, abra **Config → Bridge do PC de jogo**
-2. Clique **Baixar .env do bridge** (já traz token + URL + PUUID)
-3. Copie esta pasta `live-bridge` para o PC de jogo
-4. Coloque o arquivo baixado aqui como `.env` (renomeie se precisar)
-5. Instale [Node.js LTS](https://nodejs.org/) **uma vez**
-6. Dê dois cliques em **`Iniciar-Bridge.bat`**
-7. Deixe a janela aberta e jogue — no Ao vivo deve aparecer **Bridge PC online**
+e envia pro servidor com `phase`: `idle` | `draft` | `loading` | `inGame`.
 
-> Não é um `.exe` nativo: é um atalho `.bat` + Node. Evita instalar empacotador e atualiza fácil.
+## Jeito automático (Windows, mesma rede)
 
-## Onde pegar o `LIVE_AGENT_TOKEN`?
+1. Instale [Node.js LTS](https://nodejs.org/) **uma vez** (Add to PATH)
+2. No Persua: **Config → Baixar Atualizar-e-Iniciar.bat**
+3. No PC do LoL, dê dois cliques no `.bat` (sem administrador)
+4. Ele baixa o bridge de `http://SEU-IP:3001/bridge/…`, grava o `.env`, cria atalho na **Inicialização** do Windows e sobe o agente
+5. No 2º monitor abra **`/coach`**
 
-- **Config do site** (recomendado): copiar / baixar `.env`
-- Ou no servidor: variável `LIVE_AGENT_TOKEN` no `.env` / `.env.local`
+A cada login (ou ao rodar o `.bat` de novo), os arquivos são atualizados do servidor.
+
+## Jeito manual
+
+1. Copie esta pasta `live-bridge` para o PC de jogo
+2. Baixe o `.env` em Config e coloque aqui
+3. Dois cliques em **`Iniciar-Bridge.bat`**
+
+> Não é um `.exe` nativo: é `.bat` + Node.
 
 ## Requisitos
 
 - Node.js 20+
-- LoL **em partida** (porta 2999 só existe in-game)
-- PC alcança o Persua na rede (`PERSUA_URL`, ex. `http://192.168.x.x:3001`)
+- Cliente LoL aberto (lockfile) para draft; **em partida** para LCD
+- PC alcança o Persua na rede (`PERSUA_URL`)
+
+## Lockfile
+
+Por padrão o bridge procura em:
+
+- `C:\Riot Games\League of Legends\lockfile`
+- `%LOCALAPPDATA%\Riot Games\League of Legends\lockfile`
+
+Se o LoL estiver em outro disco, defina `LOCKFILE_PATH` no `.env`.
 
 ## Alternativa manual
 
@@ -36,4 +51,4 @@ npm start
 
 ## Firewall
 
-O bridge **sai** do PC para o servidor — não precisa expor a porta 2999 na LAN.
+O bridge **sai** do PC para o servidor — não precisa expor portas do LoL na LAN.

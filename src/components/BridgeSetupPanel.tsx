@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { buildBridgeBootstrapBat } from "@/lib/live/bridgeBootstrap";
+import { Button, Panel } from "@/components/ui";
 
 type Setup = {
   configured: boolean;
@@ -9,6 +11,34 @@ type Setup = {
   riotId: string | null;
   hint: string;
 };
+
+function downloadText(filename: string, body: string, type = "text/plain") {
+  const blob = new Blob([body], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const STEPS = [
+  {
+    n: "1",
+    title: "Node no PC do LoL",
+    body: "Instale Node.js LTS uma vez (Add to PATH).",
+  },
+  {
+    n: "2",
+    title: "Baixe o bootstrap",
+    body: "Atualizar-e-Iniciar.bat — dois cliques, sem admin.",
+  },
+  {
+    n: "3",
+    title: "Abra o Coach",
+    body: "No 2º monitor: /coach. Bridge sobe e atualiza sozinho.",
+  },
+];
 
 export function BridgeSetupPanel() {
   const [setup, setSetup] = useState<Setup | null>(null);
@@ -35,21 +65,22 @@ export function BridgeSetupPanel() {
 
   function downloadEnv() {
     if (!setup?.token) return;
+    const base = serverUrl.replace(/\/$/, "");
     const body = [
-      `PERSUA_URL=${serverUrl.replace(/\/$/, "")}`,
+      `PERSUA_URL=${base}`,
       `LIVE_AGENT_TOKEN=${setup.token}`,
       setup.puuid ? `PROFILE_PUUID=${setup.puuid}` : "# PROFILE_PUUID=",
       "POLL_INGAME_MS=2000",
+      "POLL_DRAFT_MS=1500",
       "POLL_IDLE_MS=8000",
       "",
     ].join("\n");
-    const blob = new Blob([body], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "league-persua-bridge.env";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadText("league-persua-bridge.env", body);
+  }
+
+  function downloadBootstrap() {
+    const bat = buildBridgeBootstrapBat(serverUrl);
+    downloadText("Atualizar-e-Iniciar.bat", bat, "application/octet-stream");
   }
 
   const envPreview = setup?.token
@@ -63,23 +94,36 @@ export function BridgeSetupPanel() {
     : "";
 
   return (
-    <section className="panel w-full space-y-4 p-5">
+    <Panel className="w-full space-y-5 p-5">
       <div>
-        <h3 className="text-base font-semibold text-white">
-          Setup do agente Windows
-        </h3>
+        <h3 className="type-title text-base">Setup do agente Windows</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Roda no PC de jogo e envia Live Client Data (KDA, CS, ouro, itens) para
-          este servidor.
+          Roda no PC de jogo: baixa o bridge deste servidor, atualiza sozinho e
+          envia draft + Live Client para o Persua.
         </p>
       </div>
+
+      <ol className="grid gap-3 sm:grid-cols-3">
+        {STEPS.map((s) => (
+          <li
+            key={s.n}
+            className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 py-3"
+          >
+            <p className="text-xs tracking-wide text-[var(--alttab-soft)]">
+              PASSO {s.n}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">{s.title}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{s.body}</p>
+          </li>
+        ))}
+      </ol>
 
       {pending && !setup ? (
         <p className="text-sm text-[var(--alttab-soft)]">Carregando…</p>
       ) : null}
 
       {setup && !setup.configured ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+        <p className="rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-[var(--warn)]">
           {setup.hint}
         </p>
       ) : null}
@@ -87,51 +131,52 @@ export function BridgeSetupPanel() {
       {setup?.configured ? (
         <>
           <div>
-            <label className="mb-1 block text-sm text-zinc-300">
+            <label className="mb-1 block text-sm text-[var(--muted-strong)]">
               URL do servidor (do PC de jogo)
             </label>
             <div className="flex gap-2">
               <input
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-2.5 text-sm text-white outline-none focus:ring-2 focus:ring-[#0596aa]/40"
+                className="min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-inset)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                 placeholder="http://192.168.x.x:3001"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => copy(serverUrl, "url")}
-                className="rounded-xl border border-white/15 px-3 text-sm text-zinc-300 hover:text-white"
               >
                 {copied === "url" ? "OK" : "Copiar"}
-              </button>
+              </Button>
             </div>
-            <p className="mt-1 text-xs text-zinc-600">
-              Use o IP da sua infra na LAN, não localhost (localhost no PC de
-              jogo é o próprio PC).
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Use o IP da LAN (ex. 192.168.18.45), não localhost.
             </p>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-zinc-300">
+            <label className="mb-1 block text-sm text-[var(--muted-strong)]">
               LIVE_AGENT_TOKEN
             </label>
             <div className="flex gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-xs text-[#7dd3de]">
+              <code className="min-w-0 flex-1 truncate rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 font-mono text-xs text-[var(--alttab-soft)]">
                 {setup.token}
               </code>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setup.token && copy(setup.token, "token")}
-                className="rounded-xl border border-white/15 px-3 text-sm text-zinc-300 hover:text-white"
               >
                 {copied === "token" ? "OK" : "Copiar"}
-              </button>
+              </Button>
             </div>
           </div>
 
           {setup.puuid ? (
-            <p className="text-xs text-zinc-500">
-              Perfil: {setup.riotId} · PUUID já entra no .env baixado
+            <p className="text-xs text-[var(--muted)]">
+              Perfil: {setup.riotId} · PUUID já entra no .env automático
             </p>
           ) : (
             <p className="text-xs text-amber-300/90">
@@ -140,56 +185,38 @@ export function BridgeSetupPanel() {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button type="button" onClick={downloadBootstrap}>
+              Baixar Atualizar-e-Iniciar.bat
+            </Button>
+            <Button type="button" variant="secondary" onClick={downloadEnv}>
+              Baixar só .env
+            </Button>
+            <Button
               type="button"
-              onClick={downloadEnv}
-              className="rounded-xl bg-[#0596aa] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#047a8a]"
-            >
-              Baixar .env do bridge
-            </button>
-            <button
-              type="button"
+              variant="ghost"
               onClick={() => copy(envPreview, "env")}
-              className="rounded-xl border border-[#0596aa]/40 bg-[#0596aa]/10 px-4 py-2.5 text-sm font-semibold text-[#7dd3de]"
             >
               {copied === "env" ? "Copiado" : "Copiar .env"}
-            </button>
+            </Button>
+            <Button href="/coach" variant="secondary">
+              Abrir Coach
+            </Button>
           </div>
 
-          <ol className="list-decimal space-y-2 pl-5 text-sm text-zinc-400">
-            <li>
-              No PC de jogo: copie a pasta{" "}
-              <code className="text-zinc-300">agents/live-bridge</code> do
-              projeto (ou clone o repo).
-            </li>
-            <li>
-              Instale{" "}
-              <a
-                href="https://nodejs.org/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[#7dd3de] hover:underline"
-              >
-                Node.js LTS
-              </a>{" "}
-              (só uma vez).
-            </li>
-            <li>
-              Coloque o arquivo baixado como{" "}
-              <code className="text-zinc-300">.env</code> dentro de{" "}
-              <code className="text-zinc-300">live-bridge</code> (renomeie
-              se vier como{" "}
-              <code className="text-zinc-300">league-persua-bridge.env</code>
-              ).
-            </li>
-            <li>
-              Dê dois cliques em{" "}
-              <code className="text-zinc-300">Iniciar-Bridge.bat</code> e
-              deixe a janela aberta enquanto joga.
-            </li>
-          </ol>
+          <p className="text-xs text-[var(--muted)]">
+            Node LTS:{" "}
+            <a
+              href="https://nodejs.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[var(--alttab-soft)] hover:underline"
+            >
+              nodejs.org
+            </a>
+            . Arquivos em %LOCALAPPDATA%\LeaguePersua.
+          </p>
         </>
       ) : null}
-    </section>
+    </Panel>
   );
 }

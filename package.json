@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/sync-bridge-public.mjs",
+    "sync:bridge": "node scripts/sync-bridge-public.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
