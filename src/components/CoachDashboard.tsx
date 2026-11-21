@@ -363,9 +363,8 @@ export function CoachDashboard({
             onFeature={(id) => {
               setPoolFeaturedId(id);
             }}
-            onUseInRanking={(id) => {
-              setSelectedId(id);
-            }}
+            champHref="/ranking"
+            rankingHref="/ranking"
             statsHref="/estatisticas"
             coachHref="/coach"
           />

@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import type { AppProfileView } from "@/lib/db/persist";
-import { encodeRiotId } from "@/lib/format";
 import { PLATFORM_REGIONS, type PlatformRegion } from "@/lib/riot/regions";
 import type { QueueFilter } from "@/lib/riot/types";
 import { MATCH_COUNT_OPTIONS } from "@/lib/stats/limits";
@@ -91,13 +90,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         );
         router.refresh();
         if (data.profile) {
-          const slug = encodeRiotId(
-            data.profile.gameName,
-            data.profile.tagLine,
-          );
-          router.push(
-            `/summoner/${data.profile.platform}/${slug}?queue=${data.profile.queue}&count=${data.profile.matchCount}`,
-          );
+          router.push("/preparar");
         }
       } catch {
         setError("Erro de rede");

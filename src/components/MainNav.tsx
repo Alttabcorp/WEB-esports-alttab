@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 type Props = {
-  prepHref: string | null;
+  hasProfile: boolean;
 };
 
 function linkClass(active: boolean, emphasize = false) {
@@ -43,15 +43,28 @@ function NavItem({
   );
 }
 
-export function MainNav({ prepHref }: Props) {
+const PREP_PREFIXES = [
+  "/preparar",
+  "/ranking",
+  "/campeao",
+  "/historico",
+  "/summoner",
+];
+
+export function MainNav({ hasProfile }: Props) {
   const pathname = usePathname();
   const onCoach = pathname === "/coach";
   const onConfig = pathname === "/config" || pathname.startsWith("/referencias");
   const onStats = pathname.startsWith("/estatisticas");
-  const prepActive = pathname.startsWith("/summoner/");
+  const onRanking = pathname === "/ranking";
+  const onTiming = pathname === "/timing";
+  const prepActive =
+    !onRanking &&
+    !onTiming &&
+    PREP_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const homeActive = pathname === "/";
 
-  if (!prepHref) {
+  if (!hasProfile) {
     return (
       <div className="flex items-center gap-3 text-sm">
         <NavItem href="/config" active={onConfig} emphasize>
@@ -69,8 +82,14 @@ export function MainNav({ prepHref }: Props) {
       <NavItem href="/" active={homeActive}>
         Hub
       </NavItem>
-      <NavItem href={prepHref} active={prepActive}>
+      <NavItem href="/preparar" active={prepActive}>
         Preparar
+      </NavItem>
+      <NavItem href="/timing" active={onTiming}>
+        Quando
+      </NavItem>
+      <NavItem href="/ranking" active={onRanking}>
+        Ranking
       </NavItem>
       <NavItem href="/estatisticas" active={onStats}>
         Estatísticas

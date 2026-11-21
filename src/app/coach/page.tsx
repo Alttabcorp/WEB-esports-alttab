@@ -40,8 +40,8 @@ export default async function CoachPage() {
 
   const slug = encodeRiotId(profile.gameName, profile.tagLine);
   const qs = `queue=${profile.queue}&count=${profile.matchCount}`;
-  const prepHref = `/summoner/${profile.platform}/${slug}?${qs}`;
-  const timingHref = `${prepHref}&tab=timing`;
+  const prepHref = "/preparar";
+  const timingHref = "/timing";
   const draftHref = `/summoner/${profile.platform}/${slug}/draft?${qs}`;
   const preferredRole = (profile.preferredRole as RoleKey) || "MIDDLE";
 

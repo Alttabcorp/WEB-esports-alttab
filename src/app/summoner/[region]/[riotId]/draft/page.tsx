@@ -9,7 +9,7 @@ import {
   getRuneCatalog,
   getSpellCatalog,
 } from "@/lib/ddragon";
-import { decodeRiotIdParam, encodeRiotId } from "@/lib/format";
+import { decodeRiotIdParam } from "@/lib/format";
 import { parseRiotId } from "@/lib/riot/analyze";
 import { isPlatformRegion } from "@/lib/riot/regions";
 import type { RoleKey } from "@/lib/stats/roles";
@@ -51,7 +51,7 @@ export default async function DraftPage({ params, searchParams }: PageProps) {
     ]);
 
   const riotId = `${parsed.gameName}#${parsed.tagLine}`;
-  const backHref = `/summoner/${region}/${encodeRiotId(parsed.gameName, parsed.tagLine)}?queue=${queue}&count=${Number.isFinite(count) ? count : 50}`;
+  const backHref = "/preparar";
   const defaultRole =
     (appProfile?.preferredRole as RoleKey | undefined) ?? "MIDDLE";
 

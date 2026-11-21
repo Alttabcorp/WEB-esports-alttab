@@ -9,14 +9,29 @@ type Props = {
   children: ReactNode;
 };
 
+function contentMaxWidth(pathname: string): string {
+  if (pathname === "/coach") return "max-w-6xl";
+  if (
+    pathname === "/ranking" ||
+    pathname.startsWith("/estatisticas") ||
+    pathname.startsWith("/campeao")
+  ) {
+    return "max-w-7xl";
+  }
+  return "max-w-5xl";
+}
+
 export function AppShell({ nav, children }: Props) {
   const pathname = usePathname();
   const coachMode = pathname === "/coach";
+  const width = contentMaxWidth(pathname);
 
   if (coachMode) {
     return (
       <div className="coach-shell relative min-h-full min-h-dvh">
-        <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-3 py-3 sm:px-5 sm:py-4">
+        <div
+          className={`relative mx-auto flex min-h-dvh w-full ${width} flex-col px-3 py-3 sm:px-5 sm:py-4`}
+        >
           <header className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-2">
             <Link
               href="/"
@@ -33,7 +48,9 @@ export function AppShell({ nav, children }: Props) {
   }
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[90rem] flex-col px-3 py-3 sm:px-5 sm:py-4 lg:px-6">
+    <div
+      className={`mx-auto flex min-h-full w-full ${width} flex-col px-3 py-3 sm:px-5 sm:py-4`}
+    >
       <header className="mb-3 flex items-center justify-between gap-3 border-b border-[var(--border)] pb-2.5">
         <Link href="/" className="group flex min-h-9 items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius)] bg-[var(--alttab)] text-[11px] font-bold text-white">
