@@ -1,5 +1,6 @@
 import {
   findPlayerByPuuid,
+  getAppProfile,
   getDayLpSummaryForPlayer,
   getMatchFromDb,
   getStoredMatchesForPlayer,
@@ -18,13 +19,19 @@ import {
   buildTemporalInsights,
 } from "@/lib/stats/temporal";
 import {
-  DEFAULT_DAY_LP_GOAL,
-  DEFAULT_DAY_LP_STOP,
   DEFAULT_LOSS_STREAK_STOP,
   DEFAULT_WIN_GOAL,
   SOLO_QUEUE,
   type DayLpSummary,
 } from "@/lib/stats/lpLedger";
+import {
+  computeDayGoalProgress,
+  dayGoalVerb,
+} from "@/lib/stats/dayGoal";
+import {
+  computeSessionEv,
+  type SessionEvResult,
+} from "@/lib/stats/sessionEv";
 import { winRate } from "@/lib/stats/wilson";
 
 export type SessionAdviceDecision = "continue" | "caution" | "stop";
@@ -62,6 +69,14 @@ export type SessionAdvice = {
     stopLoss: number;
     goalHit: boolean;
     stopHit: boolean;
+    gamesRemainingEst: number | null;
+    /** ΔLP da última partida (estimado se ledger fino indisponível). */
+    lastMatchDelta: number | null;
+  };
+  sessionEv: SessionEvResult;
+  nextPlan: {
+    maxGamesLeft: number | null;
+    verb: string;
   };
   bestWindowLabel: string | null;
   inBestWindow: boolean;
@@ -280,10 +295,18 @@ export async function buildSessionAdvice(
     (s) => s.afterLosses === afterLosses && s.games >= 6 && s.lift <= -0.08,
   );
 
-  const lpDelta = lpSummary?.lpDelta ?? null;
-  const goalHit = lpDelta != null && lpDelta >= DEFAULT_DAY_LP_GOAL;
-  const stopHit = lpDelta != null && lpDelta <= DEFAULT_DAY_LP_STOP;
-  const winGoalHit = todayWins >= DEFAULT_WIN_GOAL && todayGames.length >= DEFAULT_WIN_GOAL;
+  const appProfile = await getAppProfile();
+  const goalProgress = computeDayGoalProgress({
+    target: appProfile?.dailyLpTarget,
+    stopLoss: appProfile?.dailyLpStop,
+    delta: lpSummary?.lpDelta ?? null,
+    perHour: lpSummary?.lpPerHour ?? null,
+  });
+  const lpDelta = goalProgress.delta;
+  const goalHit = goalProgress.goalHit;
+  const stopHit = goalProgress.stopHit;
+  const winGoalHit =
+    todayWins >= DEFAULT_WIN_GOAL && todayGames.length >= DEFAULT_WIN_GOAL;
 
   const reasons: string[] = [];
   let score = 0;
@@ -370,24 +393,43 @@ export async function buildSessionAdvice(
   if (lpDelta != null) {
     if (stopHit) {
       score -= 4;
-      reasons.push(`Stop-loss do dia: ${lpDelta} PDL (limite ${DEFAULT_DAY_LP_STOP}).`);
+      reasons.push(
+        `Stop-loss do dia: ${lpDelta} PDL (limite ${goalProgress.stopLoss}).`,
+      );
     } else if (goalHit || winGoalHit) {
       score -= 2;
       reasons.push(
         goalHit
-          ? `Meta de PDL batida (+${lpDelta}). Proteja o lucro.`
+          ? `Meta de PDL batida (+${lpDelta} / +${goalProgress.target}). Proteja o lucro.`
           : `Meta de vitórias batida (${todayWins}W). Pode encerrar no azul.`,
       );
     } else if (lpDelta >= 15) {
       score += 1;
-      reasons.push(`PDL do dia: +${lpDelta}. Sessão lucrativa.`);
+      reasons.push(
+        `PDL do dia: +${lpDelta} (meta +${goalProgress.target}). ${dayGoalVerb(goalProgress)}`,
+      );
     } else if (lpDelta <= -20) {
       score -= 2;
       reasons.push(`PDL do dia: ${lpDelta}. Evite forçar a recuperação.`);
     } else {
-      reasons.push(`PDL do dia: ${lpDelta >= 0 ? "+" : ""}${lpDelta}.`);
+      reasons.push(
+        `PDL ${lpDelta >= 0 ? "+" : ""}${lpDelta} · meta +${goalProgress.target}` +
+          (goalProgress.gamesRemainingEst != null
+            ? ` · ~${goalProgress.gamesRemainingEst} win(s)`
+            : ""),
+      );
     }
   }
+
+  const sessionEv = computeSessionEv({
+    temporal,
+    goal: goalProgress,
+    nextSessionIndex: nextGameNumber,
+    lossStreak: afterLosses,
+    winStreak: afterWins,
+  });
+  // Blend sessionEv into decision score
+  score += Math.round(sessionEv.score / 2);
 
   if (temporal.recentForm && temporal.recentForm.lift <= -0.08) {
     score -= 1;
@@ -431,10 +473,30 @@ export async function buildSessionAdvice(
 
   const summary =
     decision === "continue"
-      ? "Sinais favoráveis pra maximizar PDL hoje."
+      ? sessionEv.detail
       : decision === "stop"
-        ? "Histórico da sessão/dia aponta risco de perder PDL se forçar."
-        : "Não é um stop claro, mas também não é o melhor momento. Se jogar, só 1 com foco.";
+        ? sessionEv.detail ||
+          "Histórico da sessão/dia aponta risco de perder PDL se forçar."
+        : sessionEv.detail ||
+          "Não é um stop claro. Se jogar, só 1 com foco.";
+
+  const lastMatchDelta =
+    last == null
+      ? null
+      : last.win
+        ? 18
+        : -16;
+
+  const maxGamesLeft =
+    goalProgress.goalHit || goalProgress.stopHit
+      ? 0
+      : goalProgress.gamesRemainingEst != null
+        ? Math.min(3, Math.max(1, goalProgress.gamesRemainingEst))
+        : decision === "stop"
+          ? 0
+          : decision === "continue"
+            ? 2
+            : 1;
 
   return {
     phase,
@@ -466,10 +528,22 @@ export async function buildSessionAdvice(
     lp: {
       delta: lpDelta,
       perHour: lpSummary?.lpPerHour ?? null,
-      goal: DEFAULT_DAY_LP_GOAL,
-      stopLoss: DEFAULT_DAY_LP_STOP,
+      goal: goalProgress.target,
+      stopLoss: goalProgress.stopLoss,
       goalHit,
       stopHit,
+      gamesRemainingEst: goalProgress.gamesRemainingEst,
+      lastMatchDelta,
+    },
+    sessionEv,
+    nextPlan: {
+      maxGamesLeft,
+      verb:
+        maxGamesLeft === 0
+          ? "Encerre a sessão de ranked por hoje"
+          : maxGamesLeft === 1
+            ? "No máximo 1 ranked restante"
+            : `No máximo ${maxGamesLeft} rankeds restantes`,
     },
     bestWindowLabel: best?.label ?? null,
     inBestWindow,

@@ -16,7 +16,7 @@ function authorizeAgent(request: NextRequest): boolean {
   return token.length > 0 && token === expected;
 }
 
-/** PC bridge → servidor: snapshot Live Client Data. */
+/** PC bridge → servidor: snapshot Live Client / LCU draft. */
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.LIVE_AGENT_TOKEN) {
@@ -34,8 +34,10 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as {
       puuid?: string;
+      phase?: string;
       inGame?: boolean;
       raw?: unknown;
+      draft?: unknown;
     };
 
     const profile = await getAppProfile();
@@ -52,13 +54,16 @@ export async function POST(request: NextRequest) {
 
     const snapshot = normalizeLiveClientPayload({
       puuid,
+      phase: body.phase,
       inGame: body.inGame === true,
       raw: body.raw,
+      draft: body.draft,
     });
 
     await setLiveClientSnapshot(puuid, snapshot);
     return NextResponse.json({
       ok: true,
+      phase: snapshot.phase,
       inGame: snapshot.inGame,
       receivedAt: snapshot.receivedAt,
     });
@@ -84,6 +89,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       snapshot,
       bridgeOnline: Boolean(snapshot?.bridgeOnline),
+      phase: snapshot?.phase ?? null,
     });
   } catch (error) {
     console.error(error);

@@ -1,7 +1,11 @@
 import { redisGetJson, redisSetJson } from "@/lib/cache/redis";
 
 export const LIVE_CLIENT_TTL_INGAME = 12;
+export const LIVE_CLIENT_TTL_DRAFT = 20;
+export const LIVE_CLIENT_TTL_LOADING = 20;
 export const LIVE_CLIENT_TTL_IDLE = 45;
+
+export type LivePhase = "idle" | "draft" | "loading" | "inGame";
 
 export type LiveClientItem = {
   itemID: number;
@@ -25,13 +29,30 @@ export type LiveClientPlayer = {
   isMe: boolean;
 };
 
+export type LiveDraftParticipant = {
+  championId: number;
+  position: string | null;
+  isMe: boolean;
+};
+
+export type LiveDraftState = {
+  myChampionId: number | null;
+  myPosition: string | null;
+  allies: LiveDraftParticipant[];
+  enemies: LiveDraftParticipant[];
+  bans: number[];
+  timerPhase: string | null;
+};
+
 export type LiveClientSnapshot = {
   source: "live-client";
   receivedAt: number;
   bridgeOnline: true;
+  phase: LivePhase;
   inGame: boolean;
   /** PUUID do perfil (vindo do agente). */
   puuid: string | null;
+  draft: LiveDraftState | null;
   game: {
     gameMode: string;
     gameTime: number;
@@ -59,41 +80,146 @@ function liveKey(puuid: string): string {
   return `lol:liveclient:${puuid}`;
 }
 
+function ttlForPhase(phase: LivePhase): number {
+  switch (phase) {
+    case "inGame":
+      return LIVE_CLIENT_TTL_INGAME;
+    case "draft":
+      return LIVE_CLIENT_TTL_DRAFT;
+    case "loading":
+      return LIVE_CLIENT_TTL_LOADING;
+    default:
+      return LIVE_CLIENT_TTL_IDLE;
+  }
+}
+
 export async function setLiveClientSnapshot(
   puuid: string,
   snapshot: LiveClientSnapshot,
 ): Promise<void> {
-  const ttl = snapshot.inGame ? LIVE_CLIENT_TTL_INGAME : LIVE_CLIENT_TTL_IDLE;
-  await redisSetJson(liveKey(puuid), snapshot, ttl);
+  await redisSetJson(liveKey(puuid), snapshot, ttlForPhase(snapshot.phase));
 }
 
 export async function getLiveClientSnapshot(
   puuid: string,
 ): Promise<LiveClientSnapshot | null> {
-  return redisGetJson<LiveClientSnapshot>(liveKey(puuid));
+  const snap = await redisGetJson<LiveClientSnapshot>(liveKey(puuid));
+  if (!snap) return null;
+  // Compat com snapshots antigos sem phase
+  if (!snap.phase) {
+    snap.phase = snap.inGame ? "inGame" : "idle";
+  }
+  if (snap.draft === undefined) snap.draft = null;
+  return snap;
 }
 
-/** Normaliza payload cru do allgamedata (+ metadados do agente). */
+function emptyIdle(
+  puuid: string | null,
+  receivedAt: number,
+  phase: LivePhase = "idle",
+): LiveClientSnapshot {
+  return {
+    source: "live-client",
+    receivedAt,
+    bridgeOnline: true,
+    phase,
+    inGame: false,
+    puuid,
+    draft: null,
+    game: null,
+    me: null,
+    players: [],
+    recentEvents: [],
+  };
+}
+
+function normalizeDraft(raw: unknown): LiveDraftState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const d = raw as Record<string, unknown>;
+  const asParticipants = (value: unknown): LiveDraftParticipant[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((p) => {
+        const row = (p ?? {}) as Record<string, unknown>;
+        const championId = Number(row.championId ?? 0);
+        if (!Number.isFinite(championId) || championId <= 0) return null;
+        return {
+          championId,
+          position: row.position != null ? String(row.position) : null,
+          isMe: Boolean(row.isMe),
+        };
+      })
+      .filter((p): p is LiveDraftParticipant => p != null);
+  };
+  const bans = Array.isArray(d.bans)
+    ? d.bans.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0)
+    : [];
+  const myChampionId =
+    d.myChampionId != null && Number(d.myChampionId) > 0
+      ? Number(d.myChampionId)
+      : null;
+  return {
+    myChampionId,
+    myPosition: d.myPosition != null ? String(d.myPosition) : null,
+    allies: asParticipants(d.allies),
+    enemies: asParticipants(d.enemies),
+    bans,
+    timerPhase: d.timerPhase != null ? String(d.timerPhase) : null,
+  };
+}
+
+function resolvePhase(input: {
+  phase?: string | null;
+  inGame: boolean;
+  draft: LiveDraftState | null;
+}): LivePhase {
+  const explicit = input.phase?.trim();
+  if (
+    explicit === "idle" ||
+    explicit === "draft" ||
+    explicit === "loading" ||
+    explicit === "inGame"
+  ) {
+    return explicit;
+  }
+  if (input.inGame) return "inGame";
+  if (input.draft) return "draft";
+  return "idle";
+}
+
+/** Normaliza payload do bridge (LCD + LCU draft). */
 export function normalizeLiveClientPayload(input: {
   puuid?: string | null;
+  phase?: string | null;
   inGame: boolean;
   raw?: unknown;
+  draft?: unknown;
 }): LiveClientSnapshot {
   const receivedAt = Date.now();
   const puuid = input.puuid ?? null;
+  const draft = normalizeDraft(input.draft);
+  const phase = resolvePhase({
+    phase: input.phase,
+    inGame: input.inGame,
+    draft,
+  });
 
-  if (!input.inGame || !input.raw || typeof input.raw !== "object") {
+  if (phase === "draft") {
     return {
-      source: "live-client",
-      receivedAt,
-      bridgeOnline: true,
-      inGame: false,
-      puuid,
-      game: null,
-      me: null,
-      players: [],
-      recentEvents: [],
+      ...emptyIdle(puuid, receivedAt, "draft"),
+      draft,
     };
+  }
+
+  if (phase === "loading") {
+    return {
+      ...emptyIdle(puuid, receivedAt, "loading"),
+      draft,
+    };
+  }
+
+  if (phase !== "inGame" || !input.raw || typeof input.raw !== "object") {
+    return emptyIdle(puuid, receivedAt, phase === "inGame" ? "idle" : phase);
   }
 
   const raw = input.raw as Record<string, unknown>;
@@ -169,8 +295,10 @@ export function normalizeLiveClientPayload(input: {
     source: "live-client",
     receivedAt,
     bridgeOnline: true,
+    phase: "inGame",
     inGame: true,
     puuid,
+    draft: null,
     game: {
       gameMode: String(gameData.gameMode ?? "CLASSIC"),
       gameTime: Number(gameData.gameTime ?? 0),
@@ -197,8 +325,7 @@ export function normalizeLiveClientPayload(input: {
     players,
     recentEvents: events.slice(-8).map((e) => ({
       EventName: String(e.EventName ?? "Event"),
-      EventTime:
-        e.EventTime != null ? Number(e.EventTime) : undefined,
+      EventTime: e.EventTime != null ? Number(e.EventTime) : undefined,
     })),
   };
 }

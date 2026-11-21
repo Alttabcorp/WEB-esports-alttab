@@ -44,6 +44,20 @@ export type LiveRuneTip = {
   wr: number;
 };
 
+export type AdaptBuildTip = LiveBuildTip & {
+  enemyChampionId?: number;
+  enemyChampionIds?: number[];
+  overlap?: number;
+  sampleNote?: string;
+};
+
+export type AdaptTips = {
+  myChampionId: number;
+  vsLanerBuild: AdaptBuildTip | null;
+  vsCompBuild: AdaptBuildTip | null;
+  notes: string[];
+};
+
 export type LiveCoachTips = {
   championId: number;
   personalGames: number;
@@ -57,9 +71,16 @@ export type LiveCoachTips = {
     wins: number;
     wr: number;
   } | null;
+  vsLanerBuild: AdaptBuildTip | null;
+  vsCompBuild: AdaptBuildTip | null;
   references: ReferenceChampionInsight[];
   notes: string[];
 };
+
+const MIN_LANER_SAMPLE = 2;
+/** Plano: amostra mínima ~3 jogos vs composição soft. */
+const MIN_COMP_SAMPLE = 3;
+const MIN_COMP_OVERLAP = 2;
 
 export type LiveGamePayload = {
   inGame: boolean;
@@ -103,7 +124,16 @@ async function buildPersonalTips(
   puuid: string,
   championId: number,
   enemyChampionId: number | null,
-): Promise<Omit<LiveCoachTips, "references" | "notes" | "championId">> {
+): Promise<
+  Omit<
+    LiveCoachTips,
+    | "references"
+    | "notes"
+    | "championId"
+    | "vsLanerBuild"
+    | "vsCompBuild"
+  >
+> {
   const matches = await getStoredMatchesForPlayer(playerId, {
     count: 200,
     queue: "ranked",
@@ -271,13 +301,22 @@ export async function getLiveCoachPayload(
   let tips: LiveCoachTips | null = null;
 
   if (player) {
-    const personal = await buildPersonalTips(
-      player.id,
-      puuid,
-      me.championId,
-      enemyLaner?.championId ?? null,
-    );
-    const references = await getReferenceInsightsForChampion(me.championId);
+    const enemyIds = enemies.map((e) => e.championId);
+    const [personal, references, adapt] = await Promise.all([
+      buildPersonalTips(
+        player.id,
+        puuid,
+        me.championId,
+        enemyLaner?.championId ?? null,
+      ),
+      getReferenceInsightsForChampion(me.championId),
+      buildAdaptTips(
+        puuid,
+        me.championId,
+        enemyLaner?.championId ?? null,
+        enemyIds,
+      ),
+    ]);
 
     if (personal.personalGames < 5) {
       notes.push(
@@ -298,10 +337,13 @@ export async function getLiveCoachPayload(
             : `Matchup equilibrado no seu histórico (${personal.matchup.games} jogos).`,
       );
     }
+    notes.push(...adapt.notes);
 
     tips = {
       championId: me.championId,
       ...personal,
+      vsLanerBuild: adapt.vsLanerBuild,
+      vsCompBuild: adapt.vsCompBuild,
       references,
       notes,
     };
@@ -315,6 +357,8 @@ export async function getLiveCoachPayload(
       topBuild: null,
       topRune: null,
       matchup: null,
+      vsLanerBuild: null,
+      vsCompBuild: null,
       references: await getReferenceInsightsForChampion(me.championId),
       notes,
     };
@@ -340,6 +384,153 @@ export async function getLiveCoachPayload(
       teamId: b.teamId,
     })),
     tips,
+  };
+}
+
+function topBuildFromMap(
+  builds: Map<string, { items: number[]; games: number; wins: number }>,
+): LiveBuildTip | null {
+  const entry = [...builds.entries()].sort(
+    (a, b) => b[1].games - a[1].games,
+  )[0];
+  if (!entry || entry[1].games < 1) return null;
+  return {
+    items: entry[1].items,
+    games: entry[1].games,
+    wins: entry[1].wins,
+    wr: winRate(entry[1].wins, entry[1].games),
+  };
+}
+
+/**
+ * Builds contextuais vs laner e vs composição (overlap soft ≥2 inimigos).
+ */
+export async function buildAdaptTips(
+  puuid: string,
+  myChampionId: number,
+  enemyLanerId: number | null,
+  enemyChampionIds: number[],
+): Promise<AdaptTips> {
+  const notes: string[] = [];
+  const player = await findPlayerByPuuid(puuid);
+  if (!player) {
+    return {
+      myChampionId,
+      vsLanerBuild: null,
+      vsCompBuild: null,
+      notes: ["Jogador ainda não está no banco — sincronize o perfil."],
+    };
+  }
+
+  const matches = await getStoredMatchesForPlayer(player.id, {
+    count: 200,
+    queue: "ranked",
+  });
+
+  const uniqueEnemies = [...new Set(enemyChampionIds.filter((id) => id > 0))];
+  const lanerBuilds = new Map<
+    string,
+    { items: number[]; games: number; wins: number }
+  >();
+  const compBuilds = new Map<
+    string,
+    { items: number[]; games: number; wins: number; overlap: number }
+  >();
+  let bestCompOverlap = 0;
+
+  for (const match of matches) {
+    const me = match.info.participants.find((p) => p.puuid === puuid);
+    if (!me || me.championId !== myChampionId) continue;
+
+    const myRole = normalizeRole(me.teamPosition, me.individualPosition);
+    const enemyParts = match.info.participants.filter(
+      (p) => p.teamId !== me.teamId,
+    );
+    const items = [
+      me.item0,
+      me.item1,
+      me.item2,
+      me.item3,
+      me.item4,
+      me.item5,
+    ].filter((id) => id > 0);
+    const fp = buildFingerprint(items);
+    if (fp === "empty") continue;
+
+    if (enemyLanerId != null && enemyLanerId > 0) {
+      const enemy = enemyParts.find(
+        (p) =>
+          p.championId === enemyLanerId &&
+          normalizeRole(p.teamPosition, p.individualPosition) === myRole,
+      );
+      if (enemy) {
+        if (!lanerBuilds.has(fp)) {
+          lanerBuilds.set(fp, { items, games: 0, wins: 0 });
+        }
+        const b = lanerBuilds.get(fp)!;
+        b.games += 1;
+        if (me.win) b.wins += 1;
+      }
+    }
+
+    if (uniqueEnemies.length >= MIN_COMP_OVERLAP) {
+      const histEnemyIds = new Set(enemyParts.map((p) => p.championId));
+      const overlap = uniqueEnemies.filter((id) => histEnemyIds.has(id)).length;
+      if (overlap >= MIN_COMP_OVERLAP) {
+        if (!compBuilds.has(fp)) {
+          compBuilds.set(fp, { items, games: 0, wins: 0, overlap });
+        }
+        const b = compBuilds.get(fp)!;
+        b.games += 1;
+        if (me.win) b.wins += 1;
+        b.overlap = Math.max(b.overlap, overlap);
+        bestCompOverlap = Math.max(bestCompOverlap, overlap);
+      }
+    }
+  }
+
+  const lanerTop = topBuildFromMap(lanerBuilds);
+  let vsLanerBuild: AdaptBuildTip | null = null;
+  if (lanerTop && lanerTop.games >= MIN_LANER_SAMPLE && enemyLanerId) {
+    vsLanerBuild = {
+      ...lanerTop,
+      enemyChampionId: enemyLanerId,
+    };
+  } else if (enemyLanerId) {
+    notes.push(
+      lanerTop
+        ? `Só ${lanerTop.games} jogo(s) vs esse laner — amostra baixa.`
+        : "Sem build histórica vs esse laner na lane.",
+    );
+  }
+
+  const compEntry = [...compBuilds.entries()].sort(
+    (a, b) => b[1].games - a[1].games || b[1].overlap - a[1].overlap,
+  )[0];
+  let vsCompBuild: AdaptBuildTip | null = null;
+  if (compEntry && compEntry[1].games >= MIN_COMP_SAMPLE) {
+    vsCompBuild = {
+      items: compEntry[1].items,
+      games: compEntry[1].games,
+      wins: compEntry[1].wins,
+      wr: winRate(compEntry[1].wins, compEntry[1].games),
+      enemyChampionIds: uniqueEnemies,
+      overlap: bestCompOverlap,
+      sampleNote: `Overlap ${bestCompOverlap} inimigos`,
+    };
+  } else if (uniqueEnemies.length >= MIN_COMP_OVERLAP) {
+    notes.push(
+      compEntry
+        ? `Poucos jogos com overlap ≥${MIN_COMP_OVERLAP} (${compEntry[1].games}).`
+        : `Sem partidas com ≥${MIN_COMP_OVERLAP} inimigos em comum nesta comp.`,
+    );
+  }
+
+  return {
+    myChampionId,
+    vsLanerBuild,
+    vsCompBuild,
+    notes,
   };
 }
 

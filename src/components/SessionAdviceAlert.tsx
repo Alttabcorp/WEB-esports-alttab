@@ -1,7 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import type { SessionAdvice } from "@/lib/live/sessionAdvice";
 import { pct } from "@/lib/format";
+import { toDecisionFromSessionAdvice } from "@/lib/alerts/decision";
+import { DecisionCard } from "./DecisionCard";
+import { Button } from "@/components/ui";
 
 type Props = {
   advice: SessionAdvice;
@@ -10,45 +14,33 @@ type Props = {
 };
 
 export function SessionAdviceAlert({ advice, onDismiss, onRefresh }: Props) {
-  const tone =
-    advice.decision === "continue"
-      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-50"
-      : advice.decision === "stop"
-        ? "border-rose-500/40 bg-rose-500/15 text-rose-50"
-        : "border-amber-500/40 bg-amber-500/15 text-amber-50";
-
-  const badge =
-    advice.decision === "continue"
-      ? "CONTINUAR"
-      : advice.decision === "stop"
-        ? "PARAR"
-        : "CUIDADO";
-
-  const phaseLabel =
-    advice.phase === "preQueue" ? "Pré-fila" : "Pós-partida";
+  const decision = useMemo(() => {
+    const base = toDecisionFromSessionAdvice(advice);
+    const detailParts = [advice.summary || advice.title];
+    if (advice.reasons[0]) detailParts.push(advice.reasons[0]);
+    return {
+      ...base,
+      detail: detailParts.filter(Boolean).join(" — "),
+      actions:
+        advice.decision === "stop"
+          ? [{ label: "Encerrar sessão", kind: "primary" as const }]
+          : [
+              { label: "Abrir Coach", href: "/coach", kind: "primary" as const },
+              { label: "Voltar ao hub", href: "/", kind: "ghost" as const },
+            ],
+    };
+  }, [advice]);
 
   return (
-    <div className={`rounded-xl border px-4 py-4 ${tone}`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-[11px] font-semibold tracking-wide opacity-80">
-            {phaseLabel} · maximizar PDL · {badge}
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-white">
-            {advice.title}
-          </h3>
-          <p className="mt-1 text-sm opacity-90">{advice.summary}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="rounded-lg px-2 py-1 text-xs text-white/70 hover:bg-white/10 hover:text-white"
-        >
-          Fechar
-        </button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-3 text-xs opacity-90">
+    <div className="space-y-3">
+      <DecisionCard
+        decision={decision}
+        onDismiss={onDismiss}
+        onAction={(label) => {
+          if (label === "Encerrar sessão") onDismiss();
+        }}
+      />
+      <div className="flex flex-wrap gap-3 px-1 text-xs text-[var(--muted)]">
         <span>
           Hoje: {advice.today.wins}W {advice.today.losses}L
           {advice.today.games > 0 ? ` · ${pct(advice.today.wr)}` : ""}
@@ -58,13 +50,19 @@ export function SessionAdviceAlert({ advice, onDismiss, onRefresh }: Props) {
           {advice.session.nextIndex}
         </span>
         {advice.lp.delta != null ? (
-          <span className="tabular font-semibold">
+          <span className="tabular font-semibold text-[var(--muted-strong)]">
             PDL {advice.lp.delta >= 0 ? "+" : ""}
-            {advice.lp.delta}
+            {advice.lp.delta}/{advice.lp.goal}
+            {advice.lp.lastMatchDelta != null
+              ? ` · última ${advice.lp.lastMatchDelta >= 0 ? "+" : ""}${advice.lp.lastMatchDelta}`
+              : ""}
             {advice.lp.perHour != null
               ? ` · ${advice.lp.perHour >= 0 ? "+" : ""}${advice.lp.perHour.toFixed(0)}/h`
               : ""}
           </span>
+        ) : null}
+        {advice.nextPlan ? (
+          <span className="text-[var(--alttab-soft)]">{advice.nextPlan.verb}</span>
         ) : null}
         {advice.bestWindowLabel ? (
           <span>
@@ -73,31 +71,27 @@ export function SessionAdviceAlert({ advice, onDismiss, onRefresh }: Props) {
           </span>
         ) : null}
       </div>
-
-      {advice.reasons.length > 0 ? (
-        <ul className="mt-3 space-y-1.5 text-sm opacity-95">
-          {advice.reasons.map((r) => (
-            <li key={r} className="flex gap-2">
-              <span className="opacity-50">•</span>
-              <span>{r}</span>
-            </li>
-          ))}
-        </ul>
+      {advice.reasons.length > 1 ? (
+        <details className="px-1">
+          <summary className="cursor-pointer text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Mais motivos ({advice.reasons.length})
+          </summary>
+          <ul className="mt-2 space-y-1 text-sm text-[var(--muted-strong)]">
+            {advice.reasons.map((r) => (
+              <li key={r}>• {r}</li>
+            ))}
+          </ul>
+        </details>
       ) : null}
-
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2">
         {onRefresh ? (
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/15"
-          >
+          <Button variant="ghost" size="sm" onClick={onRefresh}>
             Recalcular
-          </button>
+          </Button>
         ) : null}
         {advice.phase === "postGame" &&
         (!advice.syncedNewMatch || advice.lastGame.win == null) ? (
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-[var(--muted)]">
             Se o resultado ainda não apareceu, aguarde 1–2 min e recalcule.
           </p>
         ) : null}

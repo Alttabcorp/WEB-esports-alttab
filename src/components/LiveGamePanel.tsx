@@ -141,13 +141,13 @@ export function LiveGamePanel({
         <span
           className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 ${
             bridgeOnline
-              ? "bg-[var(--success)]/15 text-emerald-200"
-              : "bg-white/5 text-[var(--muted)]"
+              ? "bg-[var(--success)]/15 text-[var(--success)]"
+              : "bg-[var(--surface-2)] text-[var(--muted)]"
           }`}
         >
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              bridgeOnline ? "bg-emerald-400" : "bg-zinc-500"
+              bridgeOnline ? "bg-[var(--success)]" : "bg-[var(--muted)]"
             }`}
           />
           Bridge {bridgeOnline ? "online" : "offline"}
@@ -209,13 +209,16 @@ export function LiveGamePanel({
           title="Fora de partida"
           description={
             bridgeOnline
-              ? "Bridge online. Entre em um game no LoL — builds e itens aparecem aqui."
+              ? "Bridge online. Prefira /coach no 2º monitor — draft e build mudam sozinhos."
               : "Rode o bridge no PC de jogo (Config) para itens e KDA em tempo real. Sem bridge, usamos Spectator."
           }
           action={
             <div className="flex flex-wrap gap-2">
+              <Button href="/coach">Abrir coach</Button>
               {draftHref ? (
-                <Button href={draftHref}>Abrir seleção</Button>
+                <Button href={draftHref} variant="secondary">
+                  Seleção manual
+                </Button>
               ) : null}
               <Button variant="ghost" href="/config">
                 Configurar bridge
@@ -235,7 +238,7 @@ export function LiveGamePanel({
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="data-label">Prioridade agora</p>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-[var(--foreground)]">
                   Build e itens
                 </h3>
               </div>
@@ -249,7 +252,7 @@ export function LiveGamePanel({
                     className="rounded-lg ring-1 ring-[var(--border-strong)]"
                   />
                   <div>
-                    <p className="font-semibold text-white">
+                    <p className="font-semibold text-[var(--foreground)]">
                       {lcd.me.championName}
                     </p>
                     <p className="text-xs text-[var(--muted)]">
@@ -274,7 +277,7 @@ export function LiveGamePanel({
                     className="rounded-lg ring-1 ring-[var(--border-strong)]"
                   />
                   <div>
-                    <p className="font-semibold text-white">
+                    <p className="font-semibold text-[var(--foreground)]">
                       {champName(live.me.championId)}
                     </p>
                     <p className="text-xs text-[var(--muted)]">
@@ -319,7 +322,7 @@ export function LiveGamePanel({
                             <p className="text-xs text-[var(--alttab-soft)]">
                               Próximo item
                             </p>
-                            <p className="text-sm font-semibold text-white">
+                            <p className="text-sm font-semibold text-[var(--foreground)]">
                               Slot {nextIdx + 1} da build
                               {lcd?.me
                                 ? ` · ${Math.round(lcd.me.currentGold)} ouro`
@@ -350,7 +353,7 @@ export function LiveGamePanel({
                                       : "ring-white/15 opacity-80"
                                 }`}
                               />
-                              <span className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded bg-black/80 text-[10px] font-bold text-white">
+                              <span className="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded bg-[var(--foreground)] text-[10px] font-bold text-white">
                                 {idx + 1}
                               </span>
                             </div>
@@ -379,7 +382,7 @@ export function LiveGamePanel({
                         alt={it.displayName ?? ""}
                         width={36}
                         height={36}
-                        className="rounded-md ring-1 ring-white/10"
+                        className="rounded-md ring-1 ring-[var(--border)]"
                       />
                     ))}
                   </div>
@@ -407,9 +410,9 @@ export function LiveGamePanel({
             ) : null}
 
             {tips?.matchup ? (
-              <p className="rounded-lg border border-[var(--border)] bg-black/25 px-3 py-2 text-sm text-[var(--muted-strong)]">
+              <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--muted-strong)]">
                 Vs {champName(tips.matchup.enemyChampionId)}:{" "}
-                <span className="tabular font-semibold text-white">
+                <span className="tabular font-semibold text-[var(--foreground)]">
                   {pct(tips.matchup.wr)}
                 </span>{" "}
                 em {tips.matchup.games} jogos
@@ -419,7 +422,7 @@ export function LiveGamePanel({
             {tips?.notes.map((n) => (
               <p
                 key={n}
-                className="rounded-lg border border-[var(--warn)]/25 bg-[var(--warn)]/10 px-3 py-2 text-sm text-amber-50"
+                className="rounded-lg border border-[var(--warn)]/25 bg-[var(--warn)]/10 px-3 py-2 text-sm text-[var(--warn)]"
               >
                 {n}
               </p>
@@ -494,7 +497,7 @@ export function LiveGamePanel({
           {tips && tips.personalGames > 0 ? (
             <p className="text-sm text-[var(--muted)]">
               Histórico com este champ:{" "}
-              <span className="tabular text-white">
+              <span className="tabular text-[var(--foreground)]">
                 {pct(tips.personalWr)} WR · {tips.personalGames} jogos
               </span>
             </p>
@@ -522,7 +525,7 @@ function PlayerList({
           <li
             key={`${p.riotId}-${p.championName}`}
             className={`flex items-center gap-2 text-sm ${
-              p.isMe ? "text-white" : "text-[var(--muted)]"
+              p.isMe ? "text-[var(--foreground)]" : "text-[var(--muted)]"
             }`}
           >
             {p.championName ? (
