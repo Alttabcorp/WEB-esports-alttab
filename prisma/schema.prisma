@@ -66,6 +66,31 @@ model AppProfile {
 
   player           Player            @relation(fields: [playerId], references: [id], onDelete: Cascade)
   referencePlayers ReferencePlayer[]
+  savedBuilds      SavedChampionBuild[]
+}
+
+/** Builds cadastradas pelo jogador — usadas no Coach com prioridade. */
+model SavedChampionBuild {
+  id               String   @id @default(cuid())
+  appProfileId     String   @default("default")
+  championId       Int
+  championName     String
+  name             String
+  role             String   @default("UNKNOWN")
+  items            Int[]
+  /** Opcional: build específica contra um campeão. */
+  enemyChampionId  Int?
+  enemyChampionName String?
+  isDefault        Boolean  @default(false)
+  notes            String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  appProfile AppProfile @relation(fields: [appProfileId], references: [id], onDelete: Cascade)
+
+  @@index([appProfileId, championId, sortOrder])
+  @@index([appProfileId, championId, isDefault])
 }
 
 /** Jogadores que você usa de referência (monos, builds, etc.). */

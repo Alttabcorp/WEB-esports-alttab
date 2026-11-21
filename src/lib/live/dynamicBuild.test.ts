@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   nextMissingItem,
   resolveDynamicBuild,
+  savedBuildToCandidate,
   toBuildCandidate,
 } from "./dynamicBuild";
 
@@ -24,6 +25,62 @@ describe("resolveDynamicBuild", () => {
 
     expect(pick?.source).toBe("vs-laner");
     expect(pick?.nextItemId).toBe(2001);
+  });
+
+  it("prioriza build cadastrada sobre histórico", () => {
+    const pick = resolveDynamicBuild({
+      ownedIds: [],
+      personal: toBuildCandidate(
+        { items: [1001, 1002], games: 40, wins: 28, wr: 0.7 },
+        "personal",
+        "Pessoal",
+      ),
+      vsLaner: toBuildCandidate(
+        { items: [2001, 2002], games: 8, wins: 7, wr: 0.875 },
+        "vs-laner",
+        "Vs laner",
+      ),
+      vsComp: null,
+      saved: [
+        savedBuildToCandidate({
+          id: "s1",
+          name: "Minha Ahri",
+          items: [3001, 3002, 3003],
+          isDefault: true,
+        })!,
+      ],
+    });
+
+    expect(pick?.source).toBe("saved");
+    expect(pick?.nextItemId).toBe(3001);
+    expect(pick?.label).toBe("Minha Ahri");
+  });
+
+  it("escolhe build salva contra o laner atual", () => {
+    const pick = resolveDynamicBuild({
+      ownedIds: [],
+      personal: null,
+      vsLaner: null,
+      vsComp: null,
+      enemyLanerId: 99,
+      saved: [
+        savedBuildToCandidate({
+          id: "def",
+          name: "Padrão",
+          items: [1, 2, 3],
+          isDefault: true,
+        })!,
+        savedBuildToCandidate({
+          id: "vs",
+          name: "Vs Zed",
+          items: [10, 20, 30],
+          enemyChampionId: 99,
+        })!,
+      ],
+    });
+
+    expect(pick?.label).toBe("Vs Zed");
+    expect(pick?.nextItemId).toBe(10);
   });
 
   it("acompanha o inventário e troca o próximo item", () => {

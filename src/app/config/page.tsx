@@ -24,6 +24,9 @@ export default async function ConfigPage() {
           <Button href="/coach" size="sm">
             Abrir Coach
           </Button>
+          <Button href="/builds" variant="secondary" size="sm">
+            Builds
+          </Button>
           <Button href="/" variant="ghost" size="sm">
             Hub
           </Button>

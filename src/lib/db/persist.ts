@@ -1204,3 +1204,211 @@ export async function getReferenceInsightsForChampion(
 
   return insights.sort((a, b) => b.games - a.games);
 }
+
+export type SavedChampionBuildView = {
+  id: string;
+  championId: number;
+  championName: string;
+  name: string;
+  role: string;
+  items: number[];
+  enemyChampionId: number | null;
+  enemyChampionName: string | null;
+  isDefault: boolean;
+  notes: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function toSavedBuildView(row: {
+  id: string;
+  championId: number;
+  championName: string;
+  name: string;
+  role: string;
+  items: number[];
+  enemyChampionId: number | null;
+  enemyChampionName: string | null;
+  isDefault: boolean;
+  notes: string | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}): SavedChampionBuildView {
+  return {
+    id: row.id,
+    championId: row.championId,
+    championName: row.championName,
+    name: row.name,
+    role: row.role,
+    items: row.items,
+    enemyChampionId: row.enemyChampionId,
+    enemyChampionName: row.enemyChampionName,
+    isDefault: row.isDefault,
+    notes: row.notes,
+    sortOrder: row.sortOrder,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export async function listSavedBuilds(input?: {
+  championId?: number;
+}): Promise<SavedChampionBuildView[]> {
+  const profile = await db.appProfile.findUnique({ where: { id: "default" } });
+  if (!profile) return [];
+
+  const rows = await db.savedChampionBuild.findMany({
+    where: {
+      appProfileId: "default",
+      ...(input?.championId != null ? { championId: input.championId } : {}),
+    },
+    orderBy: [
+      { championName: "asc" },
+      { isDefault: "desc" },
+      { sortOrder: "asc" },
+      { createdAt: "asc" },
+    ],
+  });
+  return rows.map(toSavedBuildView);
+}
+
+export async function createSavedBuild(input: {
+  championId: number;
+  championName: string;
+  name: string;
+  role?: string;
+  items: number[];
+  enemyChampionId?: number | null;
+  enemyChampionName?: string | null;
+  isDefault?: boolean;
+  notes?: string | null;
+}): Promise<SavedChampionBuildView> {
+  const profile = await db.appProfile.findUnique({ where: { id: "default" } });
+  if (!profile) {
+    throw new Error("Configure seu perfil antes de salvar builds");
+  }
+
+  const items = input.items.filter((id) => id > 0).slice(0, 6);
+  if (items.length < 1) {
+    throw new Error("Informe ao menos 1 item");
+  }
+
+  if (input.isDefault) {
+    await db.savedChampionBuild.updateMany({
+      where: {
+        appProfileId: "default",
+        championId: input.championId,
+        isDefault: true,
+      },
+      data: { isDefault: false },
+    });
+  }
+
+  const count = await db.savedChampionBuild.count({
+    where: { appProfileId: "default", championId: input.championId },
+  });
+
+  const row = await db.savedChampionBuild.create({
+    data: {
+      appProfileId: "default",
+      championId: input.championId,
+      championName: input.championName,
+      name: input.name.trim() || "Build",
+      role: input.role ?? "UNKNOWN",
+      items,
+      enemyChampionId: input.enemyChampionId ?? null,
+      enemyChampionName: input.enemyChampionName ?? null,
+      isDefault: input.isDefault ?? count === 0,
+      notes: input.notes?.trim() || null,
+      sortOrder: count,
+    },
+  });
+  return toSavedBuildView(row);
+}
+
+export async function updateSavedBuild(
+  id: string,
+  input: {
+    name?: string;
+    role?: string;
+    items?: number[];
+    enemyChampionId?: number | null;
+    enemyChampionName?: string | null;
+    isDefault?: boolean;
+    notes?: string | null;
+  },
+): Promise<SavedChampionBuildView> {
+  const existing = await db.savedChampionBuild.findFirst({
+    where: { id, appProfileId: "default" },
+  });
+  if (!existing) {
+    throw new Error("Build não encontrada");
+  }
+
+  if (input.isDefault) {
+    await db.savedChampionBuild.updateMany({
+      where: {
+        appProfileId: "default",
+        championId: existing.championId,
+        isDefault: true,
+        NOT: { id },
+      },
+      data: { isDefault: false },
+    });
+  }
+
+  const items =
+    input.items != null
+      ? input.items.filter((id) => id > 0).slice(0, 6)
+      : undefined;
+  if (items && items.length < 1) {
+    throw new Error("Informe ao menos 1 item");
+  }
+
+  const row = await db.savedChampionBuild.update({
+    where: { id },
+    data: {
+      ...(input.name != null ? { name: input.name.trim() || existing.name } : {}),
+      ...(input.role != null ? { role: input.role } : {}),
+      ...(items != null ? { items } : {}),
+      ...(input.enemyChampionId !== undefined
+        ? { enemyChampionId: input.enemyChampionId }
+        : {}),
+      ...(input.enemyChampionName !== undefined
+        ? { enemyChampionName: input.enemyChampionName }
+        : {}),
+      ...(input.isDefault != null ? { isDefault: input.isDefault } : {}),
+      ...(input.notes !== undefined
+        ? { notes: input.notes?.trim() || null }
+        : {}),
+    },
+  });
+  return toSavedBuildView(row);
+}
+
+export async function deleteSavedBuild(id: string): Promise<void> {
+  const existing = await db.savedChampionBuild.findFirst({
+    where: { id, appProfileId: "default" },
+  });
+  if (!existing) return;
+
+  await db.savedChampionBuild.delete({ where: { id } });
+
+  if (existing.isDefault) {
+    const next = await db.savedChampionBuild.findFirst({
+      where: {
+        appProfileId: "default",
+        championId: existing.championId,
+      },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    });
+    if (next) {
+      await db.savedChampionBuild.update({
+        where: { id: next.id },
+        data: { isDefault: true },
+      });
+    }
+  }
+}

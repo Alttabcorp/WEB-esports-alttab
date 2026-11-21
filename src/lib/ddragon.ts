@@ -172,6 +172,65 @@ export async function getChampionCatalog(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+export type ItemCatalogEntry = {
+  id: number;
+  name: string;
+  tags: string[];
+  gold: number;
+  into: number[];
+  from: number[];
+};
+
+/**
+ * Itens compráveis (não consumíveis baratos / trinkets).
+ * Prioriza itens “completos” (sem into) para o cadastro de builds.
+ */
+export async function getItemCatalog(
+  version: string,
+): Promise<ItemCatalogEntry[]> {
+  const res = await fetch(
+    `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/item.json`,
+    { next: { revalidate: 3600 } },
+  );
+  if (!res.ok) return [];
+  const json = (await res.json()) as {
+    data: Record<
+      string,
+      {
+        name: string;
+        gold?: { total?: number; purchasable?: boolean };
+        tags?: string[];
+        into?: string[];
+        from?: string[];
+        maps?: Record<string, boolean>;
+      }
+    >;
+  };
+
+  const IGNORE_TAGS = new Set(["Consumable", "Trinket", "Jungle", "Lane"]);
+  const out: ItemCatalogEntry[] = [];
+  for (const [idStr, item] of Object.entries(json.data)) {
+    const id = Number(idStr);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    if (item.gold?.purchasable === false) continue;
+    const gold = item.gold?.total ?? 0;
+    if (gold < 400) continue;
+    const tags = item.tags ?? [];
+    if (tags.some((t) => IGNORE_TAGS.has(t))) continue;
+    // SR only when maps presente
+    if (item.maps && item.maps["11"] === false) continue;
+    out.push({
+      id,
+      name: item.name,
+      tags,
+      gold,
+      into: (item.into ?? []).map(Number).filter((n) => n > 0),
+      from: (item.from ?? []).map(Number).filter((n) => n > 0),
+    });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function runeStyleLabel(styleId: number): string {
   const labels: Record<number, string> = {
     8000: "Precision",

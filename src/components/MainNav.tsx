@@ -56,11 +56,13 @@ export function MainNav({ hasProfile }: Props) {
   const onCoach = pathname === "/coach";
   const onConfig = pathname === "/config";
   const onStats = pathname.startsWith("/estatisticas");
+  const onBuilds = pathname.startsWith("/builds");
   const onRanking = pathname === "/ranking";
   const onTiming = pathname === "/timing";
   const prepActive =
     !onRanking &&
     !onTiming &&
+    !onBuilds &&
     PREP_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const homeActive = pathname === "/";
 
@@ -93,6 +95,9 @@ export function MainNav({ hasProfile }: Props) {
       </NavItem>
       <NavItem href="/estatisticas" active={onStats}>
         Estatísticas
+      </NavItem>
+      <NavItem href="/builds" active={onBuilds}>
+        Builds
       </NavItem>
       <NavItem href="/coach" active={onCoach} emphasize={!onCoach}>
         Coach

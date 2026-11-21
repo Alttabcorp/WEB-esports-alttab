@@ -12,8 +12,10 @@ import { pct } from "@/lib/format";
 import type { AdaptTips } from "@/lib/live/coach";
 import type { LiveClientSnapshot, LivePhase } from "@/lib/live/clientData";
 import type { LiveGamePayload } from "@/lib/live/coach";
+import type { SavedChampionBuildView } from "@/lib/db/persist";
 import {
   resolveDynamicBuild,
+  savedBuildToCandidate,
   toBuildCandidate,
 } from "@/lib/live/dynamicBuild";
 import { buildInGameDecision } from "@/lib/live/lcdSignals";
@@ -148,11 +150,13 @@ export function MatchCoachScreen({
   const [advice, setAdvice] = useState<SessionAdvice | null>(null);
   const [idleAdvice, setIdleAdvice] = useState<SessionAdvice | null>(null);
   const [adapt, setAdapt] = useState<AdaptTips | null>(null);
+  const [savedBuilds, setSavedBuilds] = useState<SavedChampionBuildView[]>([]);
   const [uiPhase, setUiPhase] = useState<UiPhase>("idle");
   const wasInGame = useRef(false);
   const adviceForEnd = useRef(false);
   const lastBoard = useRef("");
   const lastAdaptKey = useRef("");
+  const lastSavedChamp = useRef(0);
 
   const champName = useCallback(
     (id: number) =>
@@ -366,46 +370,34 @@ export function MatchCoachScreen({
     [me?.items],
   );
 
-  const enemyLanerLabel = useMemo(() => {
-    if (live?.enemyLaner?.championId) {
-      return idToKey[live.enemyLaner.championId] ?? "laner";
+  useEffect(() => {
+    if (!myChampionId || myChampionId <= 0) {
+      setSavedBuilds([]);
+      lastSavedChamp.current = 0;
+      return;
     }
-    return "laner";
-  }, [live?.enemyLaner?.championId, idToKey]);
-
-  const dynamicBuild = useMemo(() => {
-    return resolveDynamicBuild({
-      ownedIds,
-      personal: toBuildCandidate(
-        tips?.topBuild ?? null,
-        "personal",
-        "Ordem pessoal",
-      ),
-      vsLaner: toBuildCandidate(
-        adapt?.vsLanerBuild ?? tips?.vsLanerBuild ?? null,
-        "vs-laner",
-        `Vs ${enemyLanerLabel}`,
-      ),
-      vsComp: toBuildCandidate(
-        adapt?.vsCompBuild ?? tips?.vsCompBuild ?? null,
-        "vs-comp",
-        "Vs esta comp",
-      ),
-    });
-  }, [
-    ownedIds,
-    tips?.topBuild,
-    tips?.vsLanerBuild,
-    tips?.vsCompBuild,
-    adapt?.vsLanerBuild,
-    adapt?.vsCompBuild,
-    enemyLanerLabel,
-  ]);
-
-  const nextItem = useMemo(() => {
-    if (!dynamicBuild?.nextItemId) return null;
-    return { id: dynamicBuild.nextItemId, index: dynamicBuild.nextIndex };
-  }, [dynamicBuild]);
+    if (lastSavedChamp.current === myChampionId) return;
+    lastSavedChamp.current = myChampionId;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/builds?championId=${encodeURIComponent(String(myChampionId))}`,
+        );
+        const data = (await res.json()) as {
+          builds?: SavedChampionBuildView[];
+        };
+        if (!cancelled && res.ok) {
+          setSavedBuilds(data.builds ?? []);
+        }
+      } catch {
+        if (!cancelled) setSavedBuilds([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [myChampionId]);
 
   const draftRole = (lcd?.draft?.myPosition || preferredRole) as RoleKey;
   const lockedChampId = lcd?.draft?.myChampionId ?? null;
@@ -442,6 +434,59 @@ export function MatchCoachScreen({
     enemyTeam,
     champIdFromName,
   ]);
+
+  const enemyLanerLabel = useMemo(() => {
+    if (enemyLanerId) return idToKey[enemyLanerId] ?? "laner";
+    return "laner";
+  }, [enemyLanerId, idToKey]);
+
+  const dynamicBuild = useMemo(() => {
+    return resolveDynamicBuild({
+      ownedIds,
+      enemyLanerId,
+      personal: toBuildCandidate(
+        tips?.topBuild ?? null,
+        "personal",
+        "Ordem pessoal",
+      ),
+      vsLaner: toBuildCandidate(
+        adapt?.vsLanerBuild ?? tips?.vsLanerBuild ?? null,
+        "vs-laner",
+        `Vs ${enemyLanerLabel}`,
+      ),
+      vsComp: toBuildCandidate(
+        adapt?.vsCompBuild ?? tips?.vsCompBuild ?? null,
+        "vs-comp",
+        "Vs esta comp",
+      ),
+      saved: savedBuilds
+        .map((b) =>
+          savedBuildToCandidate({
+            id: b.id,
+            name: b.name,
+            items: b.items,
+            enemyChampionId: b.enemyChampionId,
+            isDefault: b.isDefault,
+          }),
+        )
+        .filter((c): c is NonNullable<typeof c> => c != null),
+    });
+  }, [
+    ownedIds,
+    enemyLanerId,
+    tips?.topBuild,
+    tips?.vsLanerBuild,
+    tips?.vsCompBuild,
+    adapt?.vsLanerBuild,
+    adapt?.vsCompBuild,
+    enemyLanerLabel,
+    savedBuilds,
+  ]);
+
+  const nextItem = useMemo(() => {
+    if (!dynamicBuild?.nextItemId) return null;
+    return { id: dynamicBuild.nextItemId, index: dynamicBuild.nextIndex };
+  }, [dynamicBuild]);
 
   const enemyChampionIds = useMemo(() => {
     if (enemyTeam.length) {
@@ -1043,8 +1088,9 @@ export function MatchCoachScreen({
                     </span>
                   </p>
                   <p className="mt-1 text-sm text-[var(--muted-strong)]">
-                    {pct(dynamicBuild.wr)} WR · {dynamicBuild.games}j ·{" "}
-                    {dynamicBuild.reason}
+                    {dynamicBuild.source === "saved"
+                      ? dynamicBuild.reason
+                      : `${pct(dynamicBuild.wr)} WR · ${dynamicBuild.games}j · ${dynamicBuild.reason}`}
                   </p>
                   {me ? (
                     <p className="text-sm text-[var(--muted)]">
@@ -1069,8 +1115,16 @@ export function MatchCoachScreen({
                   items={dynamicBuild.items}
                   ddragonVersion={ddragonVersion}
                   label={dynamicBuild.label}
-                  wr={dynamicBuild.wr}
-                  games={dynamicBuild.games}
+                  wr={
+                    dynamicBuild.source === "saved"
+                      ? undefined
+                      : dynamicBuild.wr
+                  }
+                  games={
+                    dynamicBuild.source === "saved"
+                      ? undefined
+                      : dynamicBuild.games
+                  }
                 />
               </div>
             ) : null}
