@@ -164,22 +164,21 @@ export function StatsExplorer({
   }
 
   return (
-    <div className="space-y-5">
-      <header className="space-y-2">
+    <div className="space-y-3">
+      <header className="space-y-1.5">
         <p className="data-label">Seu histórico</p>
-        <h1 className="type-display text-3xl text-[var(--foreground)] sm:text-4xl">
+        <h1 className="type-display text-2xl text-[var(--foreground)] sm:text-3xl">
           Estatísticas
         </h1>
-        <p className="max-w-2xl text-sm text-[var(--muted)]">
-          Selecione um campeão e uma lane para ver só os seus dados — WR, KDA,
-          builds, matchups e partidas. Não mistura referências nem meta.
+        <p className="max-w-2xl text-xs text-[var(--muted)] sm:text-sm">
+          Campeão + lane = só os seus dados. Referências/meta ficam no Preparar.
         </p>
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div className="flex flex-wrap gap-1.5 pt-1">
           <Stat
             label="WR geral"
             value={pct(overallWr)}
             hint={`${analyzedGames} jogos`}
-            className="min-w-[7rem]"
+            className="min-w-[5.5rem]"
           />
           {roleInsights
             .filter((r) => r.role !== "UNKNOWN" && r.games >= 3)
@@ -197,15 +196,15 @@ export function StatsExplorer({
                 <Stat
                   label={ROLE_LABELS[r.role]}
                   value={pct(r.wr)}
-                  hint={`${r.games}j · lift ${signedPct(r.lift)}`}
-                  className="min-w-[7rem]"
+                  hint={`${r.games}j · ${signedPct(r.lift)}`}
+                  className="min-w-[5.5rem]"
                 />
               </button>
             ))}
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1">
         {ROLE_FILTERS.map((r) => {
           const active = roleFilter === r;
           const label =
@@ -215,7 +214,7 @@ export function StatsExplorer({
               key={r}
               type="button"
               onClick={() => setRoleFilter(r)}
-              className={`min-h-9 rounded-[var(--radius)] px-3 text-sm font-medium transition ${
+              className={`min-h-8 rounded-[var(--radius)] px-2.5 text-xs font-medium transition sm:text-sm ${
                 active
                   ? "bg-[var(--alttab)] text-white"
                   : "bg-[var(--surface-2)] text-[var(--muted-strong)] ring-1 ring-[var(--border)] hover:text-[var(--foreground)]"
@@ -227,22 +226,23 @@ export function StatsExplorer({
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)]">
-        <Panel className="space-y-3 p-4">
+      {/* items-start + min-w-0: o painel direito (matchups) não empurra/quebra a lista */}
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+        <Panel className="sticky top-2 min-w-0 space-y-2 self-start p-3">
           <div>
-            <h2 className="type-title text-base">Campeões</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <h2 className="type-title text-sm">Campeões</h2>
+            <p className="mt-0.5 text-[11px] text-[var(--muted)]">
               {roleFilter === "ALL"
                 ? "Clique para abrir o detalhe."
-                : `Filtrado por ${ROLE_LABELS[roleFilter]} — só partidas nessa lane.`}
+                : `Só ${ROLE_LABELS[roleFilter]}.`}
             </p>
           </div>
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar campeão…"
-            className="min-h-10 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
+            placeholder="Buscar…"
+            className="min-h-8 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
           />
           {list.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">
@@ -253,7 +253,7 @@ export function StatsExplorer({
               .
             </p>
           ) : (
-            <ul className="max-h-[70vh] space-y-1.5 overflow-y-auto pr-1">
+            <ul className="max-h-[min(70vh,36rem)] space-y-1 overflow-y-auto overscroll-contain pr-0.5">
               {list.map((c) => {
                 const active = selectedId === c.championId;
                 const primaryRole = c.roles[0];
@@ -262,7 +262,7 @@ export function StatsExplorer({
                     <button
                       type="button"
                       onClick={() => selectChampion(c.championId)}
-                      className={`flex w-full items-center gap-3 rounded-[var(--radius)] border px-3 py-2.5 text-left transition ${
+                      className={`flex w-full items-center gap-2 rounded-[var(--radius)] border px-2 py-1.5 text-left transition ${
                         active
                           ? "border-[var(--alttab)] bg-[var(--alttab)]/12"
                           : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--border-strong)]"
@@ -274,22 +274,22 @@ export function StatsExplorer({
                         nameOrKey={c.championName}
                         idToKey={idToKey}
                         alt={c.championName}
-                        width={40}
-                        height={40}
-                        className="rounded-lg"
+                        width={32}
+                        height={32}
+                        className="rounded-md"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-[var(--foreground)]">
+                        <p className="truncate text-sm font-semibold text-[var(--foreground)]">
                           {c.championName}
                         </p>
-                        <p className="text-xs text-[var(--muted)]">
-                          {pct(c.wr)} WR · {c.games} jogos
+                        <p className="truncate text-[10px] text-[var(--muted)]">
+                          {pct(c.wr)} · {c.games}j
                           {roleFilter === "ALL" && primaryRole
-                            ? ` · mais em ${ROLE_LABELS[primaryRole.role]}`
+                            ? ` · ${ROLE_LABELS[primaryRole.role]}`
                             : ""}
                         </p>
                       </div>
-                      <p className="tabular text-sm text-[var(--muted-strong)]">
+                      <p className="tabular text-xs text-[var(--muted-strong)]">
                         {c.kda.toFixed(2)}
                       </p>
                     </button>
@@ -300,7 +300,7 @@ export function StatsExplorer({
           )}
         </Panel>
 
-        <Panel className="space-y-4 p-4">
+        <Panel className="min-w-0 space-y-3 overflow-hidden p-3 sm:p-4">
           {!selectedOverview || !displayStat ? (
             <p className="text-sm text-[var(--muted)]">
               Selecione um campeão à esquerda.
@@ -481,21 +481,25 @@ export function StatsExplorer({
               ) : null}
 
               {detailTab === "matchups" ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <MatchupTable
-                    title="Melhores vs"
-                    matchups={filteredMatchups.best}
-                    ddragonVersion={ddragonVersion}
-                    idToKey={idToKey}
-                    emptyText="Poucos confrontos repetidos nesta lane."
-                  />
-                  <MatchupTable
-                    title="Piores vs"
-                    matchups={filteredMatchups.worst}
-                    ddragonVersion={ddragonVersion}
-                    idToKey={idToKey}
-                    emptyText="Sem matchups fracos repetidos nesta lane."
-                  />
+                <div className="grid min-w-0 gap-3 md:grid-cols-2">
+                  <div className="min-w-0 overflow-hidden">
+                    <MatchupTable
+                      title="Melhores vs"
+                      matchups={filteredMatchups.best}
+                      ddragonVersion={ddragonVersion}
+                      idToKey={idToKey}
+                      emptyText="Poucos confrontos repetidos nesta lane."
+                    />
+                  </div>
+                  <div className="min-w-0 overflow-hidden">
+                    <MatchupTable
+                      title="Piores vs"
+                      matchups={filteredMatchups.worst}
+                      ddragonVersion={ddragonVersion}
+                      idToKey={idToKey}
+                      emptyText="Sem matchups fracos repetidos nesta lane."
+                    />
+                  </div>
                 </div>
               ) : null}
 

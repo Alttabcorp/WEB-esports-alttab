@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChampionInsight } from "@/lib/stats/aggregate";
 import type { MatchHistoryRow } from "@/lib/db/persist";
 import type { RuneCatalog } from "@/lib/ddragon";
@@ -51,6 +51,11 @@ export function ChampionDetailPanel({
   const [tab, setTab] = useState<DetailTab>("overview");
   const [query, setQuery] = useState("");
 
+  // Quando o ranking/pai muda o champ, limpa a busca pra não “prender” o select.
+  useEffect(() => {
+    setQuery("");
+  }, [champion.championId]);
+
   const sortedChamps = useMemo(
     () => [...champions].sort((a, b) => b.games - a.games),
     [champions],
@@ -58,11 +63,20 @@ export function ChampionDetailPanel({
 
   const filteredPicker = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return sortedChamps;
-    return sortedChamps.filter((c) =>
-      c.championName.toLowerCase().includes(q),
-    );
-  }, [sortedChamps, query]);
+    const base = !q
+      ? sortedChamps
+      : sortedChamps.filter((c) =>
+          c.championName.toLowerCase().includes(q),
+        );
+    // Garante que o champ atual aparece mesmo com filtro parcial
+    if (
+      champion &&
+      !base.some((c) => c.championId === champion.championId)
+    ) {
+      return [champion, ...base];
+    }
+    return base;
+  }, [sortedChamps, query, champion]);
 
   const champMatches = useMemo(
     () =>
@@ -97,7 +111,7 @@ export function ChampionDetailPanel({
   );
 
   return (
-    <Panel className="space-y-4 p-4">
+    <Panel className="min-w-0 space-y-3 p-3 sm:p-4">
       <div className="space-y-2">
         <label className="data-label" htmlFor="champ-picker">
           Selecionar campeão
@@ -107,14 +121,28 @@ export function ChampionDetailPanel({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar no histórico…"
-            className="min-h-10 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              const first = filteredPicker.find(
+                (c) => c.championId !== champion.championId,
+              ) ?? filteredPicker[0];
+              if (first) {
+                onSelect(first.championId);
+                setQuery("");
+              }
+            }}
+            placeholder="Buscar e Enter para selecionar…"
+            className="min-h-9 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]"
           />
           <select
             id="champ-picker"
             value={champion.championId}
-            onChange={(e) => onSelect(Number(e.target.value))}
-            className="min-h-10 min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)]"
+            onChange={(e) => {
+              onSelect(Number(e.target.value));
+              setQuery("");
+            }}
+            className="min-h-9 min-w-0 flex-1 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--foreground)]"
           >
             {filteredPicker.map((c) => (
               <option key={c.championId} value={c.championId}>

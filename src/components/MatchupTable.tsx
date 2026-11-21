@@ -27,10 +27,10 @@ export function MatchupTable({
       ) : (
         <ul className="space-y-2">
           {matchups.map((m) => (
-            <li
-              key={`${m.myChampionId}-${m.enemyChampionId}-${m.role}`}
-              className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-            >
+              <li
+                key={`${m.myChampionId}-${m.enemyChampionId}-${m.role}`}
+                className="flex min-w-0 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1.5"
+              >
               <ChampionIcon
                 ddragonVersion={ddragonVersion}
                 championId={m.myChampionId}
@@ -50,15 +50,15 @@ export function MatchupTable({
                 height={32}
                 className="rounded"
               />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <p className="truncate text-sm text-[var(--foreground)]">
                   vs {m.enemyChampionName}{" "}
                   <span className="text-[var(--muted)]">
                     ({ROLE_LABELS[m.role]})
                   </span>
                 </p>
-                <p className="text-xs text-[var(--muted)]">
-                  {pct(m.wr)} · {m.games} jogos · Wilson {pct(m.wilsonLower)}
+                <p className="truncate text-[11px] text-[var(--muted)]">
+                  {pct(m.wr)} · {m.games}j · W {pct(m.wilsonLower)}
                 </p>
               </div>
               <ConfidenceBadge level={m.confidence} />

@@ -47,11 +47,24 @@
   --font-display: var(--font-body);
 }
 
+html {
+  /* Densidade um pouco maior — menos “zoom”, mais conteúdo por viewport */
+  font-size: 15px;
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 15px;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   min-height: 100vh;
   min-height: 100dvh;
+  font-size: 0.9375rem;
+  line-height: 1.45;
   font-feature-settings: "ss01" on, "cv11" on, "tnum" on;
 }
 
@@ -102,20 +115,20 @@ button.panel:hover {
 }
 
 .type-title {
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.25;
   color: var(--foreground);
 }
 
 .type-body {
-  font-size: 0.9375rem;
-  line-height: 1.5;
+  font-size: 0.875rem;
+  line-height: 1.45;
   color: var(--muted-strong);
 }
 
 .data-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.01em;
   color: var(--muted);

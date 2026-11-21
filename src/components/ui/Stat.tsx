@@ -8,14 +8,14 @@ type Props = {
 export function Stat({ label, value, hint, className = "" }: Props) {
   return (
     <div
-      className={`rounded-[var(--radius)] bg-[var(--surface)] px-3 py-2 text-center ring-1 ring-[var(--border)] ${className}`}
+      className={`rounded-[var(--radius)] bg-[var(--surface)] px-2.5 py-1.5 text-center ring-1 ring-[var(--border)] ${className}`}
     >
       <p className="data-label">{label}</p>
-      <p className="tabular text-lg font-semibold text-[var(--foreground)]">
+      <p className="tabular text-base font-semibold text-[var(--foreground)]">
         {value}
       </p>
       {hint ? (
-        <p className="mt-0.5 text-[11px] text-[var(--muted)]">{hint}</p>
+        <p className="mt-0.5 text-[10px] text-[var(--muted)]">{hint}</p>
       ) : null}
     </div>
   );

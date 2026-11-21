@@ -113,7 +113,12 @@ export function CoachDashboard({
     analysis.topRecommendations[0]?.championId ??
     analysis.champions[0]?.championId ??
     null;
+  /** Ranking + painel de detalhe (independente do pool). */
   const [selectedId, setSelectedId] = useState<number | null>(initialId);
+  /** Pick em destaque no quadro "Agora" (não sequestra o ranking). */
+  const [poolFeaturedId, setPoolFeaturedId] = useState<number | null>(
+    todayPool[0]?.championId ?? null,
+  );
   const [prepTab, setPrepTab] = useState<PrepTab>(
     initialMode === "live" ? "play" : parsePrepTab(initialTab),
   );
@@ -203,7 +208,7 @@ export function CoachDashboard({
       : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <SummonerHeader
         gameName={gameName}
         tagLine={tagLine}
@@ -354,19 +359,24 @@ export function CoachDashboard({
             ddragonVersion={ddragonVersion}
             idToKey={idToKey}
             runeCatalog={runeCatalog}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
+            featuredId={poolFeaturedId}
+            onFeature={(id) => {
+              setPoolFeaturedId(id);
+            }}
+            onUseInRanking={(id) => {
+              setSelectedId(id);
+            }}
             statsHref="/estatisticas"
             coachHref="/coach"
           />
 
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <Panel className="space-y-3 p-4">
+          <section className="grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+            <Panel className="min-w-0 space-y-3 p-3 sm:p-4">
               <div>
-                <h2 className="type-title">Ranking geral</h2>
+                <h2 className="type-title text-base">Ranking geral</h2>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Histórico completo — para decidir o pool do momento, use o
-                  quadro acima. Detalhes profundos em Estatísticas.
+                  Clique num champ para atualizar o painel ao lado. O pool acima
+                  é independente.
                 </p>
               </div>
               <ChampionRecommendations
@@ -398,40 +408,42 @@ export function CoachDashboard({
               </Button>
             </Panel>
 
-            {selected ? (
-              <ChampionDetailPanel
-                champion={selected}
-                champions={analysis.champions}
-                onSelect={setSelectedId}
-                matchHistory={matchHistory}
-                ddragonVersion={ddragonVersion}
-                idToKey={idToKey}
-                runeCatalog={runeCatalog}
-                platform={platform}
-                ranked={ranked}
-                lpAvg={
-                  lpInsights?.byChampion.find(
-                    (r) => r.label === selected.championName,
-                  )?.lpAvg ?? null
-                }
-                lpGames={
-                  lpInsights?.byChampion.find(
-                    (r) => r.label === selected.championName,
-                  )?.games ?? null
-                }
-                onOpenModal={(t) => {
-                  setChampModalTab(t);
-                  setChampModalOpen(true);
-                }}
-              />
-            ) : (
-              <Panel className="space-y-3 p-4">
-                <h2 className="type-title">Dados do campeão</h2>
-                <p className="text-sm text-[var(--muted)]">
-                  Selecione no ranking ou no pool acima.
-                </p>
-              </Panel>
-            )}
+            <div className="min-w-0">
+              {selected ? (
+                <ChampionDetailPanel
+                  champion={selected}
+                  champions={analysis.champions}
+                  onSelect={setSelectedId}
+                  matchHistory={matchHistory}
+                  ddragonVersion={ddragonVersion}
+                  idToKey={idToKey}
+                  runeCatalog={runeCatalog}
+                  platform={platform}
+                  ranked={ranked}
+                  lpAvg={
+                    lpInsights?.byChampion.find(
+                      (r) => r.label === selected.championName,
+                    )?.lpAvg ?? null
+                  }
+                  lpGames={
+                    lpInsights?.byChampion.find(
+                      (r) => r.label === selected.championName,
+                    )?.games ?? null
+                  }
+                  onOpenModal={(t) => {
+                    setChampModalTab(t);
+                    setChampModalOpen(true);
+                  }}
+                />
+              ) : (
+                <Panel className="space-y-3 p-3 sm:p-4">
+                  <h2 className="type-title text-base">Dados do campeão</h2>
+                  <p className="text-sm text-[var(--muted)]">
+                    Clique num campeão no ranking à esquerda.
+                  </p>
+                </Panel>
+              )}
+            </div>
           </section>
 
           <section className="space-y-3">
