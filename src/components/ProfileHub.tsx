@@ -1,17 +1,19 @@
 import Image from "next/image";
 import type { AppProfileView } from "@/lib/db/persist";
-import { encodeRiotId, pct } from "@/lib/format";
+import { pct } from "@/lib/format";
 import { championIconUrl, profileIconUrl } from "@/lib/ddragon";
 import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import type { DecisionModel } from "@/lib/alerts/decision";
 import type { PoolPick } from "@/lib/stats/contextualPool";
 import type { DayGoalProgress } from "@/lib/stats/dayGoal";
 import type { SessionEvResult } from "@/lib/stats/sessionEv";
+import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
 import { ClearProfileButton } from "./ClearProfileButton";
 import { BridgeStatusChip } from "./BridgeStatusChip";
 import { DecisionCard } from "./DecisionCard";
 import { DayGoalCard } from "./DayGoalCard";
-import { Button, Panel, Stat } from "@/components/ui";
+import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
+import { Button, Panel } from "@/components/ui";
 
 type Props = {
   profile: AppProfileView;
@@ -24,6 +26,7 @@ type Props = {
   idToKey?: Record<number, string>;
   goal?: DayGoalProgress | null;
   sessionEv?: SessionEvResult | null;
+  practiceCandidates?: PracticeCandidate[];
 };
 
 export function ProfileHub({
@@ -37,13 +40,12 @@ export function ProfileHub({
   idToKey = {},
   goal = null,
   sessionEv = null,
+  practiceCandidates = [],
 }: Props) {
-  const slug = encodeRiotId(profile.gameName, profile.tagLine);
-  const base = `/summoner/${profile.platform}/${slug}`;
-  const qs = `queue=${profile.queue}&count=${profile.matchCount}`;
-  const prepHref = `${base}?${qs}`;
-  const timingHref = `${prepHref}&tab=timing`;
-  const syncHref = `${prepHref}&refresh=1`;
+  const prepHref = "/preparar";
+  const timingHref = "/timing";
+  const syncHref = `/preparar?refresh=1&queue=${profile.queue}&count=${profile.matchCount}`;
+  const champHref = "/ranking";
   const role = profile.preferredRole as RoleKey;
   const lpLabel =
     dayLpDelta == null
@@ -79,15 +81,13 @@ export function ProfileHub({
     <div className="flex w-full max-w-2xl flex-col gap-4">
       {hubDecision ? <DecisionCard decision={hubDecision} /> : null}
 
-      {goal ? <DayGoalCard goal={goal} sessionEv={sessionEv} /> : null}
-
-      <Panel className="w-full p-5 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <Panel className="w-full p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Image
             src={profileIconUrl(ddragonVersion, profile.profileIconId ?? 29)}
             alt={profile.gameName}
-            width={64}
-            height={64}
+            width={56}
+            height={56}
             className="rounded-[var(--radius)] ring-1 ring-[var(--border)]"
           />
           <div className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ export function ProfileHub({
               <p className="data-label">Sua sessão</p>
               <BridgeStatusChip puuid={profile.puuid} />
             </div>
-            <h2 className="truncate text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+            <h2 className="truncate text-xl font-semibold text-[var(--foreground)]">
               {profile.gameName}
               <span className="font-medium text-[var(--alttab)]">
                 #{profile.tagLine}
@@ -105,57 +105,43 @@ export function ProfileHub({
               {profile.platform.toUpperCase()} ·{" "}
               {ROLE_LABELS[role] ?? profile.preferredRole}
               {recentFormWr != null
-                ? ` · forma recente ${pct(recentFormWr)}`
+                ? ` · forma ${pct(recentFormWr)}`
                 : ""}
+              {` · PDL hoje ${lpLabel}`}
+              {bestWindow ? ` · melhor ${bestWindow}` : ""}
             </p>
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2">
-          <Stat label="PDL hoje" value={lpLabel} />
-          <Stat
-            label="Melhor horário"
-            value={bestWindow ?? "—"}
-            hint={bestWindow ? undefined : "precisa de dados"}
-          />
-          <Stat
-            label="Partidas"
-            value={String(profile.storedMatchCount)}
-            hint="no servidor"
-          />
-        </div>
-
         {top ? (
-          <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5">
             <Image
               src={championIconUrl(
                 ddragonVersion,
                 idToKey[top.championId] ?? top.championName,
               )}
               alt=""
-              width={48}
-              height={48}
+              width={40}
+              height={40}
               className="rounded-[var(--radius)] ring-1 ring-[var(--alttab)]"
             />
             <div className="min-w-0 flex-1">
-              <p className="data-label">Pick sugerido agora</p>
-              <p className="text-lg font-semibold text-[var(--foreground)]">
+              <p className="data-label">Pick agora</p>
+              <p className="font-semibold text-[var(--foreground)]">
                 {top.championName}
-              </p>
-              <p className="truncate text-xs text-[var(--muted)]">
-                {pct(top.wr)} WR · EV{" "}
-                {top.expectedLp >= 0 ? "+" : ""}
-                {top.expectedLp} PDL · {top.games} jogos
-                {top.reasons[0] ? ` · ${top.reasons[0]}` : ""}
+                <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                  {pct(top.wr)} WR · PDL {top.expectedLp >= 0 ? "+" : ""}
+                  {top.expectedLp}
+                </span>
               </p>
             </div>
-            <Button href={prepHref} variant="secondary" size="sm">
-              Ver build
+            <Button href={champHref} variant="secondary" size="sm">
+              Ver no ranking
             </Button>
           </div>
         ) : null}
 
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Button href="/coach" size="lg" className="flex-1">
             Abrir Coach
           </Button>
@@ -170,14 +156,17 @@ export function ProfileHub({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
+          <Button href="/ranking" variant="ghost" size="sm">
+            Ranking
+          </Button>
           <Button href="/estatisticas" variant="ghost" size="sm">
             Estatísticas
           </Button>
-          <Button href={syncHref} variant="ghost" size="sm">
-            Sincronizar
-          </Button>
           <Button href={timingHref} variant="ghost" size="sm">
-            Horários / PDL
+            Quando
+          </Button>
+          <Button href={syncHref} variant="ghost" size="sm">
+            Sync
           </Button>
           <Button href="/config" variant="ghost" size="sm">
             Config
@@ -191,6 +180,17 @@ export function ProfileHub({
           <ClearProfileButton />
         </div>
       </Panel>
+
+      {goal ? <DayGoalCard goal={goal} sessionEv={sessionEv} /> : null}
+
+      {practiceCandidates.length > 0 ? (
+        <PracticeNormalsPanel
+          candidates={practiceCandidates}
+          ddragonVersion={ddragonVersion}
+          idToKey={idToKey}
+          compact
+        />
+      ) : null}
     </div>
   );
 }

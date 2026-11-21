@@ -63,7 +63,7 @@ export function DayGoalCard({ goal, sessionEv = null, className = "" }: Props) {
       </div>
       {sessionEv ? (
         <p className="text-sm text-[var(--muted-strong)]">
-          EV da fila:{" "}
+          Fila agora:{" "}
           <span className="font-medium text-[var(--foreground)]">{sessionEv.verb}</span>
           {sessionEv.reasons[0] ? ` · ${sessionEv.reasons[0]}` : ""}
         </p>

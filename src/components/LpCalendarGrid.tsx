@@ -30,13 +30,13 @@ function cellTone(lpDelta: number | null): string {
 }
 
 function formatDelta(lpDelta: number | null): string {
-  if (lpDelta == null) return "—";
+  if (lpDelta == null) return "·";
   if (lpDelta === 0) return "0";
   return `${lpDelta > 0 ? "+" : ""}${lpDelta}`;
 }
 
 /**
- * Calendário de PDL dos últimos N dias com dia + valor legíveis.
+ * Calendário de PDL dos últimos N dias — compacto (largura limitada).
  */
 export function LpCalendarGrid({
   calendar,
@@ -61,37 +61,31 @@ export function LpCalendarGrid({
   );
 
   return (
-    <Panel className="space-y-3 p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <p className="data-label">{title}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            PDL do dia = elo no fim − elo no início (snapshots). Cinza = sem
-            dado.
-          </p>
-        </div>
+    <Panel className="max-w-sm space-y-2 p-3 sm:max-w-md sm:p-3.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="data-label">{title}</p>
         {withData.length > 0 ? (
-          <p className="tabular text-sm font-medium text-[var(--foreground)]">
+          <p className="tabular text-xs font-medium text-[var(--foreground)]">
             Soma {sum >= 0 ? "+" : ""}
-            {sum} PDL
+            {sum}
             <span className="ml-1 font-normal text-[var(--muted)]">
-              · {withData.length} dias com snapshot
+              · {withData.length}d
             </span>
           </p>
         ) : null}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-0.5">
         {WEEKDAYS.map((w, i) => (
           <div
             key={`${w}-${i}`}
-            className="pb-0.5 text-center text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]"
+            className="pb-0.5 text-center text-[9px] font-medium uppercase tracking-wide text-[var(--muted)]"
           >
             {w}
           </div>
         ))}
         {pads.map((i) => (
-          <div key={`pad-${i}`} className="aspect-square" aria-hidden />
+          <div key={`pad-${i}`} className="h-8" aria-hidden />
         ))}
         {calendar.map((d) => {
           const label = formatDayLabel(d.day);
@@ -104,10 +98,10 @@ export function LpCalendarGrid({
                   ? `${d.day}: sem snapshot`
                   : `${d.day}: ${d.lpDelta >= 0 ? "+" : ""}${d.lpDelta} PDL`
               }
-              className={`flex aspect-square flex-col items-center justify-center rounded-[var(--radius-sm,0.35rem)] px-0.5 ${cellTone(d.lpDelta)}`}
+              className={`flex h-8 flex-col items-center justify-center rounded-sm px-0.5 ${cellTone(d.lpDelta)}`}
             >
-              <span className="text-[9px] leading-none opacity-70">{label}</span>
-              <span className="mt-0.5 text-[11px] font-semibold tabular leading-none">
+              <span className="text-[8px] leading-none opacity-65">{label}</span>
+              <span className="text-[10px] font-semibold tabular leading-none">
                 {delta}
               </span>
             </div>
@@ -115,27 +109,15 @@ export function LpCalendarGrid({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--muted)]">
-        <span>
-          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-emerald-500/50" />
-          dia positivo
-        </span>
-        <span>
-          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-rose-500/50" />
-          dia negativo
-        </span>
-        <span>
-          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-[var(--surface-2)] ring-1 ring-[var(--border)]" />
-          sem snapshot
-        </span>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[var(--muted)]">
         {best?.lpDelta != null ? (
           <span className="text-[var(--success)]">
-            Melhor: {formatDayLabel(best.day)} ({formatDelta(best.lpDelta)})
+            Melhor {formatDayLabel(best.day)} ({formatDelta(best.lpDelta)})
           </span>
         ) : null}
         {worst?.lpDelta != null && worst.lpDelta < 0 ? (
           <span className="text-[var(--danger)]">
-            Pior: {formatDayLabel(worst.day)} ({formatDelta(worst.lpDelta)})
+            Pior {formatDayLabel(worst.day)} ({formatDelta(worst.lpDelta)})
           </span>
         ) : null}
       </div>

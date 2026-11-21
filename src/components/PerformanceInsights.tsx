@@ -6,9 +6,15 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 type Props = {
   temporal: TemporalInsights;
   overallWr: number;
+  /** Sem H2 “Quando jogar” — para embutir sob seção Padrões. */
+  embedded?: boolean;
 };
 
-export function PerformanceInsights({ temporal, overallWr }: Props) {
+export function PerformanceInsights({
+  temporal,
+  overallWr,
+  embedded = false,
+}: Props) {
   const days = temporal.byDayOfWeek.filter((d) => d.games > 0);
   const hours = temporal.byHour.filter((h) => h.games >= 3);
   const sessions = temporal.sessionIndex.filter((s) => s.games > 0);
@@ -21,17 +27,35 @@ export function PerformanceInsights({ temporal, overallWr }: Props) {
   const avoid = (temporal.avoidList ?? []).slice(0, 5);
 
   return (
-    <section className="panel space-y-5 p-4">
-      <div>
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">Quando jogar</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Histórico · {temporal.timezone.replace("_", " ")} · média{" "}
+    <section
+      className={
+        embedded
+          ? "space-y-4"
+          : "panel space-y-5 p-4"
+      }
+    >
+      {!embedded ? (
+        <div>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            Quando jogar
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Histórico · {temporal.timezone.replace("_", " ")} · média{" "}
+            {pct(overallWr)}
+            {temporal.recentForm
+              ? ` · forma recente ${pct(temporal.recentForm.wr)}`
+              : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-[var(--muted)]">
+          WR no histórico · {temporal.timezone.replace("_", " ")} · média{" "}
           {pct(overallWr)}
           {temporal.recentForm
             ? ` · forma recente ${pct(temporal.recentForm.wr)}`
             : ""}
         </p>
-      </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <InsightBlock title="Melhor horário">

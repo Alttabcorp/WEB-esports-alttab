@@ -31,8 +31,9 @@ export function DecisionCard({
   onAction,
   className = "",
 }: Props) {
-  const [openOthers, setOpenOthers] = useState(false);
   const secondary = decision.secondary ?? [];
+  const hasPractice = secondary.some((a) => a.id === "practice-normals");
+  const [openOthers, setOpenOthers] = useState(hasPractice);
 
   return (
     <section
@@ -70,23 +71,7 @@ export function DecisionCard({
                 : a.kind === "secondary"
                   ? "secondary"
                   : "ghost";
-            if (
-              onAction &&
-              (a.label === "Ver horários" ||
-                a.label === "Encerrar sessão" ||
-                a.label === "Recalcular")
-            ) {
-              return (
-                <Button
-                  key={a.label}
-                  size="sm"
-                  variant={variant}
-                  onClick={() => onAction(a.label)}
-                >
-                  {a.label}
-                </Button>
-              );
-            }
+            // href sempre vence — onAction só para ações sem rota (ex.: Recalcular).
             if (a.href) {
               return (
                 <Button key={a.label} href={a.href} size="sm" variant={variant}>

@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ChampionInsight, RoleInsight } from "@/lib/stats/aggregate";
 import type { MatchHistoryRow } from "@/lib/db/persist";
 import type { RuneCatalog } from "@/lib/ddragon";
 import type { ChampOverview, ChampRoleStat } from "@/lib/stats/championRoleStats";
+import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
 import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { pct, signedPct } from "@/lib/format";
 import { BuildLeaderboard } from "./BuildLeaderboard";
@@ -13,11 +15,13 @@ import { RuneLeaderboard } from "./RuneLeaderboard";
 import { MatchupTable } from "./MatchupTable";
 import { ChampionIcon } from "./ChampionIcon";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { MatchDetailBody } from "./MatchHistoryPanel";
+import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { Button, Panel, Stat, Tabs } from "@/components/ui";
 
 type RoleFilter = "ALL" | RoleKey;
 
-type DetailTab = "resumo" | "builds" | "matchups" | "partidas";
+type DetailTab = "resumo" | "builds" | "runes" | "matchups" | "partidas";
 
 type Props = {
   champions: ChampionInsight[];
@@ -31,6 +35,8 @@ type Props = {
   prepHref: string;
   overallWr: number;
   analyzedGames: number;
+  practiceCandidates?: PracticeCandidate[];
+  initialChampionId?: number | null;
 };
 
 const ROLE_FILTERS: RoleFilter[] = [
@@ -54,14 +60,29 @@ export function StatsExplorer({
   prepHref,
   overallWr,
   analyzedGames,
+  practiceCandidates = [],
+  initialChampionId = null,
 }: Props) {
+  const searchParams = useSearchParams();
+  const champFromUrl = Number(searchParams.get("champ"));
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
   const [selectedId, setSelectedId] = useState<number | null>(
-    champOverviews[0]?.championId ?? null,
+    (Number.isFinite(champFromUrl) ? champFromUrl : null) ??
+      initialChampionId ??
+      champOverviews[0]?.championId ??
+      null,
   );
   const [query, setQuery] = useState("");
   const [detailTab, setDetailTab] = useState<DetailTab>("resumo");
   const [detailRole, setDetailRole] = useState<RoleFilter>("ALL");
+  const [openMatchId, setOpenMatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (Number.isFinite(champFromUrl) && champFromUrl > 0) {
+      setSelectedId(champFromUrl);
+      setDetailTab("resumo");
+    }
+  }, [champFromUrl]);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -167,13 +188,14 @@ export function StatsExplorer({
     <div className="space-y-3">
       <header className="space-y-1.5">
         <p className="data-label">Seu histórico</p>
-        <h1 className="type-display text-2xl text-[var(--foreground)] sm:text-3xl">
+        <h1 className="text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
           Estatísticas
         </h1>
-        <p className="max-w-2xl text-xs text-[var(--muted)] sm:text-sm">
-          Campeão + lane = só os seus dados. Referências/meta ficam no Preparar.
+        <p className="max-w-xl text-xs text-[var(--muted)] sm:text-sm">
+          Campeão × lane do seu histórico. Para PDL e horários use Quando; o
+          Ranking mostra o detalhe ao clicar.
         </p>
-        <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="flex flex-wrap items-end gap-2 pt-1">
           <Stat
             label="WR geral"
             value={pct(overallWr)}
@@ -182,7 +204,7 @@ export function StatsExplorer({
           />
           {roleInsights
             .filter((r) => r.role !== "UNKNOWN" && r.games >= 3)
-            .slice(0, 5)
+            .slice(0, 3)
             .map((r) => (
               <button
                 key={r.role}
@@ -196,13 +218,21 @@ export function StatsExplorer({
                 <Stat
                   label={ROLE_LABELS[r.role]}
                   value={pct(r.wr)}
-                  hint={`${r.games}j · ${signedPct(r.lift)}`}
-                  className="min-w-[5.5rem]"
+                  hint={`${r.games}j`}
+                  className="min-w-[5rem]"
                 />
               </button>
             ))}
         </div>
       </header>
+
+      {practiceCandidates.length > 0 ? (
+        <PracticeNormalsPanel
+          candidates={practiceCandidates}
+          ddragonVersion={ddragonVersion}
+          idToKey={idToKey}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-1">
         {ROLE_FILTERS.map((r) => {
@@ -253,7 +283,7 @@ export function StatsExplorer({
               .
             </p>
           ) : (
-            <ul className="max-h-[min(70vh,36rem)] space-y-1 overflow-y-auto overscroll-contain pr-0.5">
+            <ul className="max-h-[min(60vh,28rem)] space-y-1 overflow-y-auto overscroll-contain pr-0.5">
               {list.map((c) => {
                 const active = selectedId === c.championId;
                 const primaryRole = c.roles[0];
@@ -334,9 +364,14 @@ export function StatsExplorer({
                     </div>
                   ) : null}
                 </div>
-                <Button href={prepHref} variant="secondary" size="sm">
-                  Abrir no Preparar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button href="/ranking" variant="secondary" size="sm">
+                    Ranking
+                  </Button>
+                  <Button href={prepHref} variant="ghost" size="sm">
+                    Preparar
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -420,6 +455,7 @@ export function StatsExplorer({
                 items={[
                   { id: "resumo", label: "Resumo" },
                   { id: "builds", label: "Builds" },
+                  { id: "runes", label: "Runas" },
                   { id: "matchups", label: "Matchups" },
                   {
                     id: "partidas",
@@ -459,23 +495,30 @@ export function StatsExplorer({
               ) : null}
 
               {detailTab === "builds" ? (
-                selectedInsight ? (
-                  <div className="space-y-4">
-                    <BuildLeaderboard
-                      builds={selectedInsight.topBuilds.slice(0, 3)}
-                      championName={selectedInsight.championName}
-                      ddragonVersion={ddragonVersion}
-                      large
-                    />
-                    <RuneLeaderboard
-                      runes={(selectedInsight.topRunes ?? []).slice(0, 2)}
-                      championName={selectedInsight.championName}
-                      runeCatalog={runeCatalog}
-                    />
-                  </div>
+                selectedInsight?.topBuilds.length ? (
+                  <BuildLeaderboard
+                    builds={selectedInsight.topBuilds.slice(0, 5)}
+                    championName={selectedInsight.championName}
+                    ddragonVersion={ddragonVersion}
+                    large
+                  />
                 ) : (
                   <p className="text-sm text-[var(--muted)]">
                     Sem builds agregadas ainda (precisa de mais jogos).
+                  </p>
+                )
+              ) : null}
+
+              {detailTab === "runes" ? (
+                (selectedInsight?.topRunes ?? []).length ? (
+                  <RuneLeaderboard
+                    runes={(selectedInsight?.topRunes ?? []).slice(0, 5)}
+                    championName={selectedInsight?.championName ?? ""}
+                    runeCatalog={runeCatalog}
+                  />
+                ) : (
+                  <p className="text-sm text-[var(--muted)]">
+                    Sem runas agregadas ainda (precisa de mais jogos).
                   </p>
                 )
               ) : null}
@@ -520,46 +563,64 @@ export function StatsExplorer({
                           minute: "2-digit",
                         },
                       );
+                      const open = openMatchId === m.matchId;
                       return (
-                        <li
-                          key={m.matchId}
-                          className="flex flex-wrap items-center gap-3 py-2.5 text-sm"
-                        >
-                          <span
-                            className={`text-xs font-semibold ${
-                              m.win
-                                ? "text-[var(--success)]"
-                                : "text-[var(--danger)]"
-                            }`}
+                        <li key={m.matchId}>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setOpenMatchId((prev) =>
+                                prev === m.matchId ? null : m.matchId,
+                              )
+                            }
+                            className="flex w-full flex-wrap items-center gap-3 py-2.5 text-left text-sm hover:bg-[var(--surface-2)]"
+                            aria-expanded={open}
                           >
-                            {m.win ? "W" : "L"}
-                          </span>
-                          <span className="text-[var(--muted)]">
-                            {ROLE_LABELS[m.role] ?? m.role}
-                          </span>
-                          <span className="tabular text-[var(--foreground)]">
-                            {m.kills}/{m.deaths}/{m.assists}
-                          </span>
-                          <span className="text-[var(--muted)]">{m.cs} CS</span>
-                          {m.enemyChampionName ? (
-                            <span className="flex items-center gap-1.5 text-[var(--muted)]">
-                              vs
-                              <ChampionIcon
-                                ddragonVersion={ddragonVersion}
-                                championId={m.enemyChampionId}
-                                nameOrKey={m.enemyChampionName}
-                                idToKey={idToKey}
-                                alt={m.enemyChampionName}
-                                width={22}
-                                height={22}
-                                className="rounded"
-                              />
-                              {m.enemyChampionName}
+                            <span
+                              className={`text-xs font-semibold ${
+                                m.win
+                                  ? "text-[var(--success)]"
+                                  : "text-[var(--danger)]"
+                              }`}
+                            >
+                              {m.win ? "W" : "L"}
                             </span>
+                            <span className="text-[var(--muted)]">
+                              {ROLE_LABELS[m.role] ?? m.role}
+                            </span>
+                            <span className="tabular text-[var(--foreground)]">
+                              {m.kills}/{m.deaths}/{m.assists}
+                            </span>
+                            <span className="text-[var(--muted)]">
+                              {m.cs} CS
+                            </span>
+                            {m.enemyChampionName ? (
+                              <span className="flex items-center gap-1.5 text-[var(--muted)]">
+                                vs
+                                <ChampionIcon
+                                  ddragonVersion={ddragonVersion}
+                                  championId={m.enemyChampionId}
+                                  nameOrKey={m.enemyChampionName}
+                                  idToKey={idToKey}
+                                  alt={m.enemyChampionName}
+                                  width={22}
+                                  height={22}
+                                  className="rounded"
+                                />
+                                {m.enemyChampionName}
+                              </span>
+                            ) : null}
+                            <span className="ml-auto text-xs text-[var(--muted)]">
+                              {when} · {open ? "fechar" : "detalhes"}
+                            </span>
+                          </button>
+                          {open ? (
+                            <MatchDetailBody
+                              m={m}
+                              ddragonVersion={ddragonVersion}
+                              idToKey={idToKey}
+                            />
                           ) : null}
-                          <span className="ml-auto text-xs text-[var(--muted)]">
-                            {when}
-                          </span>
                         </li>
                       );
                     })}
@@ -576,7 +637,7 @@ export function StatsExplorer({
         <Link href="/referencias" className="text-[var(--alttab)] hover:underline">
           Referências
         </Link>{" "}
-        ou a aba Comparar no Preparar — dados externos ficam separados.
+        — dados externos ficam separados das suas stats.
       </p>
     </div>
   );

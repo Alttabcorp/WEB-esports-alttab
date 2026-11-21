@@ -1,5 +1,7 @@
 import type { PerformanceAlert } from "@/lib/stats/temporal";
 import type { SessionAdvice } from "@/lib/live/sessionAdvice";
+import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
+import { practiceDecisionHint } from "@/lib/stats/practiceCandidates";
 
 export type DecisionTone = "stop" | "warn" | "go" | "info";
 
@@ -140,6 +142,42 @@ export function toDecisionFromAlerts(
     detail: primary.detail,
     actions,
     secondary,
+  };
+}
+
+/** Anexa aviso “testar em normais” em decisões stop/warn. */
+export function withPracticeHint(
+  decision: DecisionModel,
+  candidates: PracticeCandidate[],
+): DecisionModel {
+  if (decision.tone !== "stop" && decision.tone !== "warn") return decision;
+  const hint = practiceDecisionHint(candidates);
+  if (!hint) return decision;
+  const already = (decision.secondary ?? []).some(
+    (a) => a.id === "practice-normals",
+  );
+  if (already) return decision;
+  return {
+    ...decision,
+    secondary: [
+      ...(decision.secondary ?? []),
+      {
+        id: "practice-normals",
+        severity: "info" as const,
+        title: hint.title,
+        detail: hint.detail,
+      },
+    ],
+    actions: [
+      ...decision.actions,
+      {
+        label: "Ver prática",
+        href: "/estatisticas#pratica",
+        kind: "ghost" as const,
+      },
+    ].filter(
+      (a, i, arr) => arr.findIndex((x) => x.label === a.label) === i,
+    ),
   };
 }
 

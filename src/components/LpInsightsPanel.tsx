@@ -12,6 +12,8 @@ type Props = {
   simpleLabels?: boolean;
   /** Oculta o calendário (ex.: já renderizado fora). */
   hideCalendar?: boolean;
+  /** Só as barras (sem painel de intro) — para layout lado a lado. */
+  barsOnly?: boolean;
 };
 
 function simplifySessionLabel(label: string): string {
@@ -84,6 +86,47 @@ function LpBars({
   );
 }
 
+function BarsGrid({
+  insights,
+  simpleLabels,
+  sessionRows,
+}: {
+  insights: MatchLpInsights;
+  simpleLabels: boolean;
+  sessionRows: { label: string; lpAvg: number; games: number }[];
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Panel className="p-3 sm:p-4">
+        <LpBars
+          title={simpleLabels ? "Por horário" : "PDL médio por horário"}
+          rows={insights.byHour}
+        />
+      </Panel>
+      <Panel className="p-3 sm:p-4">
+        <LpBars
+          title={
+            simpleLabels ? "Por ordem na sessão" : "PDL por índice de sessão"
+          }
+          rows={sessionRows}
+        />
+      </Panel>
+      <Panel className="p-3 sm:p-4">
+        <LpBars
+          title={simpleLabels ? "Por rota" : "PDL por role"}
+          rows={insights.byRole}
+        />
+      </Panel>
+      <Panel className="p-3 sm:p-4">
+        <LpBars
+          title={simpleLabels ? "Por campeão" : "PDL médio por champ"}
+          rows={insights.byChampion}
+        />
+      </Panel>
+    </div>
+  );
+}
+
 export function LpInsightsPanel({
   insights,
   calendar = [],
@@ -91,6 +134,7 @@ export function LpInsightsPanel({
   patchNote = null,
   simpleLabels = false,
   hideCalendar = false,
+  barsOnly = false,
 }: Props) {
   const sessionRows = simpleLabels
     ? insights.bySessionIndex.map((r) => ({
@@ -98,6 +142,39 @@ export function LpInsightsPanel({
         label: simplifySessionLabel(r.label),
       }))
     : insights.bySessionIndex;
+
+  if (barsOnly) {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <p className="data-label">Barras de PDL</p>
+            <p className="mt-0.5 text-xs text-[var(--muted)] sm:text-sm">
+              Média por partida no grupo · win ≈ +
+              {insights.avgLpPerWin.toFixed(0)} · loss ≈ −
+              {insights.avgLpPerLoss.toFixed(0)}
+              {currentPatch ? ` · patch ${currentPatch}` : ""}
+            </p>
+          </div>
+          {insights.tiltCostAvg != null ? (
+            <p className="text-xs text-[var(--danger)] sm:text-sm">
+              {simpleLabels
+                ? simplifyTiltHint(insights.tiltCostAvg, insights.tiltSample)
+                : `Tilt: ${insights.tiltCostAvg} PDL/jogo`}
+            </p>
+          ) : null}
+        </div>
+        {patchNote ? (
+          <p className="text-xs text-[var(--warn)]">{patchNote}</p>
+        ) : null}
+        <BarsGrid
+          insights={insights}
+          simpleLabels={simpleLabels}
+          sessionRows={sessionRows}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -133,34 +210,11 @@ export function LpInsightsPanel({
         </div>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel className="p-4">
-          <LpBars
-            title={simpleLabels ? "Por campeão" : "PDL médio por champ"}
-            rows={insights.byChampion}
-          />
-        </Panel>
-        <Panel className="p-4">
-          <LpBars
-            title={simpleLabels ? "Por horário" : "PDL médio por horário"}
-            rows={insights.byHour}
-          />
-        </Panel>
-        <Panel className="p-4">
-          <LpBars
-            title={
-              simpleLabels ? "Por ordem na sessão" : "PDL por índice de sessão"
-            }
-            rows={sessionRows}
-          />
-        </Panel>
-        <Panel className="p-4">
-          <LpBars
-            title={simpleLabels ? "Por rota" : "PDL por role"}
-            rows={insights.byRole}
-          />
-        </Panel>
-      </div>
+      <BarsGrid
+        insights={insights}
+        simpleLabels={simpleLabels}
+        sessionRows={sessionRows}
+      />
 
       {!hideCalendar && calendar.length > 0 ? (
         <LpCalendarGrid calendar={calendar} />

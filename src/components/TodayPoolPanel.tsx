@@ -20,8 +20,9 @@ type Props = {
   /** Champ em destaque neste quadro (estado próprio). */
   featuredId?: number | null;
   onFeature?: (championId: number) => void;
-  /** Opcional: espelha o pick no ranking/detalhe abaixo. */
-  onUseInRanking?: (championId: number) => void;
+  /** Link para o dossiê do pick em destaque. */
+  champHref?: string;
+  rankingHref?: string;
   statsHref?: string;
   coachHref?: string;
 };
@@ -38,7 +39,8 @@ export function TodayPoolPanel({
   runeCatalog,
   featuredId = null,
   onFeature,
-  onUseInRanking,
+  champHref,
+  rankingHref = "/ranking",
   statsHref = "/estatisticas",
   coachHref = "/coach",
 }: Props) {
@@ -79,8 +81,8 @@ export function TodayPoolPanel({
               O que jogar neste horário
             </h2>
             <p className="mt-0.5 max-w-xl text-xs text-[var(--muted)] sm:text-sm">
-              Independente do ranking abaixo — clique numa alternativa para
-              destacar.
+              Clique numa alternativa para destacar. Abra o ranking para ver
+              suas estatísticas com o campeão.
             </p>
           </div>
           <p className="text-[11px] text-[var(--muted)]">
@@ -123,7 +125,7 @@ export function TodayPoolPanel({
                   : "bg-rose-500/10 ring-rose-500/25"
               }`}
             >
-              <p className="data-label">EV / fila</p>
+              <p className="data-label">PDL esperado</p>
               <p
                 className={`mt-0.5 text-2xl font-semibold tabular ${
                   evPositive ? "text-[var(--success)]" : "text-[var(--danger)]"
@@ -132,7 +134,7 @@ export function TodayPoolPanel({
                 {featured.expectedLp >= 0 ? "+" : ""}
                 {featured.expectedLp}
               </p>
-              <p className="text-[10px] text-[var(--muted)]">PDL</p>
+              <p className="text-[10px] text-[var(--muted)]">nesta fila</p>
             </div>
           </div>
 
@@ -197,18 +199,19 @@ export function TodayPoolPanel({
             <Button href={coachHref} size="sm">
               Abrir Coach
             </Button>
-            <Button href={statsHref} variant="secondary" size="sm">
+            <Button
+              href={champHref ?? `/ranking`}
+              variant="secondary"
+              size="sm"
+            >
+              Ver no ranking
+            </Button>
+            <Button href={rankingHref} variant="ghost" size="sm">
+              Ranking completo
+            </Button>
+            <Button href={statsHref} variant="ghost" size="sm">
               Estatísticas
             </Button>
-            {onUseInRanking ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onUseInRanking(featured.championId)}
-              >
-                Ver no ranking ↓
-              </Button>
-            ) : null}
           </div>
         </div>
 
@@ -259,7 +262,7 @@ export function TodayPoolPanel({
                         {p.expectedLp >= 0 ? "+" : ""}
                         {p.expectedLp}
                       </p>
-                      <p className="text-[9px] text-[var(--muted)]">EV</p>
+                      <p className="text-[9px] text-[var(--muted)]">PDL</p>
                     </div>
                   </button>
                 </li>

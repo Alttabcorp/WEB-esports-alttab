@@ -2,7 +2,10 @@ import Link from "next/link";
 import { ProfileHub } from "@/components/ProfileHub";
 import { SearchForm } from "@/components/SearchForm";
 import { Button, Panel } from "@/components/ui";
-import { toDecisionFromAlerts } from "@/lib/alerts/decision";
+import {
+  toDecisionFromAlerts,
+  withPracticeHint,
+} from "@/lib/alerts/decision";
 import {
   getAppProfile,
   getDayLpSummaryForPlayer,
@@ -11,12 +14,15 @@ import {
   listRankSnapshots,
 } from "@/lib/db/persist";
 import { getChampionIdToKey, getDdragonVersion } from "@/lib/ddragon";
-import { encodeRiotId } from "@/lib/format";
 import type { PlatformRegion } from "@/lib/riot/regions";
 import type { QueueFilter } from "@/lib/riot/types";
 import { buildContextualPool } from "@/lib/stats/contextualPool";
 import { computeDayGoalProgress } from "@/lib/stats/dayGoal";
 import { buildMatchLpLedger } from "@/lib/stats/matchLpLedger";
+import {
+  buildPracticeCandidates,
+  type PracticeCandidate,
+} from "@/lib/stats/practiceCandidates";
 import { computeSessionEv } from "@/lib/stats/sessionEv";
 import { buildTemporalInsights, SESSION_GAP_MS } from "@/lib/stats/temporal";
 import type { RoleKey } from "@/lib/stats/roles";
@@ -36,6 +42,7 @@ export default async function HomePage() {
   let idToKey: Record<number, string> = {};
   let goal = null as ReturnType<typeof computeDayGoalProgress> | null;
   let sessionEv = null as ReturnType<typeof computeSessionEv> | null;
+  let practiceCandidates: PracticeCandidate[] = [];
 
   if (profile) {
     const queue = profile.queue as QueueFilter;
@@ -131,11 +138,18 @@ export default async function HomePage() {
       topPick: pool[0] ?? null,
     });
 
-    const slug = encodeRiotId(profile.gameName, profile.tagLine);
-    const prepHref = `/summoner/${profile.platform}/${slug}?queue=${profile.queue}&count=${profile.matchCount}`;
+    const prepHref = "/preparar";
+    if (analysis) {
+      practiceCandidates = buildPracticeCandidates({
+        analysis,
+        pool,
+        avgLpPerWin: ledger.avgLpPerWin,
+        avgLpPerLoss: ledger.avgLpPerLoss,
+      });
+    }
     decision = toDecisionFromAlerts(temporal.alerts, {
       prepHref,
-      timingHref: `${prepHref}&tab=timing`,
+      timingHref: "/timing",
     });
     // Prefer session EV stop/warn on hub when stronger than soft alerts
     if (
@@ -148,7 +162,7 @@ export default async function HomePage() {
         verb: sessionEv.verb,
         detail: sessionEv.detail,
         actions: [
-          { label: "Ver horários", href: `${prepHref}&tab=timing`, kind: "primary" },
+          { label: "Ver horários", href: "/timing", kind: "primary" },
           { label: "Abrir Coach", href: "/coach", kind: "ghost" },
         ],
         secondary: decision
@@ -163,6 +177,9 @@ export default async function HomePage() {
           : [],
       };
     }
+    if (decision) {
+      decision = withPracticeHint(decision, practiceCandidates);
+    }
   }
 
   return (
@@ -174,7 +191,7 @@ export default async function HomePage() {
         </h1>
         <p className="mt-3 type-body">
           {profile
-            ? "Meta de PDL, EV da fila e pick do momento — depois Coach no 2º monitor."
+            ? "Meta de PDL, fila do momento e pick — depois Coach no 2º monitor."
             : "Configure seu perfil uma vez. As partidas ficam neste servidor — histórico sem rebuscar a Riot a cada visita."}
         </p>
       </div>
@@ -191,6 +208,7 @@ export default async function HomePage() {
           idToKey={idToKey}
           goal={goal}
           sessionEv={sessionEv}
+          practiceCandidates={practiceCandidates}
         />
       ) : (
         <div className="flex w-full max-w-2xl flex-col items-center gap-4">

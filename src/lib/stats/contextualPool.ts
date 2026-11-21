@@ -189,9 +189,9 @@ export function buildContextualPool(input: {
     score += expectedLp / 40;
 
     if (expectedLp >= 2) {
-      reasons.unshift(`EV ~+${expectedLp} PDL/fila`);
+      reasons.unshift(`~+${expectedLp} PDL esperado nesta fila`);
     } else if (expectedLp <= -2) {
-      reasons.unshift(`EV ~${expectedLp} PDL/fila — evitar`);
+      reasons.unshift(`~${expectedLp} PDL esperado — evitar`);
     }
 
     if (reasons.length === 0) {
@@ -231,7 +231,7 @@ export function contextualDraftBoost(
     const approxLp = Math.round(hit.lift * 18 * 10) / 10;
     return {
       boost: Math.min(0.08, hit.lift * 0.25),
-      reason: `Bom neste horário (~+${approxLp} PDL EV · ${Math.round(hit.wr * 100)}% WR)`,
+      reason: `Bom neste horário (~+${approxLp} PDL · ${Math.round(hit.wr * 100)}% WR)`,
     };
   }
   if (

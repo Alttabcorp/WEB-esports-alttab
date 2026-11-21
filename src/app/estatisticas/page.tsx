@@ -1,25 +1,36 @@
-import Link from "next/link";
+import { Suspense } from "react";
 import { StatsExplorer } from "@/components/StatsExplorer";
 import { Button, Panel } from "@/components/ui";
 import {
   getAppProfile,
   getFreshAnalysisRun,
   getLatestAnalysisRun,
+  getStoredMatchesForPlayer,
   listMatchHistory,
+  listRankSnapshots,
 } from "@/lib/db/persist";
 import {
   getChampionIdToKey,
   getDdragonVersion,
   getRuneCatalog,
 } from "@/lib/ddragon";
-import { encodeRiotId } from "@/lib/format";
 import type { QueueFilter } from "@/lib/riot/types";
 import { buildChampionRoleStats } from "@/lib/stats/championRoleStats";
+import { buildContextualPool } from "@/lib/stats/contextualPool";
+import { buildMatchLpLedger } from "@/lib/stats/matchLpLedger";
+import { buildPracticeCandidates } from "@/lib/stats/practiceCandidates";
 import { analyzePlayer } from "@/lib/riot/analyze";
 import { resolveSummonerFromDb } from "@/lib/riot/analyze";
 import type { PlatformRegion } from "@/lib/riot/regions";
+import type { RoleKey } from "@/lib/stats/roles";
 
-export default async function EstatisticasPage() {
+type PageProps = {
+  searchParams: Promise<{ champ?: string }>;
+};
+
+export default async function EstatisticasPage({ searchParams }: PageProps) {
+  const sp = await searchParams;
+  const initialChampionId = sp.champ ? Number(sp.champ) : null;
   const profile = await getAppProfile();
 
   if (!profile) {
@@ -41,18 +52,25 @@ export default async function EstatisticasPage() {
   const queue = profile.queue as QueueFilter;
   const count = Math.min(Math.max(profile.matchCount, 80), 200);
   const platform = profile.platform as PlatformRegion;
-  const slug = encodeRiotId(profile.gameName, profile.tagLine);
-  const prepHref = `/summoner/${profile.platform}/${slug}?queue=${profile.queue}&count=${profile.matchCount}`;
+  const prepHref = "/preparar";
 
   const ddragonVersion = await getDdragonVersion();
-  const [idToKey, runeCatalog, matchHistory] = await Promise.all([
-    getChampionIdToKey(ddragonVersion),
-    getRuneCatalog(ddragonVersion),
-    listMatchHistory(profile.playerId, profile.puuid, {
-      count: 80,
-      queue,
-    }),
-  ]);
+  const [idToKey, runeCatalog, matchHistory, stored, snapshots] =
+    await Promise.all([
+      getChampionIdToKey(ddragonVersion),
+      getRuneCatalog(ddragonVersion),
+      listMatchHistory(profile.playerId, profile.puuid, {
+        count: 80,
+        queue,
+      }),
+      getStoredMatchesForPlayer(profile.playerId, {
+        count: Math.min(profile.matchCount, 120),
+        queue,
+      }),
+      listRankSnapshots(profile.playerId, {
+        sinceMs: 14 * 24 * 60 * 60_000,
+      }),
+    ]);
 
   let analysis =
     (await getFreshAnalysisRun(profile.playerId, queue, count)) ??
@@ -102,30 +120,53 @@ export default async function EstatisticasPage() {
   }
 
   const { byChampion, byChampRole } = buildChampionRoleStats(matchHistory);
+  const ledger = buildMatchLpLedger({
+    matches: stored,
+    puuid: profile.puuid,
+    snapshots: snapshots.map((s) => ({
+      ladderScore: s.ladderScore,
+      createdAt: s.createdAt,
+    })),
+  });
+  const pool = buildContextualPool({
+    analysis,
+    preferredRole: profile.preferredRole as RoleKey,
+    limit: 5,
+    avgLpPerWin: ledger.avgLpPerWin,
+    avgLpPerLoss: ledger.avgLpPerLoss,
+  });
+  const practiceCandidates = buildPracticeCandidates({
+    analysis,
+    pool,
+    avgLpPerWin: ledger.avgLpPerWin,
+    avgLpPerLoss: ledger.avgLpPerLoss,
+  });
 
   return (
     <div className="pb-8">
-      <div className="mb-4">
-        <Link
-          href="/"
-          className="text-sm text-[var(--alttab-soft)] hover:underline"
-        >
-          ← Hub
-        </Link>
-      </div>
-      <StatsExplorer
-        champions={analysis.champions}
-        roleInsights={analysis.roles}
-        champOverviews={byChampion}
-        byChampRole={byChampRole}
-        matchHistory={matchHistory}
-        ddragonVersion={ddragonVersion}
-        idToKey={idToKey}
-        runeCatalog={runeCatalog}
-        prepHref={prepHref}
-        overallWr={analysis.overallWr}
-        analyzedGames={analysis.analyzedGames}
-      />
+      <Suspense
+        fallback={
+          <p className="text-sm text-[var(--muted)]">Carregando estatísticas…</p>
+        }
+      >
+        <StatsExplorer
+          champions={analysis.champions}
+          roleInsights={analysis.roles}
+          champOverviews={byChampion}
+          byChampRole={byChampRole}
+          matchHistory={matchHistory}
+          ddragonVersion={ddragonVersion}
+          idToKey={idToKey}
+          runeCatalog={runeCatalog}
+          prepHref={prepHref}
+          overallWr={analysis.overallWr}
+          analyzedGames={analysis.analyzedGames}
+          practiceCandidates={practiceCandidates}
+          initialChampionId={
+            Number.isFinite(initialChampionId) ? initialChampionId : null
+          }
+        />
+      </Suspense>
     </div>
   );
 }
