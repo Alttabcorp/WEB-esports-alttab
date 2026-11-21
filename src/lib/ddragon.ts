@@ -21,6 +21,111 @@ export function championIconUrl(version: string, championName: string): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`;
 }
 
+/**
+ * Nomes/aliases que o LCU ou a Riot às vezes devolvem ≠ chave Data Dragon.
+ * Chave do mapa = normalizado (minúsculo, sem espaços/pontuação).
+ */
+const CHAMPION_KEY_ALIASES: Record<string, string> = {
+  wukong: "MonkeyKing",
+  monkeyking: "MonkeyKing",
+  renata: "RenataGlasc",
+  renataglasc: "RenataGlasc",
+  nunu: "Nunu",
+  nunuwillump: "Nunu",
+  chogath: "Chogath",
+  "cho'gath": "Chogath",
+  kaisa: "Kaisa",
+  "kai'sa": "Kaisa",
+  khazix: "Khazix",
+  "kha'zix": "Khazix",
+  leblanc: "Leblanc",
+  leesin: "LeeSin",
+  masteryi: "MasterYi",
+  missfortune: "MissFortune",
+  drmundo: "DrMundo",
+  jarvaniv: "JarvanIV",
+  tahmkench: "TahmKench",
+  twistedfate: "TwistedFate",
+  xinzhao: "XinZhao",
+  aurelionsol: "AurelionSol",
+  belveth: "Belveth",
+  "bel'veth": "Belveth",
+  ksante: "KSante",
+  "k'sante": "KSante",
+  velkoz: "Velkoz",
+  "vel'koz": "Velkoz",
+  reksai: "RekSai",
+  "rek'sai": "RekSai",
+  kogmaw: "KogMaw",
+  "kog'maw": "KogMaw",
+};
+
+function normalizeChampToken(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9']/g, "");
+}
+
+/**
+ * Resolve a chave Data Dragon a partir de id e/ou nome (LCU / Riot).
+ * Nunca devolve só o número do id — isso quebra a URL do ícone.
+ */
+export function resolveChampionKey(
+  input: {
+    championId?: number | null;
+    nameOrKey?: string | null;
+  },
+  maps: {
+    idToKey?: Record<number, string>;
+    keyToId?: Record<string, number>;
+  } = {},
+): string | null {
+  const { championId, nameOrKey } = input;
+  const idToKey = maps.idToKey ?? {};
+  const keyToId = maps.keyToId ?? {};
+
+  if (championId != null && championId > 0 && idToKey[championId]) {
+    return idToKey[championId];
+  }
+
+  const raw = (nameOrKey ?? "").trim();
+  if (!raw || /^\d+$/.test(raw)) {
+    return championId != null && championId > 0 && idToKey[championId]
+      ? idToKey[championId]
+      : null;
+  }
+
+  if (keyToId[raw] != null) {
+    return raw;
+  }
+  // Já é chave conhecida via valores do idToKey
+  if (Object.values(idToKey).includes(raw)) {
+    return raw;
+  }
+
+  const token = normalizeChampToken(raw);
+  const aliased = CHAMPION_KEY_ALIASES[token];
+  if (aliased) return aliased;
+
+  // Match case-insensitive nas chaves conhecidas
+  const keys = [
+    ...Object.keys(keyToId),
+    ...Object.values(idToKey),
+  ];
+  const hit = keys.find((k) => normalizeChampToken(k) === token);
+  if (hit) return hit;
+
+  // Último recurso: se parece chave PascalCase sem espaços, usa direto
+  if (/^[A-Za-z][A-Za-z0-9]+$/.test(raw)) {
+    return raw;
+  }
+
+  return null;
+}
+
 export function itemIconUrl(version: string, itemId: number): string {
   return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`;
 }

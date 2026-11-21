@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import type { ChampionInsight } from "@/lib/stats/aggregate";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { ChampionIcon } from "./ChampionIcon";
 import { pct, signedPct } from "@/lib/format";
-import { championIconUrl } from "@/lib/ddragon";
 
 type Props = {
   champions: ChampionInsight[];
@@ -32,7 +31,6 @@ export function ChampionRecommendations({
   return (
     <ul className="space-y-2">
       {champions.map((c, index) => {
-        const key = idToKey[c.championId] ?? c.championName;
         const active = selectedId === c.championId;
         return (
           <li key={c.championId}>
@@ -42,14 +40,17 @@ export function ChampionRecommendations({
               className={`flex min-h-14 w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition sm:gap-4 sm:px-4 ${
                 active
                   ? "border-[var(--alttab)] bg-[var(--alttab)]/15"
-                  : "border-[var(--border)] bg-black/20 hover:border-white/20"
+                  : "border-[var(--border)] bg-[var(--surface-2)] hover:border-white/20"
               }`}
             >
               <span className="w-5 text-sm font-semibold text-[var(--muted)]">
                 {index + 1}
               </span>
-              <Image
-                src={championIconUrl(ddragonVersion, key)}
+              <ChampionIcon
+                ddragonVersion={ddragonVersion}
+                championId={c.championId}
+                nameOrKey={c.championName}
+                idToKey={idToKey}
                 alt={c.championName}
                 width={40}
                 height={40}
@@ -57,7 +58,7 @@ export function ChampionRecommendations({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-white">{c.championName}</p>
+                  <p className="font-semibold text-[var(--foreground)]">{c.championName}</p>
                   <ConfidenceBadge level={c.confidence} />
                 </div>
                 <p className="text-sm text-[var(--muted)]">
