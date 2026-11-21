@@ -328,6 +328,7 @@ export function CoachDashboard({
               variant="menu"
             />
             <MenuItem href={syncHref}>Atualizar da Riot</MenuItem>
+            <MenuItem href="/estatisticas">Estatísticas</MenuItem>
             <MenuItem href="/referencias">Referências</MenuItem>
             <MenuItem href="/config">Configuração</MenuItem>
             <MenuItem href="/">Hub</MenuItem>
@@ -347,48 +348,55 @@ export function CoachDashboard({
 
       {prepTab === "play" ? (
         <div className="space-y-4">
+          <TodayPoolPanel
+            picks={todayPool}
+            champions={analysis.champions}
+            ddragonVersion={ddragonVersion}
+            idToKey={idToKey}
+            runeCatalog={runeCatalog}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            statsHref="/estatisticas"
+            coachHref="/coach"
+          />
+
           <section className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <div className="space-y-4">
-              <TodayPoolPanel
-                picks={todayPool}
-                ddragonVersion={ddragonVersion}
-                idToKey={idToKey}
+            <Panel className="space-y-3 p-4">
+              <div>
+                <h2 className="type-title">Ranking geral</h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Histórico completo — para decidir o pool do momento, use o
+                  quadro acima. Detalhes profundos em Estatísticas.
+                </p>
+              </div>
+              <ChampionRecommendations
+                champions={analysis.topRecommendations}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
+                ddragonVersion={ddragonVersion}
+                idToKey={idToKey}
               />
-              <Panel className="space-y-3 p-4">
-                <div>
-                  <h2 className="type-title">Ranking geral</h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    Escolha o champ — a build principal aparece ao lado.
-                  </p>
-                </div>
-                <ChampionRecommendations
-                  champions={analysis.topRecommendations}
-                  selectedId={selectedId}
-                  onSelect={setSelectedId}
-                  ddragonVersion={ddragonVersion}
-                  idToKey={idToKey}
-                />
-                {analysis.champions.length >
-                analysis.topRecommendations.length ? (
-                  <details className="pt-1">
-                    <summary className="cursor-pointer text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-                      Ver mais campeões ({analysis.champions.length})
-                    </summary>
-                    <div className="mt-3">
-                      <ChampionRecommendations
-                        champions={analysis.champions.slice(0, 12)}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        ddragonVersion={ddragonVersion}
-                        idToKey={idToKey}
-                      />
-                    </div>
-                  </details>
-                ) : null}
-              </Panel>
-            </div>
+              {analysis.champions.length >
+              analysis.topRecommendations.length ? (
+                <details className="pt-1">
+                  <summary className="cursor-pointer text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
+                    Ver mais campeões ({analysis.champions.length})
+                  </summary>
+                  <div className="mt-3">
+                    <ChampionRecommendations
+                      champions={analysis.champions.slice(0, 12)}
+                      selectedId={selectedId}
+                      onSelect={setSelectedId}
+                      ddragonVersion={ddragonVersion}
+                      idToKey={idToKey}
+                    />
+                  </div>
+                </details>
+              ) : null}
+              <Button href="/estatisticas" variant="ghost" size="sm">
+                Abrir página de estatísticas →
+              </Button>
+            </Panel>
 
             {selected ? (
               <ChampionDetailPanel
@@ -420,8 +428,7 @@ export function CoachDashboard({
               <Panel className="space-y-3 p-4">
                 <h2 className="type-title">Dados do campeão</h2>
                 <p className="text-sm text-[var(--muted)]">
-                  Selecione um campeão na lista ou no pool para ver WR, builds,
-                  matchups e partidas recentes.
+                  Selecione no ranking ou no pool acima.
                 </p>
               </Panel>
             )}
