@@ -240,15 +240,18 @@ export function ChampionDetailPanel({
             </p>
           )}
 
-          {onOpenModal ? (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setTab("compare")}
-              >
-                Comparar builds
-              </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button href="/estatisticas" variant="secondary" size="sm">
+              Ver estatísticas
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTab("compare")}
+            >
+              Comparar builds
+            </Button>
+            {onOpenModal ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -256,16 +259,8 @@ export function ChampionDetailPanel({
               >
                 Mais builds
               </Button>
-            </div>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setTab("compare")}
-            >
-              Comparar builds
-            </Button>
-          )}
+            ) : null}
+          </div>
         </div>
       ) : null}
 

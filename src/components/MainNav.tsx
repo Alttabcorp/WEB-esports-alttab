@@ -47,6 +47,7 @@ export function MainNav({ prepHref }: Props) {
   const pathname = usePathname();
   const onCoach = pathname === "/coach";
   const onConfig = pathname === "/config" || pathname.startsWith("/referencias");
+  const onStats = pathname.startsWith("/estatisticas");
   const prepActive = pathname.startsWith("/summoner/");
   const homeActive = pathname === "/";
 
@@ -70,6 +71,9 @@ export function MainNav({ prepHref }: Props) {
       </NavItem>
       <NavItem href={prepHref} active={prepActive}>
         Preparar
+      </NavItem>
+      <NavItem href="/estatisticas" active={onStats}>
+        Estatísticas
       </NavItem>
       <NavItem href="/coach" active={onCoach} emphasize={!onCoach}>
         Coach

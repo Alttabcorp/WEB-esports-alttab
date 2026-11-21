@@ -170,6 +170,9 @@ export function ProfileHub({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
+          <Button href="/estatisticas" variant="ghost" size="sm">
+            Estatísticas
+          </Button>
           <Button href={syncHref} variant="ghost" size="sm">
             Sincronizar
           </Button>
