@@ -79,6 +79,16 @@ export function MatchDetailBody({
           label="Fila"
           value={QUEUE_LABEL[m.queueId] ?? `Q${m.queueId}`}
         />
+        <DetailStat
+          label="ΔPDL"
+          value={
+            m.lpDelta == null
+              ? "—"
+              : `${m.lpDelta > 0 ? "+" : ""}${Math.round(m.lpDelta)}${
+                  m.lpDeltaSource === "estimate" ? " (est.)" : ""
+                }`
+          }
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -247,6 +257,33 @@ export function MatchHistoryPanel({
                         {m.cs} CS
                       </span>
                     </p>
+
+                    {m.lpDelta != null ? (
+                      <p
+                        className={`min-w-[3.25rem] text-right text-sm font-semibold tabular-nums ${
+                          m.lpDelta > 0
+                            ? "text-[var(--success)]"
+                            : m.lpDelta < 0
+                              ? "text-[var(--danger)]"
+                              : "text-[var(--muted)]"
+                        }`}
+                        title={
+                          m.lpDeltaSource === "snapshot"
+                            ? "ΔPDL medido entre snapshots de elo"
+                            : "ΔPDL estimado (média win/loss)"
+                        }
+                      >
+                        {m.lpDelta > 0 ? "+" : ""}
+                        {Math.round(m.lpDelta)}
+                        <span className="ml-0.5 text-[9px] font-normal text-[var(--muted)]">
+                          {m.lpDeltaSource === "snapshot" ? "PDL" : "~PDL"}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="min-w-[3.25rem] text-right text-xs text-[var(--muted)]">
+                        —
+                      </p>
+                    )}
 
                     {enemyKey ? (
                       <div className="flex items-center gap-1.5 text-xs text-[var(--muted)]">

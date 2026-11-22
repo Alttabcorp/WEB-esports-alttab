@@ -124,6 +124,9 @@ export type MatchHistoryRow = {
   summoner2Id: number | null;
   killParticipation: number | null;
   teamKills: number | null;
+  /** ΔPDL atribuído (snapshot ou estimativa). */
+  lpDelta: number | null;
+  lpDeltaSource: "snapshot" | "estimate" | null;
 };
 
 /** Histórico recente a partir do Postgres (sem Riot). */
@@ -147,11 +150,14 @@ export async function listMatchHistory(
     take: count,
   });
 
-  const out: MatchHistoryRow[] = [];
+  const matchDtos: MatchDto[] = [];
+  const built: Omit<MatchHistoryRow, "lpDelta" | "lpDeltaSource">[] = [];
+
   for (const row of rows) {
     const dto = row.match.payload as unknown as MatchDto;
     const me = dto.info.participants.find((p) => p.puuid === puuid);
     if (!me) continue;
+    matchDtos.push(dto);
     const enemyId = row.enemyChampionId;
     const enemy =
       enemyId != null
@@ -165,7 +171,7 @@ export async function listMatchHistory(
       teamKills > 0
         ? Math.round(((me.kills + me.assists) / teamKills) * 100)
         : null;
-    out.push({
+    built.push({
       matchId: row.match.matchId,
       gameCreation: Number(row.match.gameCreation),
       gameDuration: row.match.gameDuration,
@@ -194,7 +200,30 @@ export async function listMatchHistory(
       teamKills,
     });
   }
-  return out;
+
+  const { estimateMatchLpDeltas } = await import("@/lib/stats/matchLpDelta");
+  const snapshots = await listRankSnapshots(playerId, {
+    sinceMs: 45 * 24 * 60 * 60_000,
+    limit: 400,
+  });
+  const deltaMap = estimateMatchLpDeltas({
+    matches: matchDtos,
+    puuid,
+    snapshots: snapshots.map((s) => ({
+      queueType: s.queueType,
+      ladderScore: s.ladderScore,
+      createdAt: s.createdAt,
+    })),
+  });
+
+  return built.map((row) => {
+    const d = deltaMap.get(row.matchId);
+    return {
+      ...row,
+      lpDelta: d?.lpDelta ?? null,
+      lpDeltaSource: d?.source ?? null,
+    };
+  });
 }
 
 export async function upsertPlayer(input: {
@@ -823,6 +852,8 @@ export type AppProfileView = {
   matchCount: number;
   dailyLpTarget: number;
   dailyLpStop: number;
+  dailyLpTargetFlex: number | null;
+  dailyLpStopFlex: number | null;
   storedMatchCount: number;
   lastSyncedAt: string | null;
 };
@@ -833,6 +864,8 @@ async function toAppProfileView(row: {
   matchCount: number;
   dailyLpTarget?: number;
   dailyLpStop?: number;
+  dailyLpTargetFlex?: number | null;
+  dailyLpStopFlex?: number | null;
   player: {
     id: string;
     puuid: string;
@@ -859,6 +892,8 @@ async function toAppProfileView(row: {
     matchCount: row.matchCount,
     dailyLpTarget: row.dailyLpTarget ?? 30,
     dailyLpStop: row.dailyLpStop ?? -40,
+    dailyLpTargetFlex: row.dailyLpTargetFlex ?? null,
+    dailyLpStopFlex: row.dailyLpStopFlex ?? null,
     storedMatchCount,
     lastSyncedAt: lastSyncedAt?.toISOString() ?? null,
   };
@@ -896,6 +931,9 @@ export async function upsertAppProfile(input: {
   matchCount?: number;
   dailyLpTarget?: number;
   dailyLpStop?: number;
+  /** null limpa e herda Solo; undefined não altera. */
+  dailyLpTargetFlex?: number | null;
+  dailyLpStopFlex?: number | null;
 }): Promise<AppProfileView> {
   const row = await db.appProfile.upsert({
     where: { id: "default" },
@@ -907,6 +945,8 @@ export async function upsertAppProfile(input: {
       matchCount: input.matchCount ?? 50,
       dailyLpTarget: input.dailyLpTarget ?? 30,
       dailyLpStop: input.dailyLpStop ?? -40,
+      dailyLpTargetFlex: input.dailyLpTargetFlex ?? null,
+      dailyLpStopFlex: input.dailyLpStopFlex ?? null,
     },
     update: {
       playerId: input.playerId,
@@ -919,6 +959,12 @@ export async function upsertAppProfile(input: {
         ? { dailyLpTarget: input.dailyLpTarget }
         : {}),
       ...(input.dailyLpStop != null ? { dailyLpStop: input.dailyLpStop } : {}),
+      ...(input.dailyLpTargetFlex !== undefined
+        ? { dailyLpTargetFlex: input.dailyLpTargetFlex }
+        : {}),
+      ...(input.dailyLpStopFlex !== undefined
+        ? { dailyLpStopFlex: input.dailyLpStopFlex }
+        : {}),
     },
     include: {
       player: {

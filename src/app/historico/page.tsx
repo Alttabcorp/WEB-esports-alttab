@@ -26,7 +26,8 @@ export default async function HistoricoPage() {
           Histórico
         </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Partidas recentes com detalhes expansíveis.
+          Partidas recentes com ΔPDL por partida (snapshot ou estimativa) na
+          fila acompanhada.
         </p>
       </div>
 
