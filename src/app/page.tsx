@@ -18,7 +18,10 @@ import { getChampionIdToKey, getDdragonVersion } from "@/lib/ddragon";
 import type { PlatformRegion } from "@/lib/riot/regions";
 import type { QueueFilter } from "@/lib/riot/types";
 import { buildContextualPool } from "@/lib/stats/contextualPool";
-import { computeDayGoalProgress } from "@/lib/stats/dayGoal";
+import {
+  computeDayGoalProgress,
+  resolveGoalForQueue,
+} from "@/lib/stats/dayGoal";
 import { buildMatchLpLedger } from "@/lib/stats/matchLpLedger";
 import {
   buildPracticeCandidates,
@@ -89,9 +92,10 @@ export default async function HomePage() {
     bestWindow = temporal.bestPlayWindow?.label ?? null;
     recentFormWr = temporal.recentForm?.wr ?? null;
 
+    const resolvedGoal = resolveGoalForQueue(profile, profile.queue);
     goal = computeDayGoalProgress({
-      target: profile.dailyLpTarget,
-      stopLoss: profile.dailyLpStop,
+      target: resolvedGoal.target,
+      stopLoss: resolvedGoal.stopLoss,
       delta: dayLp?.lpDelta ?? null,
       perHour: dayLp?.lpPerHour ?? null,
       avgLpPerWin: ledger.avgLpPerWin,
@@ -147,6 +151,7 @@ export default async function HomePage() {
       lossStreak,
       winStreak,
       topPick: pool[0] ?? null,
+      queueLabel: dayLpQueueLabel,
     });
 
     const prepHref = "/preparar";

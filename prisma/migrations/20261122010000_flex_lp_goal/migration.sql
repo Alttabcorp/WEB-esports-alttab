@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "AppProfile" ADD COLUMN IF NOT EXISTS "dailyLpTargetFlex" INTEGER;
+ALTER TABLE "AppProfile" ADD COLUMN IF NOT EXISTS "dailyLpStopFlex" INTEGER;

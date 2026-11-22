@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { computeDayGoalProgress, dayGoalVerb } from "./dayGoal";
+import {
+  computeDayGoalProgress,
+  dayGoalVerb,
+  resolveGoalForQueue,
+} from "./dayGoal";
 
 describe("dayGoal", () => {
   it("estima wins restantes para a meta", () => {
@@ -21,5 +25,30 @@ describe("dayGoal", () => {
     });
     expect(g.goalHit).toBe(true);
     expect(g.status).toBe("goalHit");
+  });
+
+  it("resolveGoalForQueue: Flex herda Solo quando Flex é null", () => {
+    const g = resolveGoalForQueue(
+      { dailyLpTarget: 30, dailyLpStop: -40, dailyLpTargetFlex: null },
+      "flex",
+    );
+    expect(g.target).toBe(30);
+    expect(g.stopLoss).toBe(-40);
+    expect(g.inheritedFromSolo).toBe(true);
+  });
+
+  it("resolveGoalForQueue: Flex usa meta própria", () => {
+    const g = resolveGoalForQueue(
+      {
+        dailyLpTarget: 30,
+        dailyLpStop: -40,
+        dailyLpTargetFlex: 20,
+        dailyLpStopFlex: -25,
+      },
+      "flex",
+    );
+    expect(g.target).toBe(20);
+    expect(g.stopLoss).toBe(-25);
+    expect(g.inheritedFromSolo).toBe(false);
   });
 });

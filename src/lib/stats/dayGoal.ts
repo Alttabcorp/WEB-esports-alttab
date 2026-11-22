@@ -2,10 +2,51 @@ import {
   DEFAULT_DAY_LP_GOAL,
   DEFAULT_DAY_LP_STOP,
 } from "@/lib/stats/lpLedger";
+import type { QueueFilter } from "@/lib/riot/types";
 
 /** LP médio típico de uma vitória Solo/Duo (estimativa sem ledger fino). */
 export const DEFAULT_AVG_LP_PER_WIN = 18;
 export const DEFAULT_AVG_LP_PER_LOSS = 16;
+
+export type GoalProfileFields = {
+  dailyLpTarget: number;
+  dailyLpStop: number;
+  dailyLpTargetFlex?: number | null;
+  dailyLpStopFlex?: number | null;
+};
+
+/**
+ * Meta/stop da fila ativa. Flex usa campos Flex se preenchidos; senão herda Solo.
+ */
+export function resolveGoalForQueue(
+  profile: GoalProfileFields,
+  queue: QueueFilter | string | null | undefined,
+): { target: number; stopLoss: number; inheritedFromSolo: boolean } {
+  const soloTarget = clampLpTarget(profile.dailyLpTarget);
+  const soloStop = clampLpStop(profile.dailyLpStop);
+  const isFlex = queue === "flex";
+  if (!isFlex) {
+    return {
+      target: soloTarget,
+      stopLoss: soloStop,
+      inheritedFromSolo: false,
+    };
+  }
+  const hasFlexTarget =
+    profile.dailyLpTargetFlex != null &&
+    Number.isFinite(profile.dailyLpTargetFlex);
+  const hasFlexStop =
+    profile.dailyLpStopFlex != null && Number.isFinite(profile.dailyLpStopFlex);
+  return {
+    target: hasFlexTarget
+      ? clampLpTarget(profile.dailyLpTargetFlex)
+      : soloTarget,
+    stopLoss: hasFlexStop
+      ? clampLpStop(profile.dailyLpStopFlex)
+      : soloStop,
+    inheritedFromSolo: !hasFlexTarget || !hasFlexStop,
+  };
+}
 
 export type DayGoalProgress = {
   target: number;

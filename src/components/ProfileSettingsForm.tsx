@@ -36,6 +36,14 @@ export function ProfileSettingsForm({ initial = null }: Props) {
     initial?.dailyLpTarget ?? 30,
   );
   const [dailyLpStop, setDailyLpStop] = useState(initial?.dailyLpStop ?? -40);
+  const [dailyLpTargetFlex, setDailyLpTargetFlex] = useState<string>(
+    initial?.dailyLpTargetFlex != null
+      ? String(initial.dailyLpTargetFlex)
+      : "",
+  );
+  const [dailyLpStopFlex, setDailyLpStopFlex] = useState<string>(
+    initial?.dailyLpStopFlex != null ? String(initial.dailyLpStopFlex) : "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -66,6 +74,12 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             preferredRole,
             dailyLpTarget,
             dailyLpStop,
+            dailyLpTargetFlex:
+              dailyLpTargetFlex.trim() === ""
+                ? null
+                : Number(dailyLpTargetFlex),
+            dailyLpStopFlex:
+              dailyLpStopFlex.trim() === "" ? null : Number(dailyLpStopFlex),
             analyze: sync,
           }),
         });
@@ -213,7 +227,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             htmlFor="cfg-lp-target"
             className="mb-1.5 block text-sm text-[var(--muted-strong)]"
           >
-            Meta PDL / dia
+            Meta Solo / dia
           </label>
           <input
             id="cfg-lp-target"
@@ -231,7 +245,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             htmlFor="cfg-lp-stop"
             className="mb-1.5 block text-sm text-[var(--muted-strong)]"
           >
-            Stop-loss PDL
+            Stop Solo
           </label>
           <input
             id="cfg-lp-stop"
@@ -240,6 +254,46 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             max={-5}
             value={dailyLpStop}
             onChange={(e) => setDailyLpStop(Number(e.target.value))}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="cfg-lp-target-flex"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
+            Meta Flex / dia{" "}
+            <span className="text-[var(--muted)]">(opcional)</span>
+          </label>
+          <input
+            id="cfg-lp-target-flex"
+            type="number"
+            min={5}
+            max={100}
+            placeholder="Herda Solo"
+            value={dailyLpTargetFlex}
+            onChange={(e) => setDailyLpTargetFlex(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="cfg-lp-stop-flex"
+            className="mb-1.5 block text-sm text-[var(--muted-strong)]"
+          >
+            Stop Flex{" "}
+            <span className="text-[var(--muted)]">(opcional)</span>
+          </label>
+          <input
+            id="cfg-lp-stop-flex"
+            type="number"
+            min={-100}
+            max={-5}
+            placeholder="Herda Solo"
+            value={dailyLpStopFlex}
+            onChange={(e) => setDailyLpStopFlex(e.target.value)}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           />
         </div>

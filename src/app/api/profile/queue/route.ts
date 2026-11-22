@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
       matchCount: profile.matchCount,
       dailyLpTarget: profile.dailyLpTarget,
       dailyLpStop: profile.dailyLpStop,
+      dailyLpTargetFlex: profile.dailyLpTargetFlex,
+      dailyLpStopFlex: profile.dailyLpStopFlex,
     });
 
     return NextResponse.json({ profile: updated, queue });

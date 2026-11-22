@@ -186,7 +186,11 @@ export function ProfileHub({
 
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
           <p className="text-xs text-[var(--muted)]">
-            Meta +{profile.dailyLpTarget} · stop {profile.dailyLpStop}
+            Meta Solo +{profile.dailyLpTarget}
+            {profile.dailyLpTargetFlex != null
+              ? ` · Flex +${profile.dailyLpTargetFlex}`
+              : ""}{" "}
+            · stop {profile.dailyLpStop}
           </p>
           <ClearProfileButton />
         </div>

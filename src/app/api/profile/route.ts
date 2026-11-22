@@ -50,6 +50,8 @@ export async function PUT(request: NextRequest) {
       matchCount?: number;
       dailyLpTarget?: number;
       dailyLpStop?: number;
+      dailyLpTargetFlex?: number | null;
+      dailyLpStopFlex?: number | null;
       /** If true, refresh analysis while saving. */
       analyze?: boolean;
     };
@@ -60,6 +62,12 @@ export async function PUT(request: NextRequest) {
     const preferredRole = (body.preferredRole ?? "MIDDLE").toUpperCase();
     const dailyLpTarget = clampLpTarget(body.dailyLpTarget);
     const dailyLpStop = clampLpStop(body.dailyLpStop);
+    const dailyLpTargetFlex =
+      body.dailyLpTargetFlex == null
+        ? null
+        : clampLpTarget(body.dailyLpTargetFlex);
+    const dailyLpStopFlex =
+      body.dailyLpStopFlex == null ? null : clampLpStop(body.dailyLpStopFlex);
 
     if (!isPlatformRegion(region)) {
       return NextResponse.json({ error: "Região inválida" }, { status: 400 });
@@ -145,6 +153,8 @@ export async function PUT(request: NextRequest) {
       matchCount,
       dailyLpTarget,
       dailyLpStop,
+      dailyLpTargetFlex,
+      dailyLpStopFlex,
     });
 
     return NextResponse.json({ profile });

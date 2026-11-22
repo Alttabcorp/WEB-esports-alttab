@@ -57,10 +57,14 @@ model AppProfile {
   preferredRole String   @default("MIDDLE")
   queue         String   @default("ranked")
   matchCount    Int      @default(50)
-  /** Meta de PDL líquido do dia (ladder). */
+  /** Meta de PDL líquido do dia (Solo/Duo). */
   dailyLpTarget Int      @default(30)
-  /** Stop-loss diário (ladder). */
+  /** Stop-loss diário (Solo/Duo). */
   dailyLpStop   Int      @default(-40)
+  /** Meta Flex opcional; null herda Solo. */
+  dailyLpTargetFlex Int?
+  /** Stop-loss Flex opcional; null herda Solo. */
+  dailyLpStopFlex   Int?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

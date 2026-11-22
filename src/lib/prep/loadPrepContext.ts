@@ -25,6 +25,7 @@ import type { QueueFilter } from "@/lib/riot/types";
 import { buildContextualPool, type PoolPick } from "@/lib/stats/contextualPool";
 import {
   computeDayGoalProgress,
+  resolveGoalForQueue,
   type DayGoalProgress,
 } from "@/lib/stats/dayGoal";
 import {
@@ -273,9 +274,10 @@ export async function loadPrepContext(
     avgLpPerLoss: lpInsights.avgLpPerLoss,
   });
 
+  const resolvedGoal = resolveGoalForQueue(appProfile, queue);
   const dayGoal = computeDayGoalProgress({
-    target: appProfile.dailyLpTarget,
-    stopLoss: appProfile.dailyLpStop,
+    target: resolvedGoal.target,
+    stopLoss: resolvedGoal.stopLoss,
     delta: dayLp?.lpDelta ?? null,
     perHour: dayLp?.lpPerHour ?? null,
     avgLpPerWin: lpInsights.avgLpPerWin,
@@ -307,6 +309,7 @@ export async function loadPrepContext(
       lossStreak += 1;
     }
   }
+  const { QUEUE_LABEL: QUEUE_LABEL_MAP } = await import("@/lib/stats/lpLedger");
   const sessionEv = computeSessionEv({
     temporal: analysis.temporal,
     goal: dayGoal,
@@ -314,6 +317,13 @@ export async function loadPrepContext(
     lossStreak,
     winStreak,
     topPick: todayPool[0] ?? null,
+    queueLabel: dayLp
+      ? QUEUE_LABEL_MAP[dayLp.queueType] ?? dayLp.queueType
+      : queue === "solo"
+        ? "Solo/Duo"
+        : queue === "flex"
+          ? "Flex"
+          : "Ranked",
   });
 
   const practiceCandidates = buildPracticeCandidates({
