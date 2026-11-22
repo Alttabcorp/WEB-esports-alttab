@@ -127,13 +127,22 @@ export function PrepDecisionView({
                 ? "go"
                 : "warn",
           verb: sessionEv.verb,
-          detail: sessionEv.reasons[0]
-            ? `${sessionEv.detail} · ${sessionEv.reasons[0]}`
-            : sessionEv.detail,
+          detail: [
+            sessionEv.detail,
+            ...sessionEv.reasons.slice(0, 3),
+          ]
+            .filter(Boolean)
+            .join(" · "),
           actions: [
             { label: "Abrir Coach", href: "/coach", kind: "primary" },
             { label: "Ver horários", href: "/timing", kind: "secondary" },
           ],
+          secondary: sessionEv.reasons.slice(3).map((r, i) => ({
+            id: `ev-reason-${i}`,
+            severity: "info" as const,
+            title: "Motivo",
+            detail: r,
+          })),
         }
       : null;
   const playDecision = playDecisionRaw

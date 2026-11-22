@@ -80,17 +80,19 @@ export function SessionAdviceAlert({ advice, onDismiss, onRefresh }: Props) {
           </span>
         ) : null}
       </div>
-      {advice.reasons.length > 1 ? (
-        <details className="px-1">
-          <summary className="cursor-pointer text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            Mais motivos ({advice.reasons.length})
-          </summary>
-          <ul className="mt-2 space-y-1 text-sm text-[var(--muted-strong)]">
+      {advice.reasons.length > 0 ? (
+        <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+          <p className="data-label mb-1.5">
+            {advice.decision === "stop"
+              ? "Por que esta decisão"
+              : "Motivos"}
+          </p>
+          <ul className="space-y-1 text-sm text-[var(--muted-strong)]">
             {advice.reasons.map((r) => (
               <li key={r}>• {r}</li>
             ))}
           </ul>
-        </details>
+        </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
         {onRefresh ? (

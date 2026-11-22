@@ -29,6 +29,7 @@ import {
 import {
   computeDayGoalProgress,
   dayGoalVerb,
+  resolveGoalForQueue,
 } from "@/lib/stats/dayGoal";
 import {
   computeSessionEv,
@@ -215,10 +216,14 @@ async function refreshRankSnapshot(
       where: { id: playerId },
       data: { rankedJson: ranked as unknown as Prisma.InputJsonValue },
     });
-    return getDayLpByQueue(playerId, puuid);
+    const profile = await getAppProfile();
+    const prefer = (profile?.queue as "solo" | "flex" | "ranked") ?? "ranked";
+    return getDayLpByQueue(playerId, puuid, { prefer });
   } catch {
     try {
-      return getDayLpByQueue(playerId, puuid);
+      const profile = await getAppProfile();
+      const prefer = (profile?.queue as "solo" | "flex" | "ranked") ?? "ranked";
+      return getDayLpByQueue(playerId, puuid, { prefer });
     } catch {
       return null;
     }
@@ -329,9 +334,12 @@ export async function buildSessionAdvice(
   );
 
   const appProfile = appProfileEarly;
+  const resolvedGoal = appProfile
+    ? resolveGoalForQueue(appProfile, preferQueue)
+    : null;
   const goalProgress = computeDayGoalProgress({
-    target: appProfile?.dailyLpTarget,
-    stopLoss: appProfile?.dailyLpStop,
+    target: resolvedGoal?.target,
+    stopLoss: resolvedGoal?.stopLoss,
     delta: lpSummary?.lpDelta ?? null,
     perHour: lpSummary?.lpPerHour ?? null,
   });
@@ -483,12 +491,21 @@ export async function buildSessionAdvice(
     );
   }
 
+  // Motivo-resumo sempre no topo: fila + W/L + PDL
+  reasons.unshift(
+    `${queueLabel}: ${todayWins}W ${todayGames.length - todayWins}L` +
+      (lpDelta != null
+        ? ` · PDL ${lpDelta >= 0 ? "+" : ""}${lpDelta}`
+        : " · PDL —"),
+  );
+
   const sessionEv = computeSessionEv({
     temporal,
     goal: goalProgress,
     nextSessionIndex: nextGameNumber,
     lossStreak: afterLosses,
     winStreak: afterWins,
+    queueLabel,
   });
   // Blend sessionEv into decision score
   score += Math.round(sessionEv.score / 2);

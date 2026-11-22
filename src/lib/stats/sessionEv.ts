@@ -14,6 +14,8 @@ export type SessionEvInput = {
   winStreak: number;
   topPick?: PoolPick | null;
   now?: number;
+  /** Label da fila ativa (Solo/Duo, Flex) para reasons. */
+  queueLabel?: string | null;
 };
 
 export type SessionEvResult = {
@@ -49,18 +51,20 @@ export function computeSessionEv(input: SessionEvInput): SessionEvResult {
   let score = 0;
   const temporal = input.temporal;
 
+  const q = input.queueLabel?.trim() || "Ranked";
+
   if (input.goal.stopHit) {
     score -= 5;
-    reasons.push(`Stop-loss (${input.goal.delta} PDL).`);
+    reasons.push(`Stop-loss ${q} (${input.goal.delta} PDL).`);
   } else if (input.goal.goalHit) {
     score -= 3;
-    reasons.push(`Meta +${input.goal.target} batida — proteja o lucro.`);
+    reasons.push(`Meta ${q} +${input.goal.target} batida — proteja o lucro.`);
   } else if (input.goal.delta != null && input.goal.delta < 0) {
     score -= 1;
-    reasons.push(`PDL do dia ${input.goal.delta}.`);
+    reasons.push(`PDL ${q} do dia ${input.goal.delta}.`);
   } else if (input.goal.status === "ahead") {
     score += 1;
-    reasons.push("No ritmo da meta de PDL.");
+    reasons.push(`No ritmo da meta de PDL (${q}).`);
   }
 
   if (temporal?.bestPlayWindow) {
