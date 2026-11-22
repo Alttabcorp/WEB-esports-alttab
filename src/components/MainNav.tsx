@@ -59,12 +59,14 @@ export function MainNav({ hasProfile }: Props) {
   const onBuilds = pathname.startsWith("/builds");
   const onRanking = pathname === "/ranking";
   const onTiming = pathname === "/timing";
+  const onRodada = pathname === "/rodada" || pathname.startsWith("/rodada/");
   const onHistorico = pathname === "/historico" || pathname.startsWith("/historico/");
   const prepActive =
     !onRanking &&
     !onTiming &&
     !onBuilds &&
     !onHistorico &&
+    !onRodada &&
     PREP_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const homeActive = pathname === "/";
 
@@ -85,6 +87,9 @@ export function MainNav({ hasProfile }: Props) {
     >
       <NavItem href="/" active={homeActive}>
         Hub
+      </NavItem>
+      <NavItem href="/rodada" active={onRodada}>
+        Rodada
       </NavItem>
       <NavItem href="/preparar" active={prepActive}>
         Preparar

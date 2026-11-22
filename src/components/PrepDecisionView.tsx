@@ -14,12 +14,9 @@ import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
 import type { RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
 import { SummonerHeader } from "./SummonerHeader";
-import { TodayPoolPanel } from "./TodayPoolPanel";
 import { DayGoalCard } from "./DayGoalCard";
-import { DayLpCard } from "./DayLpCard";
 import { DecisionCard } from "./DecisionCard";
 import { PerformanceAlerts } from "./PerformanceAlerts";
-import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { PrepSubnav } from "./PrepSubnav";
 import { Button, Panel, Stat } from "@/components/ui";
 
@@ -58,14 +55,8 @@ export function PrepDecisionView({
   ranked,
   analysis,
   ddragonVersion,
-  idToKey,
-  runeCatalog,
   dayLp = null,
-  dayLpSolo = null,
-  dayLpFlex = null,
-  trackQueue = null,
   todayPool = [],
-  preferredRole = null,
   dayGoal = null,
   sessionEv = null,
   practiceCandidates = [],
@@ -74,9 +65,6 @@ export function PrepDecisionView({
   source,
   cached = false,
 }: Props) {
-  const [poolFeaturedId, setPoolFeaturedId] = useState<number | null>(
-    todayPool[0]?.championId ?? null,
-  );
   const [liveDetected, setLiveDetected] = useState(false);
 
   useEffect(() => {
@@ -114,7 +102,6 @@ export function PrepDecisionView({
   const topPick = todayPool[0] ?? null;
   const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
   const syncHref = `/preparar?refresh=1&queue=${queue}&count=${count}`;
-  const featuredHref = "/ranking";
 
   const playDecisionRaw: DecisionModel | null =
     !hasAlerts && sessionEv
@@ -186,30 +173,36 @@ export function PrepDecisionView({
           hint={bestWindow ? "ver Quando" : "precisa de mais dados"}
         />
         <Stat
-          label="Fila ativa"
+          label="PDL hoje"
           value={
-            dayLpSolo && dayLpFlex
-              ? (dayLpFlex.gamesToday > dayLpSolo.gamesToday
-                  ? "Flex"
-                  : dayLpSolo.gamesToday > 0
-                    ? "Solo"
-                    : dayLpFlex.gamesToday > 0
-                      ? "Flex"
-                      : "—")
-              : "—"
+            dayLp?.lpDelta == null
+              ? "—"
+              : dayLp.lpDelta > 0
+                ? `+${dayLp.lpDelta}`
+                : String(dayLp.lpDelta)
           }
-          hint="PDL separado abaixo"
+          hint="detalhe na Rodada"
         />
       </div>
 
-      <DayLpCard
-        solo={dayLpSolo}
-        flex={dayLpFlex}
-        summary={dayLp}
-        trackQueue={trackQueue ?? queue}
-      />
+      <PrepSubnav alertCount={alertCount} />
 
-      {dayGoal ? <DayGoalCard goal={dayGoal} sessionEv={sessionEv} /> : null}
+      <Panel
+        strong
+        className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="data-label">Rodada de decisão</p>
+          <p className="text-sm text-[var(--muted-strong)]">
+            Placar Solo/Flex, comentários, pick ranked e normais ficam na
+            Rodada.
+            {topPick ? ` Pick sugerido: ${topPick.championName}.` : ""}
+          </p>
+        </div>
+        <Button href="/rodada" size="sm">
+          Abrir rodada
+        </Button>
+      </Panel>
 
       {hasAlerts && analysis.temporal?.alerts?.length ? (
         <PerformanceAlerts
@@ -222,10 +215,9 @@ export function PrepDecisionView({
         <DecisionCard decision={playDecision} />
       ) : null}
 
-      <PrepSubnav alertCount={alertCount} />
+      {dayGoal ? <DayGoalCard goal={dayGoal} sessionEv={sessionEv} /> : null}
 
       <Panel
-        strong
         className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
       >
         <div className="min-w-0 flex-1">
@@ -233,9 +225,7 @@ export function PrepDecisionView({
           <p className="text-sm text-[var(--muted-strong)]">
             {liveDetected
               ? "Bridge detectou atividade — abra o Coach no 2º monitor."
-              : topPick
-                ? `Estude ${topPick.championName}, depois abra o Coach na fila.`
-                : "Escolha um pick no pool e abra o Coach na fila."}
+              : "Revise a Rodada e abra o Coach na fila."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -256,30 +246,6 @@ export function PrepDecisionView({
           Amostra pequena ({analysis.analyzedGames} partidas). Em Config,
           sincronize 200–500 para recomendações mais firmes.
         </Panel>
-      ) : null}
-
-      <TodayPoolPanel
-        picks={todayPool}
-        champions={analysis.champions}
-        ddragonVersion={ddragonVersion}
-        idToKey={idToKey}
-        runeCatalog={runeCatalog}
-        preferredRole={preferredRole}
-        featuredId={poolFeaturedId}
-        onFeature={setPoolFeaturedId}
-        champHref={featuredHref}
-        rankingHref="/ranking"
-        statsHref="/estatisticas"
-        coachHref="/coach"
-      />
-
-      {practiceCandidates.length > 0 ? (
-        <PracticeNormalsPanel
-          candidates={practiceCandidates}
-          ddragonVersion={ddragonVersion}
-          idToKey={idToKey}
-          compact
-        />
       ) : null}
 
       <p className="pt-1 text-center text-[11px] text-[var(--muted)]">

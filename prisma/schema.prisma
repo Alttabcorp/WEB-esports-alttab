@@ -65,6 +65,12 @@ model AppProfile {
   dailyLpTargetFlex Int?
   /** Stop-loss Flex opcional; null herda Solo. */
   dailyLpStopFlex   Int?
+  /** Comentário livre do dia (rodada de decisão). */
+  dailyNote     String?
+  /** Data local YYYY-MM-DD da dailyNote. */
+  dailyNoteDate String?
+  /** Comentário geral persistente. */
+  generalNote   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

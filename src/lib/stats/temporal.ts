@@ -13,6 +13,19 @@ export const PLAYER_TIMEZONE = "America/Sao_Paulo";
 /** Partidas na mesma sessão se o gap for menor que isto. */
 export const SESSION_GAP_MS = 3 * 60 * 60 * 1000;
 
+/** Data local YYYY-MM-DD no fuso do jogador (notas do dia, placar). */
+export function todayDateKey(
+  now = Date.now(),
+  timeZone = PLAYER_TIMEZONE,
+): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(now));
+}
+
 export type TemporalBucket = {
   key: string;
   label: string;

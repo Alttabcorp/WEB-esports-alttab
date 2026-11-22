@@ -987,6 +987,88 @@ export async function clearAppProfile(): Promise<void> {
   await db.appProfile.deleteMany({ where: { id: "default" } });
 }
 
+export type CoachNotesView = {
+  /** Texto efetivo do dia (vazio se a data gravada ≠ hoje). */
+  dailyNote: string;
+  dailyNoteDate: string | null;
+  /** true se a nota salva é de outro dia (UI começa limpa). */
+  dailyStale: boolean;
+  generalNote: string;
+  todayKey: string;
+};
+
+export async function getCoachNotes(): Promise<CoachNotesView | null> {
+  const { todayDateKey } = await import("@/lib/stats/temporal");
+  const todayKey = todayDateKey();
+  try {
+    const row = await db.appProfile.findUnique({
+      where: { id: "default" },
+      select: {
+        dailyNote: true,
+        dailyNoteDate: true,
+        generalNote: true,
+      },
+    });
+    if (!row) return null;
+    const dailyStale =
+      Boolean(row.dailyNoteDate) && row.dailyNoteDate !== todayKey;
+    return {
+      dailyNote: dailyStale ? "" : (row.dailyNote ?? ""),
+      dailyNoteDate: row.dailyNoteDate ?? null,
+      dailyStale,
+      generalNote: row.generalNote ?? "",
+      todayKey,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function upsertCoachNotes(input: {
+  dailyNote?: string;
+  generalNote?: string;
+}): Promise<CoachNotesView> {
+  const { todayDateKey } = await import("@/lib/stats/temporal");
+  const todayKey = todayDateKey();
+  const profile = await getAppProfile();
+  if (!profile) {
+    throw new Error("Configure o perfil antes de salvar notas");
+  }
+
+  const data: {
+    dailyNote?: string | null;
+    dailyNoteDate?: string | null;
+    generalNote?: string | null;
+  } = {};
+
+  if (input.dailyNote !== undefined) {
+    const trimmed = input.dailyNote.trim();
+    data.dailyNote = trimmed.length ? trimmed : null;
+    data.dailyNoteDate = trimmed.length ? todayKey : null;
+  }
+  if (input.generalNote !== undefined) {
+    const trimmed = input.generalNote.trim();
+    data.generalNote = trimmed.length ? trimmed : null;
+  }
+
+  await db.appProfile.update({
+    where: { id: "default" },
+    data,
+  });
+
+  const notes = await getCoachNotes();
+  if (!notes) {
+    return {
+      dailyNote: "",
+      dailyNoteDate: null,
+      dailyStale: false,
+      generalNote: "",
+      todayKey,
+    };
+  }
+  return notes;
+}
+
 export type ReferencePlayerView = {
   id: string;
   playerId: string;

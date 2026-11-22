@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
  * (A nav principal já tem Preparar / Quando / Ranking.)
  */
 const LINKS = [
+  { href: "/rodada", label: "Rodada" },
   { href: "/preparar", label: "Preparar" },
   { href: "/ranking", label: "Ranking" },
   { href: "/historico", label: "Histórico" },

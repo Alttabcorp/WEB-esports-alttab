@@ -207,7 +207,7 @@ export default async function HomePage() {
         </h1>
         <p className="mt-3 type-body">
           {profile
-            ? "Meta de PDL, fila do momento e pick — depois Coach no 2º monitor."
+            ? "Abra a Rodada de decisão: placar Solo/Flex, pick e normais — depois Coach no 2º monitor."
             : "Configure seu perfil uma vez. As partidas ficam neste servidor — histórico sem rebuscar a Riot a cada visita."}
         </p>
       </div>

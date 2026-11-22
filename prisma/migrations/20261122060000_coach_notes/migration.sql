@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "AppProfile" ADD COLUMN IF NOT EXISTS "dailyNote" TEXT;
+ALTER TABLE "AppProfile" ADD COLUMN IF NOT EXISTS "dailyNoteDate" TEXT;
+ALTER TABLE "AppProfile" ADD COLUMN IF NOT EXISTS "generalNote" TEXT;

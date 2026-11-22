@@ -12,7 +12,6 @@ import { ClearProfileButton } from "./ClearProfileButton";
 import { BridgeStatusChip } from "./BridgeStatusChip";
 import { DecisionCard } from "./DecisionCard";
 import { DayGoalCard } from "./DayGoalCard";
-import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { Button, Panel } from "@/components/ui";
 
 type Props = {
@@ -48,10 +47,10 @@ export function ProfileHub({
   sessionEv = null,
   practiceCandidates = [],
 }: Props) {
+  const rodadaHref = "/rodada";
   const prepHref = "/preparar";
   const timingHref = "/timing";
   const syncHref = `/preparar?refresh=1&queue=${profile.queue}&count=${profile.matchCount}`;
-  const champHref = "/ranking";
   const role = profile.preferredRole as RoleKey;
   const fmtLp = (v: number | null) =>
     v == null ? "—" : v > 0 ? `+${v}` : String(v);
@@ -78,7 +77,8 @@ export function ProfileHub({
             ? `${sessionEv.detail} · ${sessionEv.reasons[0]}`
             : sessionEv.detail,
           actions: [
-            { label: "Abrir Coach", href: "/coach", kind: "primary" },
+            { label: "Abrir Rodada", href: rodadaHref, kind: "primary" },
+            { label: "Abrir Coach", href: "/coach", kind: "secondary" },
             { label: "Ver horários", href: timingHref, kind: "ghost" },
           ],
         }
@@ -143,35 +143,30 @@ export function ProfileHub({
                 </span>
               </p>
             </div>
-            <Button href={champHref} variant="secondary" size="sm">
-              Ver no ranking
+            <Button href={rodadaHref} variant="secondary" size="sm">
+              Ver na Rodada
             </Button>
           </div>
         ) : null}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button href="/coach" size="lg" className="flex-1">
-            Abrir Coach
+          <Button href={rodadaHref} size="lg" className="flex-1">
+            Rodada de decisão
           </Button>
-          <Button
-            href={prepHref}
-            variant="secondary"
-            size="lg"
-            className="flex-1"
-          >
-            Preparar
+          <Button href="/coach" variant="secondary" size="lg" className="flex-1">
+            Abrir Coach
           </Button>
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
+          <Button href={prepHref} variant="ghost" size="sm">
+            Preparar
+          </Button>
           <Button href="/historico" variant="ghost" size="sm">
             Histórico
           </Button>
           <Button href="/ranking" variant="ghost" size="sm">
             Ranking
-          </Button>
-          <Button href="/estatisticas" variant="ghost" size="sm">
-            Estatísticas
           </Button>
           <Button href={timingHref} variant="ghost" size="sm">
             Quando
@@ -199,12 +194,18 @@ export function ProfileHub({
       {goal ? <DayGoalCard goal={goal} sessionEv={sessionEv} /> : null}
 
       {practiceCandidates.length > 0 ? (
-        <PracticeNormalsPanel
-          candidates={practiceCandidates}
-          ddragonVersion={ddragonVersion}
-          idToKey={idToKey}
-          compact
-        />
+        <Panel className="border-[var(--alttab)]/25 bg-[var(--alttab)]/5 px-3 py-2.5">
+          <p className="data-label">Normais para avaliar</p>
+          <p className="mt-1 text-sm text-[var(--foreground)]">
+            {practiceCandidates
+              .slice(0, 3)
+              .map((c) => c.championName)
+              .join(", ")}
+          </p>
+          <Button href={rodadaHref} variant="ghost" size="sm" className="mt-2">
+            Abrir na Rodada →
+          </Button>
+        </Panel>
       ) : null}
     </div>
   );
