@@ -206,7 +206,7 @@ export function toDecisionFromSessionAdvice(
   const detailParts = [
     advice.summary || advice.title,
     advice.lp.delta != null
-      ? `PDL ${advice.lp.delta >= 0 ? "+" : ""}${advice.lp.delta}/${advice.lp.goal}`
+      ? `PDL ${advice.lp.queueLabel ?? ""} ${advice.lp.delta >= 0 ? "+" : ""}${advice.lp.delta}/${advice.lp.goal}`.trim()
       : null,
     advice.nextPlan?.verb ?? null,
   ].filter(Boolean);

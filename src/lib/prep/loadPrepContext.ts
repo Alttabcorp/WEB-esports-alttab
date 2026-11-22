@@ -1,7 +1,7 @@
 import {
   findPlayerByPuuid,
   getAppProfile,
-  getDayLpSummaryForPlayer,
+  getDayLpByQueue,
   getStoredMatchesForPlayer,
   listMatchHistory,
   listRankSnapshots,
@@ -61,6 +61,8 @@ export type PrepContextOk = {
   runeCatalog: RuneCatalog;
   matchHistory: MatchHistoryRow[];
   dayLp: DayLpSummary | null;
+  dayLpSolo: DayLpSummary | null;
+  dayLpFlex: DayLpSummary | null;
   todayPool: PoolPick[];
   preferredRole: RoleKey;
   dayGoal: DayGoalProgress | null;
@@ -222,9 +224,12 @@ export async function loadPrepContext(
       })
     : [];
 
-  const dayLp = dbPlayer
-    ? await getDayLpSummaryForPlayer(dbPlayer.id, profile.puuid)
+  const dayLpByQueue = dbPlayer
+    ? await getDayLpByQueue(dbPlayer.id, profile.puuid)
     : null;
+  const dayLp = dayLpByQueue?.active ?? null;
+  const dayLpSolo = dayLpByQueue?.solo ?? null;
+  const dayLpFlex = dayLpByQueue?.flex ?? null;
 
   const storedForLp = dbPlayer
     ? await getStoredMatchesForPlayer(dbPlayer.id, {
@@ -324,6 +329,8 @@ export async function loadPrepContext(
     runeCatalog,
     matchHistory,
     dayLp,
+    dayLpSolo,
+    dayLpFlex,
     todayPool,
     preferredRole,
     dayGoal,

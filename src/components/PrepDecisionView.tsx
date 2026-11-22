@@ -35,6 +35,8 @@ type Props = {
   idToKey: Record<number, string>;
   runeCatalog: RuneCatalog;
   dayLp?: DayLpSummary | null;
+  dayLpSolo?: DayLpSummary | null;
+  dayLpFlex?: DayLpSummary | null;
   todayPool?: PoolPick[];
   preferredRole?: RoleKey | null;
   dayGoal?: DayGoalProgress | null;
@@ -58,6 +60,8 @@ export function PrepDecisionView({
   idToKey,
   runeCatalog,
   dayLp = null,
+  dayLpSolo = null,
+  dayLpFlex = null,
   todayPool = [],
   preferredRole = null,
   dayGoal = null,
@@ -166,27 +170,30 @@ export function PrepDecisionView({
           hint={`${analysis.analyzedGames} jogos`}
         />
         <Stat
-          label="PDL hoje"
-          value={
-            dayLp?.lpDelta == null
-              ? "—"
-              : dayLp.lpDelta > 0
-                ? `+${dayLp.lpDelta}`
-                : String(dayLp.lpDelta)
-          }
-        />
-        <Stat
           label="Melhor horário"
           value={bestWindow ?? "—"}
           hint={bestWindow ? "ver Quando" : "precisa de mais dados"}
         />
+        <Stat
+          label="Fila ativa"
+          value={
+            dayLpSolo && dayLpFlex
+              ? (dayLpFlex.gamesToday > dayLpSolo.gamesToday
+                  ? "Flex"
+                  : dayLpSolo.gamesToday > 0
+                    ? "Solo"
+                    : dayLpFlex.gamesToday > 0
+                      ? "Flex"
+                      : "—")
+              : "—"
+          }
+          hint="PDL separado abaixo"
+        />
       </div>
 
-      {dayGoal ? (
-        <DayGoalCard goal={dayGoal} sessionEv={sessionEv} />
-      ) : (
-        <DayLpCard summary={dayLp} />
-      )}
+      <DayLpCard solo={dayLpSolo} flex={dayLpFlex} summary={dayLp} />
+
+      {dayGoal ? <DayGoalCard goal={dayGoal} sessionEv={sessionEv} /> : null}
 
       {hasAlerts && analysis.temporal?.alerts?.length ? (
         <PerformanceAlerts

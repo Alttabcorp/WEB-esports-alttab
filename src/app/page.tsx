@@ -8,11 +8,12 @@ import {
 } from "@/lib/alerts/decision";
 import {
   getAppProfile,
-  getDayLpSummaryForPlayer,
+  getDayLpByQueue,
   getFreshAnalysisRun,
   getStoredMatchesForPlayer,
   listRankSnapshots,
 } from "@/lib/db/persist";
+import { QUEUE_LABEL } from "@/lib/stats/lpLedger";
 import { getChampionIdToKey, getDdragonVersion } from "@/lib/ddragon";
 import type { PlatformRegion } from "@/lib/riot/regions";
 import type { QueueFilter } from "@/lib/riot/types";
@@ -35,6 +36,9 @@ export default async function HomePage() {
   ]);
 
   let dayLpDelta: number | null = null;
+  let dayLpSoloDelta: number | null = null;
+  let dayLpFlexDelta: number | null = null;
+  let dayLpQueueLabel: string | null = null;
   let decision = null as ReturnType<typeof toDecisionFromAlerts>;
   let bestWindow: string | null = null;
   let recentFormWr: number | null = null;
@@ -46,17 +50,22 @@ export default async function HomePage() {
 
   if (profile) {
     const queue = profile.queue as QueueFilter;
-    const [matches, dayLp, analysis, champMap, snapshots] = await Promise.all([
+    const [matches, dayLpByQueue, analysis, champMap, snapshots] =
+      await Promise.all([
       getStoredMatchesForPlayer(profile.playerId, {
         count: Math.min(profile.matchCount, 120),
         queue,
       }),
-      getDayLpSummaryForPlayer(profile.playerId, profile.puuid),
+      getDayLpByQueue(profile.playerId, profile.puuid),
       getFreshAnalysisRun(profile.playerId, queue, profile.matchCount),
       getChampionIdToKey(ddragonVersion),
       listRankSnapshots(profile.playerId, { sinceMs: 14 * 24 * 60 * 60_000 }),
     ]);
+    const dayLp = dayLpByQueue.active;
     dayLpDelta = dayLp?.lpDelta ?? null;
+    dayLpSoloDelta = dayLpByQueue.solo.lpDelta ?? null;
+    dayLpFlexDelta = dayLpByQueue.flex.lpDelta ?? null;
+    dayLpQueueLabel = QUEUE_LABEL[dayLp.queueType] ?? null;
     idToKey = champMap;
 
     const ledger = buildMatchLpLedger({
@@ -201,6 +210,9 @@ export default async function HomePage() {
           profile={profile}
           ddragonVersion={ddragonVersion}
           dayLpDelta={dayLpDelta}
+          dayLpSoloDelta={dayLpSoloDelta}
+          dayLpFlexDelta={dayLpFlexDelta}
+          dayLpQueueLabel={dayLpQueueLabel}
           decision={decision}
           bestWindow={bestWindow}
           recentFormWr={recentFormWr}

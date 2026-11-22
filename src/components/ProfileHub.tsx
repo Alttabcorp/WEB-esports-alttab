@@ -19,6 +19,9 @@ type Props = {
   profile: AppProfileView;
   ddragonVersion: string;
   dayLpDelta?: number | null;
+  dayLpSoloDelta?: number | null;
+  dayLpFlexDelta?: number | null;
+  dayLpQueueLabel?: string | null;
   decision?: DecisionModel | null;
   bestWindow?: string | null;
   recentFormWr?: number | null;
@@ -33,6 +36,9 @@ export function ProfileHub({
   profile,
   ddragonVersion,
   dayLpDelta = null,
+  dayLpSoloDelta = null,
+  dayLpFlexDelta = null,
+  dayLpQueueLabel = null,
   decision = null,
   bestWindow = null,
   recentFormWr = null,
@@ -47,12 +53,13 @@ export function ProfileHub({
   const syncHref = `/preparar?refresh=1&queue=${profile.queue}&count=${profile.matchCount}`;
   const champHref = "/ranking";
   const role = profile.preferredRole as RoleKey;
-  const lpLabel =
-    dayLpDelta == null
-      ? "—"
-      : dayLpDelta > 0
-        ? `+${dayLpDelta}`
-        : String(dayLpDelta);
+  const fmtLp = (v: number | null) =>
+    v == null ? "—" : v > 0 ? `+${v}` : String(v);
+  const lpLabel = fmtLp(dayLpDelta);
+  const lpSplit =
+    dayLpSoloDelta != null || dayLpFlexDelta != null
+      ? `Solo ${fmtLp(dayLpSoloDelta)} · Flex ${fmtLp(dayLpFlexDelta)}`
+      : null;
   const top = pool[0] ?? null;
 
   const hubDecision: DecisionModel | null =
@@ -107,7 +114,8 @@ export function ProfileHub({
               {recentFormWr != null
                 ? ` · forma ${pct(recentFormWr)}`
                 : ""}
-              {` · PDL hoje ${lpLabel}`}
+              {` · PDL ${dayLpQueueLabel ? `${dayLpQueueLabel} ` : "hoje "}${lpLabel}`}
+              {lpSplit ? ` (${lpSplit})` : ""}
               {bestWindow ? ` · melhor ${bestWindow}` : ""}
             </p>
           </div>
@@ -156,6 +164,9 @@ export function ProfileHub({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
+          <Button href="/historico" variant="ghost" size="sm">
+            Histórico
+          </Button>
           <Button href="/ranking" variant="ghost" size="sm">
             Ranking
           </Button>

@@ -24,6 +24,16 @@ const DIV_ORDER: Record<string, number> = {
 export const SOLO_QUEUE = "RANKED_SOLO_5x5";
 export const FLEX_QUEUE = "RANKED_FLEX_SR";
 
+export const QUEUE_ID_BY_TYPE: Record<string, number> = {
+  [SOLO_QUEUE]: 420,
+  [FLEX_QUEUE]: 440,
+};
+
+export const QUEUE_LABEL: Record<string, string> = {
+  [SOLO_QUEUE]: "Solo/Duo",
+  [FLEX_QUEUE]: "Flex",
+};
+
 export type RankPoint = {
   queueType: string;
   tier: string;

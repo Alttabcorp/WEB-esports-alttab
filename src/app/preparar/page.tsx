@@ -46,6 +46,8 @@ export default async function PrepararPage({ searchParams }: PageProps) {
       idToKey={ctx.idToKey}
       runeCatalog={ctx.runeCatalog}
       dayLp={ctx.dayLp}
+      dayLpSolo={ctx.dayLpSolo}
+      dayLpFlex={ctx.dayLpFlex}
       todayPool={ctx.todayPool}
       preferredRole={ctx.preferredRole}
       dayGoal={ctx.dayGoal}

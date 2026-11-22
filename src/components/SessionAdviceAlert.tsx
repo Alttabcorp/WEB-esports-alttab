@@ -51,13 +51,22 @@ export function SessionAdviceAlert({ advice, onDismiss, onRefresh }: Props) {
         </span>
         {advice.lp.delta != null ? (
           <span className="tabular font-semibold text-[var(--muted-strong)]">
-            PDL {advice.lp.delta >= 0 ? "+" : ""}
+            PDL {advice.lp.queueLabel ?? "Ranked"}{" "}
+            {advice.lp.delta >= 0 ? "+" : ""}
             {advice.lp.delta}/{advice.lp.goal}
+            {advice.lp.soloDelta != null || advice.lp.flexDelta != null
+              ? ` · Solo ${
+                  advice.lp.soloDelta == null
+                    ? "—"
+                    : `${advice.lp.soloDelta >= 0 ? "+" : ""}${advice.lp.soloDelta}`
+                } / Flex ${
+                  advice.lp.flexDelta == null
+                    ? "—"
+                    : `${advice.lp.flexDelta >= 0 ? "+" : ""}${advice.lp.flexDelta}`
+                }`
+              : ""}
             {advice.lp.lastMatchDelta != null
               ? ` · última ${advice.lp.lastMatchDelta >= 0 ? "+" : ""}${advice.lp.lastMatchDelta}`
-              : ""}
-            {advice.lp.perHour != null
-              ? ` · ${advice.lp.perHour >= 0 ? "+" : ""}${advice.lp.perHour.toFixed(0)}/h`
               : ""}
           </span>
         ) : null}

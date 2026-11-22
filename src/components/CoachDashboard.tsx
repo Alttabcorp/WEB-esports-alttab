@@ -69,6 +69,8 @@ type Props = {
   initialMode?: "prep" | "live";
   initialTab?: PrepTab;
   dayLp?: DayLpSummary | null;
+  dayLpSolo?: DayLpSummary | null;
+  dayLpFlex?: DayLpSummary | null;
   todayPool?: PoolPick[];
   preferredRole?: RoleKey | null;
   dayGoal?: DayGoalProgress | null;
@@ -100,6 +102,8 @@ export function CoachDashboard({
   initialMode = "prep",
   initialTab = "play",
   dayLp = null,
+  dayLpSolo = null,
+  dayLpFlex = null,
   todayPool = [],
   preferredRole = null,
   dayGoal = null,
@@ -251,7 +255,7 @@ export function CoachDashboard({
       {dayGoal ? (
         <DayGoalCard goal={dayGoal} sessionEv={sessionEv} />
       ) : (
-        <DayLpCard summary={dayLp} />
+        <DayLpCard solo={dayLpSolo} flex={dayLpFlex} summary={dayLp} />
       )}
 
       {hasAlerts && analysis.temporal?.alerts?.length ? (

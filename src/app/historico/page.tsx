@@ -21,12 +21,12 @@ export default async function HistoricoPage() {
   return (
     <div className="space-y-3 pb-8">
       <div>
-        <p className="data-label">Preparar</p>
+        <p className="data-label">Sua conta</p>
         <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
           Histórico
         </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Partidas recentes com paginação.
+          Partidas recentes com detalhes expansíveis.
         </p>
       </div>
 

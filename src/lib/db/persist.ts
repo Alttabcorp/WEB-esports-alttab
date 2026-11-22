@@ -310,10 +310,11 @@ export async function getDayLpSummaryForPlayer(
   puuid: string,
   options?: { queueType?: string },
 ) {
-  const { computeDayLpSummary, SOLO_QUEUE } = await import(
+  const { computeDayLpSummary, QUEUE_ID_BY_TYPE, SOLO_QUEUE } = await import(
     "@/lib/stats/lpLedger"
   );
   const queueType = options?.queueType ?? SOLO_QUEUE;
+  const queueId = QUEUE_ID_BY_TYPE[queueType];
   const snapshots = await listRankSnapshots(playerId, {
     queueType,
     sinceMs: 3 * 24 * 60 * 60_000,
@@ -326,6 +327,8 @@ export async function getDayLpSummaryForPlayer(
     .map((m) => {
       const me = m.info.participants.find((p) => p.puuid === puuid);
       if (!me) return null;
+      // Só conta partidas da mesma fila do snapshot (Solo ≠ Flex).
+      if (queueId != null && m.info.queueId !== queueId) return null;
       return { win: me.win, createdAt: m.info.gameCreation };
     })
     .filter((g): g is { win: boolean; createdAt: number } => g != null);
@@ -335,6 +338,33 @@ export async function getDayLpSummaryForPlayer(
     queueType,
     gamesToday,
   });
+}
+
+export type DayLpByQueue = {
+  solo: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
+  flex: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
+  /** Fila com mais jogos hoje (ou Solo se empate/vazio). */
+  active: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
+};
+
+export async function getDayLpByQueue(
+  playerId: string,
+  puuid: string,
+): Promise<DayLpByQueue> {
+  const { FLEX_QUEUE, SOLO_QUEUE } = await import("@/lib/stats/lpLedger");
+  const [solo, flex] = await Promise.all([
+    getDayLpSummaryForPlayer(playerId, puuid, { queueType: SOLO_QUEUE }),
+    getDayLpSummaryForPlayer(playerId, puuid, { queueType: FLEX_QUEUE }),
+  ]);
+  const active =
+    flex.gamesToday > solo.gamesToday
+      ? flex
+      : solo.gamesToday > 0
+        ? solo
+        : flex.gamesToday > 0
+          ? flex
+          : solo;
+  return { solo, flex, active };
 }
 
 export async function getFreshAnalysisRun(

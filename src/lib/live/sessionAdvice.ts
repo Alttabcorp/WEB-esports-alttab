@@ -1,7 +1,7 @@
 import {
   findPlayerByPuuid,
   getAppProfile,
-  getDayLpSummaryForPlayer,
+  getDayLpByQueue,
   getMatchFromDb,
   getStoredMatchesForPlayer,
   persistMatchesForPlayer,
@@ -21,6 +21,8 @@ import {
 import {
   DEFAULT_LOSS_STREAK_STOP,
   DEFAULT_WIN_GOAL,
+  QUEUE_ID_BY_TYPE,
+  QUEUE_LABEL,
   SOLO_QUEUE,
   type DayLpSummary,
 } from "@/lib/stats/lpLedger";
@@ -72,6 +74,10 @@ export type SessionAdvice = {
     gamesRemainingEst: number | null;
     /** ΔLP da última partida (estimado se ledger fino indisponível). */
     lastMatchDelta: number | null;
+    queueType: string | null;
+    queueLabel: string | null;
+    soloDelta: number | null;
+    flexDelta: number | null;
   };
   sessionEv: SessionEvResult;
   nextPlan: {
@@ -196,7 +202,11 @@ async function refreshRankSnapshot(
   platform: PlatformRegion,
   puuid: string,
   playerId: string,
-): Promise<DayLpSummary | null> {
+): Promise<{
+  active: DayLpSummary;
+  solo: DayLpSummary;
+  flex: DayLpSummary;
+} | null> {
   try {
     const client = getRiotClient();
     const ranked = await client.getLeagueEntriesByPuuid(platform, puuid);
@@ -205,10 +215,10 @@ async function refreshRankSnapshot(
       where: { id: playerId },
       data: { rankedJson: ranked as unknown as Prisma.InputJsonValue },
     });
-    return getDayLpSummaryForPlayer(playerId, puuid, { queueType: SOLO_QUEUE });
+    return getDayLpByQueue(playerId, puuid);
   } catch {
     try {
-      return getDayLpSummaryForPlayer(playerId, puuid, { queueType: SOLO_QUEUE });
+      return getDayLpByQueue(playerId, puuid);
     } catch {
       return null;
     }
@@ -230,10 +240,11 @@ export async function buildSessionAdvice(
     syncedNewMatch = sync.synced;
   }
 
-  let lpSummary: DayLpSummary | null = null;
+  let lpByQueue: Awaited<ReturnType<typeof refreshRankSnapshot>> = null;
   if (player) {
-    lpSummary = await refreshRankSnapshot(platform, puuid, player.id);
+    lpByQueue = await refreshRankSnapshot(platform, puuid, player.id);
   }
+  const lpSummary = lpByQueue?.active ?? null;
 
   const stored = player
     ? await getStoredMatchesForPlayer(player.id, {
@@ -244,7 +255,16 @@ export async function buildSessionAdvice(
 
   const chrono = toChrono(stored, puuid);
   const dayStart = startOfDayMs(now, PLAYER_TIMEZONE);
-  const todayGames = chrono.filter((g) => g.createdAt >= dayStart);
+  // Conta W/L do dia na fila ativa (Solo ou Flex) — evita misturar ladders.
+  const activeQueueId =
+    lpSummary != null ? QUEUE_ID_BY_TYPE[lpSummary.queueType] : undefined;
+  const todayGamesAll = chrono.filter((g) => g.createdAt >= dayStart);
+  const todayMatches = stored.filter((m) => {
+    if (m.info.gameCreation < dayStart) return false;
+    if (activeQueueId == null) return true;
+    return m.info.queueId === activeQueueId;
+  });
+  const todayGames = toChrono(todayMatches, puuid);
   const session = currentSession(chrono, now);
   const last = session[session.length - 1] ?? chrono[chrono.length - 1] ?? null;
 
@@ -390,35 +410,64 @@ export async function buildSessionAdvice(
     reasons.push(`Sessão longa (${completedSessionGames} partidas) — fadiga.`);
   }
 
+  const queueLabel =
+    lpSummary != null
+      ? QUEUE_LABEL[lpSummary.queueType] ?? lpSummary.queueType
+      : "Ranked";
+
   if (lpDelta != null) {
     if (stopHit) {
       score -= 4;
       reasons.push(
-        `Stop-loss do dia: ${lpDelta} PDL (limite ${goalProgress.stopLoss}).`,
+        `Stop-loss ${queueLabel}: ${lpDelta} PDL (limite ${goalProgress.stopLoss}).`,
       );
     } else if (goalHit || winGoalHit) {
       score -= 2;
       reasons.push(
         goalHit
-          ? `Meta de PDL batida (+${lpDelta} / +${goalProgress.target}). Proteja o lucro.`
-          : `Meta de vitórias batida (${todayWins}W). Pode encerrar no azul.`,
+          ? `Meta ${queueLabel} batida (+${lpDelta} / +${goalProgress.target}). Proteja o lucro.`
+          : `Meta de vitórias ${queueLabel} batida (${todayWins}W). Pode encerrar no azul.`,
       );
     } else if (lpDelta >= 15) {
       score += 1;
       reasons.push(
-        `PDL do dia: +${lpDelta} (meta +${goalProgress.target}). ${dayGoalVerb(goalProgress)}`,
+        `PDL ${queueLabel}: +${lpDelta} (meta +${goalProgress.target}). ${dayGoalVerb(goalProgress)}`,
       );
     } else if (lpDelta <= -20) {
       score -= 2;
-      reasons.push(`PDL do dia: ${lpDelta}. Evite forçar a recuperação.`);
+      reasons.push(
+        `PDL ${queueLabel}: ${lpDelta}. Evite forçar a recuperação.`,
+      );
     } else {
       reasons.push(
-        `PDL ${lpDelta >= 0 ? "+" : ""}${lpDelta} · meta +${goalProgress.target}` +
+        `PDL ${queueLabel} ${lpDelta >= 0 ? "+" : ""}${lpDelta} · meta +${goalProgress.target}` +
           (goalProgress.gamesRemainingEst != null
             ? ` · ~${goalProgress.gamesRemainingEst} win(s)`
             : ""),
       );
     }
+  }
+
+  // Não punir Solo negativo se o dia ativo foi Flex (ou vice-versa).
+  const other =
+    lpSummary?.queueType === SOLO_QUEUE ? lpByQueue?.flex : lpByQueue?.solo;
+  if (
+    other &&
+    other.gamesToday === 0 &&
+    lpSummary &&
+    lpSummary.gamesToday > 0 &&
+    (other.lpDelta ?? 0) < 0
+  ) {
+    reasons.push(
+      `${QUEUE_LABEL[other.queueType] ?? "Outra fila"} sem jogos hoje (${other.lpDelta} PDL no snapshot) — ignorado na decisão.`,
+    );
+  }
+
+  if (todayGamesAll.length > todayGames.length) {
+    const otherCount = todayGamesAll.length - todayGames.length;
+    reasons.push(
+      `+${otherCount} jogo(s) na outra fila hoje — PDL e stop usam só ${queueLabel}.`,
+    );
   }
 
   const sessionEv = computeSessionEv({
@@ -534,6 +583,10 @@ export async function buildSessionAdvice(
       stopHit,
       gamesRemainingEst: goalProgress.gamesRemainingEst,
       lastMatchDelta,
+      queueType: lpSummary?.queueType ?? null,
+      queueLabel,
+      soloDelta: lpByQueue?.solo.lpDelta ?? null,
+      flexDelta: lpByQueue?.flex.lpDelta ?? null,
     },
     sessionEv,
     nextPlan: {

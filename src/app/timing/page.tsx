@@ -1,3 +1,4 @@
+import { DayLpCard } from "@/components/DayLpCard";
 import { PrepGate } from "@/components/PrepGate";
 import { PrepSubnav } from "@/components/PrepSubnav";
 import { TimingDecisionPanel } from "@/components/TimingDecisionPanel";
@@ -32,6 +33,8 @@ export default async function TimingPage() {
       </div>
 
       <PrepSubnav alertCount={alertCount} />
+
+      <DayLpCard solo={ctx.dayLpSolo} flex={ctx.dayLpFlex} summary={ctx.dayLp} />
 
       {ctx.analysis.temporal ? (
         <TimingDecisionPanel
