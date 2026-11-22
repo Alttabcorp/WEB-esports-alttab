@@ -45,8 +45,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
-COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+# Schema/migrations + CLI isolado para `migrate deploy` no boot.
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+RUN mkdir -p /opt/prisma-cli \
+  && cd /opt/prisma-cli \
+  && npm init -y >/dev/null \
+  && npm install --omit=dev --no-fund --no-audit prisma@7.10.1 dotenv@17.2.3 \
+  && chown -R nextjs:nodejs /opt/prisma-cli /app/prisma /app/prisma.config.ts
+
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 USER nextjs
