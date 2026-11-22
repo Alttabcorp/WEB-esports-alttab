@@ -533,6 +533,10 @@ export function SavedBuildsManager({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <p className="data-label">Contra (opcional)</p>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    Se o laner inimigo for este champ, o Coach prioriza esta
+                    build e mostra “Usando build cadastrada: Vs …”.
+                  </p>
                   <input
                     value={formEnemyQuery}
                     onChange={(e) => {

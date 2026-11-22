@@ -53,7 +53,7 @@ describe("resolveDynamicBuild", () => {
 
     expect(pick?.source).toBe("saved");
     expect(pick?.nextItemId).toBe(3001);
-    expect(pick?.label).toBe("Minha Ahri");
+    expect(pick?.label).toBe("Usando build cadastrada: Minha Ahri");
   });
 
   it("escolhe build salva contra o laner atual", () => {
@@ -63,6 +63,7 @@ describe("resolveDynamicBuild", () => {
       vsLaner: null,
       vsComp: null,
       enemyLanerId: 99,
+      enemyLanerLabel: "Zed",
       saved: [
         savedBuildToCandidate({
           id: "def",
@@ -75,11 +76,12 @@ describe("resolveDynamicBuild", () => {
           name: "Vs Zed",
           items: [10, 20, 30],
           enemyChampionId: 99,
+          enemyChampionName: "Zed",
         })!,
       ],
     });
 
-    expect(pick?.label).toBe("Vs Zed");
+    expect(pick?.label).toBe("Usando build cadastrada: Vs Zed");
     expect(pick?.nextItemId).toBe(10);
   });
 

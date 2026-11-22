@@ -4,6 +4,7 @@ import {
   getChampionCatalog,
   getChampionIdToKey,
   getDdragonVersion,
+  getItemCatalog,
   getRuneCatalog,
 } from "@/lib/ddragon";
 import { encodeRiotId } from "@/lib/format";
@@ -27,10 +28,11 @@ export default async function CoachPage() {
   }
 
   const ddragonVersion = await getDdragonVersion();
-  const [idToKey, catalog, runeCatalog] = await Promise.all([
+  const [idToKey, catalog, runeCatalog, itemCatalog] = await Promise.all([
     getChampionIdToKey(ddragonVersion),
     getChampionCatalog(ddragonVersion),
     getRuneCatalog(ddragonVersion),
+    getItemCatalog(ddragonVersion),
   ]);
 
   const keyToId: Record<string, number> = {};
@@ -57,6 +59,7 @@ export default async function CoachPage() {
       idToKey={idToKey}
       keyToId={keyToId}
       runeCatalog={runeCatalog}
+      itemCatalog={itemCatalog}
       draftHref={draftHref}
       prepHref={prepHref}
       timingHref={timingHref}

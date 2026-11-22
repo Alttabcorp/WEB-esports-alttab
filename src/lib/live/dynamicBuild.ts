@@ -116,9 +116,12 @@ export function resolveDynamicBuild(input: {
   vsComp: BuildCandidate | null;
   saved?: BuildCandidate[];
   enemyLanerId?: number | null;
+  /** Nome do laner inimigo (ex.: Zed) para label da build cadastrada. */
+  enemyLanerLabel?: string | null;
 }): DynamicBuildPick | null {
   const owned = ownedSet(input.ownedIds);
   const enemyLanerId = input.enemyLanerId ?? null;
+  const enemyLanerLabel = input.enemyLanerLabel?.trim() || null;
   const candidates = [
     ...(input.saved ?? []),
     input.vsLaner,
@@ -150,16 +153,23 @@ export function resolveDynamicBuild(input: {
 
   const wr = best.c.wr ?? winRate(best.c.wins, best.c.games);
   const reasonParts: string[] = [];
+  let label = best.c.label;
   if (best.c.source === "saved") {
-    reasonParts.push("build cadastrada");
-    if (
+    const vsMatch =
       best.c.enemyChampionId != null &&
       enemyLanerId != null &&
-      best.c.enemyChampionId === enemyLanerId
-    ) {
+      best.c.enemyChampionId === enemyLanerId;
+    reasonParts.push("build cadastrada");
+    if (vsMatch) {
       reasonParts.push("contra este laner");
+      label = `Usando build cadastrada: Vs ${
+        enemyLanerLabel ?? best.c.label.replace(/^Vs\s+/i, "")
+      }`;
     } else if (best.c.isDefault) {
       reasonParts.push("padrão do campeão");
+      label = `Usando build cadastrada: ${best.c.label}`;
+    } else {
+      label = `Usando build cadastrada: ${best.c.label}`;
     }
   } else if (best.c.source === "vs-laner") {
     reasonParts.push("melhor WR vs este laner no seu histórico");
@@ -177,7 +187,7 @@ export function resolveDynamicBuild(input: {
     nextItemId: best.next?.id ?? null,
     nextIndex: best.next?.index ?? best.c.items.length,
     source: best.c.source,
-    label: best.c.label,
+    label,
     wr: best.c.source === "saved" ? wr || 1 : wr,
     games: best.c.source === "saved" ? best.c.games || 0 : best.c.games,
     reason: reasonParts.join(" · "),
@@ -211,16 +221,18 @@ export function savedBuildToCandidate(input: {
   name: string;
   items: number[];
   enemyChampionId?: number | null;
+  enemyChampionName?: string | null;
   isDefault?: boolean;
 }): BuildCandidate | null {
   if (!input.items.length) return null;
+  const vsLabel = input.enemyChampionName?.trim();
   return {
     items: input.items,
     games: 0,
     wins: 0,
     wr: 1,
     source: "saved",
-    label: input.name,
+    label: vsLabel ? `Vs ${vsLabel}` : input.name,
     savedId: input.id,
     enemyChampionId: input.enemyChampionId ?? null,
     isDefault: Boolean(input.isDefault),

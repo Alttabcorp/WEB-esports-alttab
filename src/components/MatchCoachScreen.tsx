@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   itemIconUrl,
   resolveChampionKey,
+  type ItemCatalogEntry,
   type RuneCatalog,
 } from "@/lib/ddragon";
 import { pct } from "@/lib/format";
@@ -18,6 +19,7 @@ import {
   savedBuildToCandidate,
   toBuildCandidate,
 } from "@/lib/live/dynamicBuild";
+import { adaptBuildOrder } from "@/lib/live/itemAdapt";
 import { buildInGameDecision } from "@/lib/live/lcdSignals";
 import type { SessionAdvice } from "@/lib/live/sessionAdvice";
 import type { DraftRecommendation } from "@/lib/stats/draft";
@@ -42,6 +44,8 @@ type Props = {
   idToKey: Record<number, string>;
   keyToId: Record<string, number>;
   runeCatalog: RuneCatalog;
+  /** Catálogo DDragon (tags) para reordenação leve de itens. */
+  itemCatalog?: ItemCatalogEntry[];
   draftHref: string;
   prepHref?: string;
   timingHref?: string;
@@ -137,6 +141,7 @@ export function MatchCoachScreen({
   idToKey,
   keyToId,
   runeCatalog,
+  itemCatalog = [],
   draftHref,
   prepHref = "/",
   timingHref,
@@ -440,10 +445,19 @@ export function MatchCoachScreen({
     return "laner";
   }, [enemyLanerId, idToKey]);
 
+  const enemyItemIds = useMemo(() => {
+    const laner =
+      enemyTeam.find(
+        (p) => champIdFromName(p.championName) === enemyLanerId,
+      ) ?? enemyTeam[0];
+    return (laner?.items ?? []).map((it) => it.itemID).filter((id) => id > 0);
+  }, [enemyTeam, enemyLanerId, champIdFromName]);
+
   const dynamicBuild = useMemo(() => {
-    return resolveDynamicBuild({
+    const pick = resolveDynamicBuild({
       ownedIds,
       enemyLanerId,
+      enemyLanerLabel,
       personal: toBuildCandidate(
         tips?.topBuild ?? null,
         "personal",
@@ -466,21 +480,48 @@ export function MatchCoachScreen({
             name: b.name,
             items: b.items,
             enemyChampionId: b.enemyChampionId,
+            enemyChampionName: b.enemyChampionName,
             isDefault: b.isDefault,
           }),
         )
         .filter((c): c is NonNullable<typeof c> => c != null),
     });
+    if (!pick) return null;
+    if (itemCatalog.length === 0 || enemyItemIds.length === 0) return pick;
+
+    const adapted = adaptBuildOrder({
+      buildItems: pick.items,
+      ownedIds,
+      enemyItemIds,
+      catalog: itemCatalog,
+    });
+    if (!adapted.adapted) return pick;
+
+    const owned = new Set([...ownedIds].filter((id) => id > 0));
+    const nextIdx = adapted.items.findIndex(
+      (id) => id > 0 && !owned.has(id),
+    );
+    return {
+      ...pick,
+      items: adapted.items,
+      nextItemId: nextIdx >= 0 ? adapted.items[nextIdx] : null,
+      nextIndex: nextIdx >= 0 ? nextIdx : adapted.items.length,
+      reason: adapted.reason
+        ? `${pick.reason} · ${adapted.reason}`
+        : pick.reason,
+    };
   }, [
     ownedIds,
     enemyLanerId,
+    enemyLanerLabel,
     tips?.topBuild,
     tips?.vsLanerBuild,
     tips?.vsCompBuild,
     adapt?.vsLanerBuild,
     adapt?.vsCompBuild,
-    enemyLanerLabel,
     savedBuilds,
+    itemCatalog,
+    enemyItemIds,
   ]);
 
   const nextItem = useMemo(() => {
