@@ -1,9 +1,7 @@
 import { DecisionRoundupView } from "@/components/DecisionRoundupView";
 import { SearchForm } from "@/components/SearchForm";
 import { Button, Panel } from "@/components/ui";
-import { getCoachNotes } from "@/lib/db/persist";
 import { loadPrepContext } from "@/lib/prep/loadPrepContext";
-import { todayDateKey } from "@/lib/stats/temporal";
 
 export default async function HomePage() {
   const ctx = await loadPrepContext();
@@ -46,16 +44,6 @@ export default async function HomePage() {
     );
   }
 
-  const notes =
-    (await getCoachNotes()) ??
-    ({
-      dailyNote: "",
-      dailyNoteDate: null,
-      dailyStale: false,
-      generalNote: "",
-      todayKey: todayDateKey(),
-    } as const);
-
   const alertCount = ctx.analysis.temporal?.alerts?.length ?? 0;
 
   return (
@@ -76,7 +64,6 @@ export default async function HomePage() {
       dayGoal={ctx.dayGoal}
       sessionEv={ctx.sessionEv}
       practiceCandidates={ctx.practiceCandidates}
-      notes={notes}
       alertCount={alertCount}
       matchCount={ctx.count}
     />

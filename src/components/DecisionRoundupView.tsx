@@ -5,23 +5,23 @@ import Image from "next/image";
 import type { AggregateResult } from "@/lib/stats/aggregate";
 import type { RuneCatalog } from "@/lib/ddragon";
 import { championIconUrl, profileIconUrl } from "@/lib/ddragon";
-import type { CoachNotesView } from "@/lib/db/persist";
 import {
   groupPoolByRole,
   type PoolPick,
 } from "@/lib/stats/contextualPool";
 import type { DayGoalProgress } from "@/lib/stats/dayGoal";
 import { dayGoalVerb } from "@/lib/stats/dayGoal";
+import { buildDecisionComments } from "@/lib/stats/decisionComments";
 import type { DayLpSummary } from "@/lib/stats/lpLedger";
 import { QUEUE_LABEL, FLEX_QUEUE, SOLO_QUEUE } from "@/lib/stats/lpLedger";
 import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
 import type { SessionEvResult } from "@/lib/stats/sessionEv";
 import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
-import { CoachNotesPanel } from "./CoachNotesPanel";
 import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { QueueTrackSwitch } from "./QueueTrackSwitch";
 import { SessionFlowStrip } from "./SessionFlowStrip";
+import { StatsDecisionComments } from "./StatsDecisionComments";
 import { TodayPoolPanel } from "./TodayPoolPanel";
 import { Button, Panel } from "@/components/ui";
 
@@ -42,7 +42,6 @@ type Props = {
   dayGoal: DayGoalProgress | null;
   sessionEv: SessionEvResult | null;
   practiceCandidates: PracticeCandidate[];
-  notes: CoachNotesView;
   alertCount?: number;
   matchCount?: number;
 };
@@ -144,7 +143,6 @@ export function DecisionRoundupView({
   dayGoal,
   sessionEv,
   practiceCandidates,
-  notes,
   alertCount = 0,
   matchCount = 50,
 }: Props) {
@@ -155,6 +153,30 @@ export function DecisionRoundupView({
   const rankedPick = useMemo(
     () => pickRankedRecommendation(todayPool, preferredRole),
     [todayPool, preferredRole],
+  );
+
+  const comments = useMemo(
+    () =>
+      buildDecisionComments({
+        sessionEv,
+        dayGoal,
+        dayLpSolo,
+        dayLpFlex,
+        trackQueue,
+        todayPool,
+        analysis,
+        practiceCandidates,
+      }),
+    [
+      sessionEv,
+      dayGoal,
+      dayLpSolo,
+      dayLpFlex,
+      trackQueue,
+      todayPool,
+      analysis,
+      practiceCandidates,
+    ],
   );
 
   const activeSolo =
@@ -362,15 +384,8 @@ export function DecisionRoundupView({
       ) : null}
 
       <section className="space-y-2">
-        <p className="data-label">Comentários</p>
-        <CoachNotesPanel
-          initial={{
-            dailyNote: notes.dailyNote,
-            generalNote: notes.generalNote,
-            dailyStale: notes.dailyStale,
-            todayKey: notes.todayKey,
-          }}
-        />
+        <p className="data-label">Comentários da decisão</p>
+        <StatsDecisionComments daily={comments.daily} general={comments.general} />
       </section>
 
       <Panel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
