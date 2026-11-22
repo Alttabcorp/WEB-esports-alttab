@@ -48,12 +48,13 @@ export default async function PrepararPage({ searchParams }: PageProps) {
       dayLp={ctx.dayLp}
       dayLpSolo={ctx.dayLpSolo}
       dayLpFlex={ctx.dayLpFlex}
+      trackQueue={ctx.queue}
       todayPool={ctx.todayPool}
       preferredRole={ctx.preferredRole}
+      queue={ctx.queue}
       dayGoal={ctx.dayGoal}
       sessionEv={ctx.sessionEv}
       practiceCandidates={ctx.practiceCandidates}
-      queue={ctx.queue}
       count={ctx.count}
       source={ctx.source}
       cached={ctx.cached}

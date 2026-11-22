@@ -240,9 +240,22 @@ export async function buildSessionAdvice(
     syncedNewMatch = sync.synced;
   }
 
+  const appProfileEarly = await getAppProfile();
+  const preferQueue = (appProfileEarly?.queue as
+    | "solo"
+    | "flex"
+    | "ranked"
+    | undefined) ?? "ranked";
+
   let lpByQueue: Awaited<ReturnType<typeof refreshRankSnapshot>> = null;
   if (player) {
     lpByQueue = await refreshRankSnapshot(platform, puuid, player.id);
+    if (lpByQueue && (preferQueue === "solo" || preferQueue === "flex")) {
+      lpByQueue = {
+        ...lpByQueue,
+        active: preferQueue === "solo" ? lpByQueue.solo : lpByQueue.flex,
+      };
+    }
   }
   const lpSummary = lpByQueue?.active ?? null;
 
@@ -315,7 +328,7 @@ export async function buildSessionAdvice(
     (s) => s.afterLosses === afterLosses && s.games >= 6 && s.lift <= -0.08,
   );
 
-  const appProfile = await getAppProfile();
+  const appProfile = appProfileEarly;
   const goalProgress = computeDayGoalProgress({
     target: appProfile?.dailyLpTarget,
     stopLoss: appProfile?.dailyLpStop,

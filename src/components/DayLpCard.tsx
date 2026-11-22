@@ -1,5 +1,6 @@
 import type { DayLpSummary } from "@/lib/stats/lpLedger";
 import { QUEUE_LABEL, FLEX_QUEUE, SOLO_QUEUE } from "@/lib/stats/lpLedger";
+import type { QueueFilter } from "@/lib/riot/types";
 import { Panel, Stat } from "@/components/ui";
 
 type Props = {
@@ -7,15 +8,19 @@ type Props = {
   /** Quando passado, mostra Solo e Flex lado a lado. */
   solo?: DayLpSummary | null;
   flex?: DayLpSummary | null;
+  /** Fila escolhida no seletor (solo/flex/ranked). */
+  trackQueue?: QueueFilter | string | null;
   className?: string;
 };
 
 function QueueBlock({
   summary,
   emphasize,
+  badge,
 }: {
   summary: DayLpSummary;
   emphasize?: boolean;
+  badge?: string;
 }) {
   const delta = summary.lpDelta;
   const deltaLabel =
@@ -40,9 +45,9 @@ function QueueBlock({
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="data-label">{label}</p>
-        {emphasize ? (
+        {emphasize && badge ? (
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--alttab)]">
-            ativa hoje
+            {badge}
           </span>
         ) : null}
       </div>
@@ -64,6 +69,7 @@ export function DayLpCard({
   summary = null,
   solo = null,
   flex = null,
+  trackQueue = null,
   className = "",
 }: Props) {
   const dual = solo != null || flex != null;
@@ -82,11 +88,20 @@ export function DayLpCard({
   }
 
   if (dual && (soloSum || flexSum)) {
+    const track = trackQueue === "solo" || trackQueue === "flex" || trackQueue === "ranked"
+      ? trackQueue
+      : "ranked";
     const activeType =
-      (flexSum?.gamesToday ?? 0) > (soloSum?.gamesToday ?? 0)
-        ? FLEX_QUEUE
-        : SOLO_QUEUE;
+      track === "solo"
+        ? SOLO_QUEUE
+        : track === "flex"
+          ? FLEX_QUEUE
+          : (flexSum?.gamesToday ?? 0) > (soloSum?.gamesToday ?? 0)
+            ? FLEX_QUEUE
+            : SOLO_QUEUE;
     const active = activeType === FLEX_QUEUE ? flexSum : soloSum;
+    const badge =
+      track === "solo" || track === "flex" ? "acompanhando" : "ativa hoje";
 
     return (
       <Panel strong className={`space-y-3 px-4 py-3 ${className}`}>
@@ -94,7 +109,8 @@ export function DayLpCard({
           <div>
             <p className="data-label">PDL do dia</p>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
-              Solo/Duo e Flex separados — vitórias de uma fila não mudam a outra.
+              Solo/Duo e Flex separados — use o seletor no topo para acompanhar
+              uma fila.
             </p>
           </div>
           {active?.lpPerHour != null ? (
@@ -108,13 +124,15 @@ export function DayLpCard({
           {soloSum ? (
             <QueueBlock
               summary={soloSum}
-              emphasize={activeType === SOLO_QUEUE && soloSum.gamesToday > 0}
+              emphasize={activeType === SOLO_QUEUE}
+              badge={badge}
             />
           ) : null}
           {flexSum ? (
             <QueueBlock
               summary={flexSum}
-              emphasize={activeType === FLEX_QUEUE && flexSum.gamesToday > 0}
+              emphasize={activeType === FLEX_QUEUE}
+              badge={badge}
             />
           ) : null}
         </div>

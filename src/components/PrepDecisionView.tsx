@@ -37,6 +37,7 @@ type Props = {
   dayLp?: DayLpSummary | null;
   dayLpSolo?: DayLpSummary | null;
   dayLpFlex?: DayLpSummary | null;
+  trackQueue?: string | null;
   todayPool?: PoolPick[];
   preferredRole?: RoleKey | null;
   dayGoal?: DayGoalProgress | null;
@@ -62,6 +63,7 @@ export function PrepDecisionView({
   dayLp = null,
   dayLpSolo = null,
   dayLpFlex = null,
+  trackQueue = null,
   todayPool = [],
   preferredRole = null,
   dayGoal = null,
@@ -191,7 +193,12 @@ export function PrepDecisionView({
         />
       </div>
 
-      <DayLpCard solo={dayLpSolo} flex={dayLpFlex} summary={dayLp} />
+      <DayLpCard
+        solo={dayLpSolo}
+        flex={dayLpFlex}
+        summary={dayLp}
+        trackQueue={trackQueue ?? queue}
+      />
 
       {dayGoal ? <DayGoalCard goal={dayGoal} sessionEv={sessionEv} /> : null}
 

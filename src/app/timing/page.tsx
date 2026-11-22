@@ -34,7 +34,12 @@ export default async function TimingPage() {
 
       <PrepSubnav alertCount={alertCount} />
 
-      <DayLpCard solo={ctx.dayLpSolo} flex={ctx.dayLpFlex} summary={ctx.dayLp} />
+      <DayLpCard
+        solo={ctx.dayLpSolo}
+        flex={ctx.dayLpFlex}
+        summary={ctx.dayLp}
+        trackQueue={ctx.queue}
+      />
 
       {ctx.analysis.temporal ? (
         <TimingDecisionPanel

@@ -225,7 +225,7 @@ export async function loadPrepContext(
     : [];
 
   const dayLpByQueue = dbPlayer
-    ? await getDayLpByQueue(dbPlayer.id, profile.puuid)
+    ? await getDayLpByQueue(dbPlayer.id, profile.puuid, { prefer: queue })
     : null;
   const dayLp = dayLpByQueue?.active ?? null;
   const dayLpSolo = dayLpByQueue?.solo ?? null;
@@ -237,10 +237,14 @@ export async function loadPrepContext(
         queue,
       })
     : [];
+  const { FLEX_QUEUE, SOLO_QUEUE } = await import("@/lib/stats/lpLedger");
+  const calendarQueueType =
+    queue === "solo" ? SOLO_QUEUE : queue === "flex" ? FLEX_QUEUE : undefined;
   const snapshots = dbPlayer
     ? await listRankSnapshots(dbPlayer.id, {
         sinceMs: 30 * 24 * 60 * 60_000,
         limit: 400,
+        ...(calendarQueueType ? { queueType: calendarQueueType } : {}),
       })
     : [];
 

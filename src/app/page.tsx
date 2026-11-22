@@ -56,7 +56,9 @@ export default async function HomePage() {
         count: Math.min(profile.matchCount, 120),
         queue,
       }),
-      getDayLpByQueue(profile.playerId, profile.puuid),
+      getDayLpByQueue(profile.playerId, profile.puuid, {
+        prefer: queue,
+      }),
       getFreshAnalysisRun(profile.playerId, queue, profile.matchCount),
       getChampionIdToKey(ddragonVersion),
       listRankSnapshots(profile.playerId, { sinceMs: 14 * 24 * 60 * 60_000 }),

@@ -343,27 +343,33 @@ export async function getDayLpSummaryForPlayer(
 export type DayLpByQueue = {
   solo: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
   flex: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
-  /** Fila com mais jogos hoje (ou Solo se empate/vazio). */
+  /** Fila de acompanhamento (preferência do perfil ou heurística). */
   active: Awaited<ReturnType<typeof getDayLpSummaryForPlayer>>;
 };
 
 export async function getDayLpByQueue(
   playerId: string,
   puuid: string,
+  options?: { prefer?: QueueFilter },
 ): Promise<DayLpByQueue> {
   const { FLEX_QUEUE, SOLO_QUEUE } = await import("@/lib/stats/lpLedger");
   const [solo, flex] = await Promise.all([
     getDayLpSummaryForPlayer(playerId, puuid, { queueType: SOLO_QUEUE }),
     getDayLpSummaryForPlayer(playerId, puuid, { queueType: FLEX_QUEUE }),
   ]);
+  const prefer = options?.prefer;
   const active =
-    flex.gamesToday > solo.gamesToday
-      ? flex
-      : solo.gamesToday > 0
-        ? solo
-        : flex.gamesToday > 0
+    prefer === "solo"
+      ? solo
+      : prefer === "flex"
+        ? flex
+        : flex.gamesToday > solo.gamesToday
           ? flex
-          : solo;
+          : solo.gamesToday > 0
+            ? solo
+            : flex.gamesToday > 0
+              ? flex
+              : solo;
   return { solo, flex, active };
 }
 

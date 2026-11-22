@@ -255,7 +255,12 @@ export function CoachDashboard({
       {dayGoal ? (
         <DayGoalCard goal={dayGoal} sessionEv={sessionEv} />
       ) : (
-        <DayLpCard solo={dayLpSolo} flex={dayLpFlex} summary={dayLp} />
+        <DayLpCard
+          solo={dayLpSolo}
+          flex={dayLpFlex}
+          summary={dayLp}
+          trackQueue={queue}
+        />
       )}
 
       {hasAlerts && analysis.temporal?.alerts?.length ? (

@@ -246,7 +246,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
 
         <div>
           <label htmlFor="cfg-queue" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
-            Modo
+            Fila de acompanhamento
           </label>
           <select
             id="cfg-queue"
@@ -254,9 +254,9 @@ export function ProfileSettingsForm({ initial = null }: Props) {
             onChange={(e) => setQueue(e.target.value as QueueFilter)}
             className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
           >
-            <option value="ranked">Ranked (Solo + Flex)</option>
-            <option value="solo">Ranked Solo/Duo</option>
-            <option value="flex">Ranked Flex</option>
+            <option value="solo">Solo/Duo</option>
+            <option value="flex">Flex</option>
+            <option value="ranked">Ambas (Solo + Flex)</option>
             <option value="all">Todas as filas</option>
           </select>
         </div>
