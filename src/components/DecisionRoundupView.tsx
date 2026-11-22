@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { AggregateResult } from "@/lib/stats/aggregate";
 import type { RuneCatalog } from "@/lib/ddragon";
-import { championIconUrl } from "@/lib/ddragon";
+import { championIconUrl, profileIconUrl } from "@/lib/ddragon";
 import type { CoachNotesView } from "@/lib/db/persist";
 import {
   groupPoolByRole,
   type PoolPick,
 } from "@/lib/stats/contextualPool";
 import type { DayGoalProgress } from "@/lib/stats/dayGoal";
+import { dayGoalVerb } from "@/lib/stats/dayGoal";
 import type { DayLpSummary } from "@/lib/stats/lpLedger";
 import { QUEUE_LABEL, FLEX_QUEUE, SOLO_QUEUE } from "@/lib/stats/lpLedger";
 import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
@@ -18,13 +19,17 @@ import type { SessionEvResult } from "@/lib/stats/sessionEv";
 import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
 import { CoachNotesPanel } from "./CoachNotesPanel";
-import { DayGoalCard } from "./DayGoalCard";
 import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
-import { PrepSubnav } from "./PrepSubnav";
+import { QueueTrackSwitch } from "./QueueTrackSwitch";
+import { SessionFlowStrip } from "./SessionFlowStrip";
 import { TodayPoolPanel } from "./TodayPoolPanel";
 import { Button, Panel } from "@/components/ui";
 
 type Props = {
+  gameName: string;
+  tagLine: string;
+  platform: string;
+  profileIconId: number | null;
   analysis: AggregateResult;
   ddragonVersion: string;
   idToKey: Record<number, string>;
@@ -39,6 +44,7 @@ type Props = {
   practiceCandidates: PracticeCandidate[];
   notes: CoachNotesView;
   alertCount?: number;
+  matchCount?: number;
 };
 
 function QueueScorecard({
@@ -122,6 +128,10 @@ function pickRankedRecommendation(
 }
 
 export function DecisionRoundupView({
+  gameName,
+  tagLine,
+  platform,
+  profileIconId,
   analysis,
   ddragonVersion,
   idToKey,
@@ -136,6 +146,7 @@ export function DecisionRoundupView({
   practiceCandidates,
   notes,
   alertCount = 0,
+  matchCount = 50,
 }: Props) {
   const [poolFeaturedId, setPoolFeaturedId] = useState<number | null>(
     todayPool[0]?.championId ?? null,
@@ -151,33 +162,53 @@ export function DecisionRoundupView({
     (trackQueue !== "flex" &&
       (dayLpSolo?.gamesToday ?? 0) >= (dayLpFlex?.gamesToday ?? 0));
 
-  const queueLabel =
-    trackQueue === "solo"
-      ? "Solo/Duo"
-      : trackQueue === "flex"
-        ? "Flex"
-        : activeSolo
-          ? "Solo/Duo"
-          : "Flex";
+  const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
+  const syncHref = `/config`;
+  const primaryHref =
+    sessionEv?.label === "stop"
+      ? "/analise?tab=quando"
+      : sessionEv?.label === "caution"
+        ? "/analise?tab=quando"
+        : "/coach";
+  const primaryLabel =
+    sessionEv?.label === "stop"
+      ? "Ver padrões"
+      : sessionEv?.label === "caution"
+        ? "Revisar horário"
+        : "Abrir Coach";
 
   return (
     <div className="space-y-4 pb-8">
-      <div>
-        <p className="data-label">Decisão do dia</p>
-        <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
-          Rodada de decisão
-        </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Placar Solo/Flex, pick ranked, pool por lane e o que avaliar em
-          normais · acompanhando {queueLabel}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <Image
+            src={profileIconUrl(ddragonVersion, profileIconId ?? 29)}
+            alt=""
+            width={48}
+            height={48}
+            className="rounded-[var(--radius)] ring-1 ring-[var(--border)]"
+          />
+          <div className="min-w-0">
+            <p className="data-label">Hoje</p>
+            <h1 className="truncate text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+              {gameName}
+              <span className="font-medium text-[var(--alttab)]">#{tagLine}</span>
+            </h1>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
+              {platform.toUpperCase()} ·{" "}
+              {ROLE_LABELS[preferredRole] ?? preferredRole}
+            </p>
+          </div>
+        </div>
+        <QueueTrackSwitch current={trackQueue} />
       </div>
 
-      <PrepSubnav alertCount={alertCount} />
+      <SessionFlowStrip />
 
       {sessionEv ? (
         <Panel
-          className={`px-4 py-3 ${
+          strong
+          className={`space-y-3 px-4 py-4 ${
             sessionEv.label === "stop"
               ? "border-[var(--danger)]/30 bg-[var(--danger)]/10"
               : sessionEv.label === "go"
@@ -185,20 +216,42 @@ export function DecisionRoundupView({
                 : "border-[var(--warn)]/30 bg-[var(--warn)]/10"
           }`}
         >
-          <p className="data-label">Fila agora</p>
-          <p className="mt-1 text-base font-semibold text-[var(--foreground)]">
-            {sessionEv.verb}
-          </p>
-          <p className="mt-0.5 text-sm text-[var(--muted-strong)]">
-            {[sessionEv.detail, ...sessionEv.reasons.slice(0, 2)]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+          <div>
+            <p className="data-label">1 · Decisão da fila</p>
+            <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+              {sessionEv.verb}
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted-strong)]">
+              {[sessionEv.detail, ...sessionEv.reasons.slice(0, 2)]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button href={primaryHref} size="sm">
+              {primaryLabel}
+            </Button>
+            <Button href={syncHref} variant="ghost" size="sm">
+              Sync / Config
+            </Button>
+          </div>
         </Panel>
-      ) : null}
+      ) : (
+        <Panel strong className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+          <div>
+            <p className="data-label">1 · Decisão da fila</p>
+            <p className="mt-1 text-sm text-[var(--muted-strong)]">
+              Sem sinal ainda — sincronize o histórico se estiver vazio.
+            </p>
+          </div>
+          <Button href="/coach" size="sm">
+            Abrir Coach
+          </Button>
+        </Panel>
+      )}
 
       <section className="space-y-2">
-        <p className="data-label">Placar do dia</p>
+        <p className="data-label">2 · Placar do dia</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <QueueScorecard
             summary={dayLpSolo}
@@ -213,30 +266,17 @@ export function DecisionRoundupView({
             emphasize={
               trackQueue === "flex" ||
               (trackQueue !== "solo" &&
-                (dayLpFlex?.queueType === FLEX_QUEUE && !activeSolo))
+                dayLpFlex?.queueType === FLEX_QUEUE &&
+                !activeSolo)
             }
           />
         </div>
       </section>
 
-      {dayGoal ? <DayGoalCard goal={dayGoal} sessionEv={sessionEv} /> : null}
-
-      <section className="space-y-2">
-        <p className="data-label">Comentários</p>
-        <CoachNotesPanel
-          initial={{
-            dailyNote: notes.dailyNote,
-            generalNote: notes.generalNote,
-            dailyStale: notes.dailyStale,
-            todayKey: notes.todayKey,
-          }}
-        />
-      </section>
-
       <section>
         <Panel strong className="space-y-3 p-4">
           <div>
-            <p className="data-label">Recomendação ranked</p>
+            <p className="data-label">3 · Pick ranked</p>
             <h2 className="mt-0.5 text-base font-semibold text-[var(--foreground)]">
               O que jogar agora
             </h2>
@@ -271,20 +311,23 @@ export function DecisionRoundupView({
                   </p>
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button href="/coach" size="sm">
-                  Abrir Coach
-                </Button>
-                <Button href="/builds" variant="secondary" size="sm">
-                  Builds
-                </Button>
-              </div>
+              <Button href="/coach" size="sm">
+                Ir para o Coach
+              </Button>
             </div>
           ) : (
             <p className="text-sm text-[var(--muted)]">
               Sem pick contextual ainda — sincronize mais partidas em Config.
             </p>
           )}
+          {dayGoal ? (
+            <p className="border-t border-[var(--border)] pt-3 text-sm text-[var(--muted-strong)]">
+              Meta: {dayGoalVerb(dayGoal)}
+              {dayGoal.delta != null
+                ? ` · agora ${dayGoal.delta > 0 ? "+" : ""}${dayGoal.delta}`
+                : ""}
+            </p>
+          ) : null}
         </Panel>
       </section>
 
@@ -297,9 +340,9 @@ export function DecisionRoundupView({
         preferredRole={preferredRole}
         featuredId={poolFeaturedId}
         onFeature={setPoolFeaturedId}
-        champHref="/ranking"
-        rankingHref="/ranking"
-        statsHref="/estatisticas"
+        champHref="/analise?tab=ranking"
+        rankingHref="/analise?tab=ranking"
+        statsHref="/analise?tab=stats"
         coachHref="/coach"
       />
 
@@ -311,13 +354,44 @@ export function DecisionRoundupView({
 
       {practiceCandidates.length === 0 ? (
         <Panel className="px-4 py-3">
-          <p className="data-label">Normal para avaliação</p>
+          <p className="data-label">Normais para avaliar</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Nenhum champ marcado para treino agora — o pool ranked está ok ou a
-            amostra ainda é pequena.
+            Nenhum champ marcado para treino agora.
           </p>
         </Panel>
       ) : null}
+
+      <section className="space-y-2">
+        <p className="data-label">Comentários</p>
+        <CoachNotesPanel
+          initial={{
+            dailyNote: notes.dailyNote,
+            generalNote: notes.generalNote,
+            dailyStale: notes.dailyStale,
+            todayKey: notes.todayKey,
+          }}
+        />
+      </section>
+
+      <Panel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p className="data-label">Quando jogar</p>
+          <p className="mt-1 text-sm text-[var(--muted-strong)]">
+            {bestWindow
+              ? `Melhor janela: ${bestWindow}`
+              : "Ainda sem janela clara no histórico"}
+            {alertCount > 0 ? ` · ${alertCount} alerta(s)` : ""}
+          </p>
+        </div>
+        <Button href="/analise?tab=quando" variant="secondary" size="sm">
+          Ver padrões →
+        </Button>
+      </Panel>
+
+      <p className="text-center text-[11px] text-[var(--muted)]">
+        Sync de partidas em Config · amostra {analysis.analyzedGames}j · até{" "}
+        {matchCount}
+      </p>
     </div>
   );
 }

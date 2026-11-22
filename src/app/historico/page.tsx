@@ -1,6 +1,6 @@
 import { MatchHistoryPanel } from "@/components/MatchHistoryPanel";
 import { PrepGate } from "@/components/PrepGate";
-import { PrepSubnav } from "@/components/PrepSubnav";
+import { SessionFlowStrip } from "@/components/SessionFlowStrip";
 import { loadPrepContext } from "@/lib/prep/loadPrepContext";
 
 export default async function HistoricoPage() {
@@ -16,22 +16,19 @@ export default async function HistoricoPage() {
     );
   }
 
-  const alertCount = ctx.analysis.temporal?.alerts?.length ?? 0;
-
   return (
     <div className="space-y-3 pb-8">
       <div>
-        <p className="data-label">Sua conta</p>
+        <p className="data-label">Revisar</p>
         <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
           Histórico
         </h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Partidas recentes com ΔPDL por partida (snapshot ou estimativa) na
-          fila acompanhada.
+          Partidas recentes com ΔPDL — feche a sessão e planeje a próxima.
         </p>
       </div>
 
-      <PrepSubnav alertCount={alertCount} />
+      <SessionFlowStrip />
 
       <MatchHistoryPanel
         matches={ctx.matchHistory}

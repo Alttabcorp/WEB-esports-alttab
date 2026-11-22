@@ -12,7 +12,6 @@ import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { ChampionDetailPanel } from "./ChampionDetailPanel";
 import { ChampionIcon } from "./ChampionIcon";
 import { ConfidenceBadge } from "./ConfidenceBadge";
-import { PrepSubnav } from "./PrepSubnav";
 import { Button, Panel } from "@/components/ui";
 
 const PAGE_SIZE = 12;
@@ -37,6 +36,8 @@ type Props = {
   lpInsights?: MatchLpInsights | null;
   alertCount?: number;
   initialChampionId?: number | null;
+  /** Sem título/subnav — usado dentro de /analise. */
+  embedded?: boolean;
 };
 
 export function RankingExplorer({
@@ -50,6 +51,7 @@ export function RankingExplorer({
   lpInsights = null,
   alertCount = 0,
   initialChampionId = null,
+  embedded = false,
 }: Props) {
   const searchParams = useSearchParams();
   const champFromUrl = Number(searchParams.get("champ"));
@@ -106,18 +108,18 @@ export function RankingExplorer({
   }
 
   return (
-    <div className="space-y-3 pb-8">
-      <div>
-        <p className="data-label">Preparar</p>
-        <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
-          Ranking
-        </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {filtered.length} campeões · clique para ver suas estatísticas ao lado.
-        </p>
-      </div>
-
-      <PrepSubnav alertCount={alertCount} />
+    <div className={`space-y-3 ${embedded ? "" : "pb-8"}`}>
+      {embedded ? null : (
+        <div>
+          <p className="data-label">Análise</p>
+          <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+            Ranking
+          </h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {filtered.length} campeões · clique para ver estatísticas ao lado.
+          </p>
+        </div>
+      )}
 
       <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <Panel className="min-w-0 space-y-3 self-start p-3 sm:p-4 lg:sticky lg:top-2">

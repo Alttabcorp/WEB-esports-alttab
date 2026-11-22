@@ -17,7 +17,6 @@ function linkClass(active: boolean, emphasize = false) {
   return "inline-flex min-h-9 items-center border-b-2 border-transparent px-2.5 py-1.5 text-[var(--muted-strong)] hover:text-[var(--foreground)]";
 }
 
-/** Link que vira texto quando já está ativo — evita soft-nav + loading.tsx. */
 function NavItem({
   href,
   active,
@@ -43,32 +42,28 @@ function NavItem({
   );
 }
 
-const PREP_PREFIXES = [
-  "/preparar",
-  "/ranking",
-  "/campeao",
-  "/historico",
-  "/summoner",
-];
-
 export function MainNav({ hasProfile }: Props) {
   const pathname = usePathname();
-  const onCoach = pathname === "/coach";
-  const onConfig = pathname === "/config";
-  const onStats = pathname.startsWith("/estatisticas");
+  const onCoach = pathname === "/coach" || pathname.startsWith("/coach/");
+  const onConfig = pathname === "/config" || pathname.startsWith("/config/");
+  const onHistorico =
+    pathname === "/historico" || pathname.startsWith("/historico/");
+  const onAnalise =
+    pathname === "/analise" ||
+    pathname.startsWith("/analise/") ||
+    pathname === "/ranking" ||
+    pathname.startsWith("/ranking/") ||
+    pathname.startsWith("/estatisticas") ||
+    pathname === "/timing" ||
+    pathname.startsWith("/timing/") ||
+    pathname.startsWith("/campeao");
   const onBuilds = pathname.startsWith("/builds");
-  const onRanking = pathname === "/ranking";
-  const onTiming = pathname === "/timing";
-  const onRodada = pathname === "/rodada" || pathname.startsWith("/rodada/");
-  const onHistorico = pathname === "/historico" || pathname.startsWith("/historico/");
-  const prepActive =
-    !onRanking &&
-    !onTiming &&
-    !onBuilds &&
-    !onHistorico &&
-    !onRodada &&
-    PREP_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-  const homeActive = pathname === "/";
+  const onHoje =
+    pathname === "/" ||
+    pathname === "/rodada" ||
+    pathname.startsWith("/rodada/") ||
+    pathname === "/preparar" ||
+    pathname.startsWith("/preparar/");
 
   if (!hasProfile) {
     return (
@@ -85,32 +80,20 @@ export function MainNav({ hasProfile }: Props) {
       aria-label="Principal"
       className="flex flex-wrap items-center justify-end gap-1 text-sm"
     >
-      <NavItem href="/" active={homeActive}>
-        Hub
+      <NavItem href="/" active={onHoje && !onCoach && !onHistorico && !onAnalise}>
+        Hoje
       </NavItem>
-      <NavItem href="/rodada" active={onRodada}>
-        Rodada
-      </NavItem>
-      <NavItem href="/preparar" active={prepActive}>
-        Preparar
-      </NavItem>
-      <NavItem href="/timing" active={onTiming}>
-        Quando
+      <NavItem href="/coach" active={onCoach} emphasize={!onCoach}>
+        Coach
       </NavItem>
       <NavItem href="/historico" active={onHistorico}>
         Histórico
       </NavItem>
-      <NavItem href="/ranking" active={onRanking}>
-        Ranking
-      </NavItem>
-      <NavItem href="/estatisticas" active={onStats}>
-        Estatísticas
+      <NavItem href="/analise" active={onAnalise}>
+        Análise
       </NavItem>
       <NavItem href="/builds" active={onBuilds}>
         Builds
-      </NavItem>
-      <NavItem href="/coach" active={onCoach} emphasize={!onCoach}>
-        Coach
       </NavItem>
       <NavItem href="/config" active={onConfig}>
         Config

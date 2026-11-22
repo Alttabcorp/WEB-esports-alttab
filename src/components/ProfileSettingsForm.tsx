@@ -104,7 +104,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
         );
         router.refresh();
         if (data.profile) {
-          router.push("/preparar");
+          router.push("/");
         }
       } catch {
         setError("Erro de rede");
