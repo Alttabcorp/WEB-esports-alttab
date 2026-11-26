@@ -227,9 +227,14 @@ export function recommendDraftPicks(
   const limit = options.limit ?? 5;
   const minGames = options.minGames ?? MIN_SAMPLE_FOR_RECOMMENDATION;
   const role = board.role;
-  const banned = new Set(board.bannedChampionIds ?? []);
   const enemies = board.enemyChampionIds;
   const allies = board.allyChampionIds ?? [];
+  /** Já no board: bans + picks inimigos + picks aliados — não sugerir de novo. */
+  const unavailable = new Set<number>(
+    [...(board.bannedChampionIds ?? []), ...enemies, ...allies].filter(
+      (id) => id > 0,
+    ),
+  );
 
   if (role === "UNKNOWN") {
     return { role, recommendations: [] };
@@ -238,7 +243,7 @@ export function recommendDraftPicks(
   const recommendations: DraftRecommendation[] = [];
 
   for (const champion of analysis.champions) {
-    if (banned.has(champion.championId)) continue;
+    if (unavailable.has(champion.championId)) continue;
 
     const roleStat = roleProxyStat(champion, role);
     const effectiveGames = roleStat?.games ?? 0;

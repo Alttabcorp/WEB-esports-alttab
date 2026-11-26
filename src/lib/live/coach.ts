@@ -77,7 +77,10 @@ export type LiveCoachTips = {
 const MIN_LANER_SAMPLE = 2;
 /** Plano: amostra mínima ~3 jogos vs composição soft. */
 const MIN_COMP_SAMPLE = 3;
+/** Soft: overlap ≥2 com amostra menor, ou overlap=1 com amostra ≥3. */
+const MIN_COMP_SAMPLE_SOFT = 2;
 const MIN_COMP_OVERLAP = 2;
+const MIN_COMP_OVERLAP_SOFT = 1;
 
 export type LiveGamePayload = {
   inGame: boolean;
@@ -393,8 +396,45 @@ function topBuildFromMap(
   };
 }
 
+type BuildBucket = { items: number[]; games: number; wins: number };
+type CompBucket = BuildBucket & { overlap: number };
+
+function bumpBuild(
+  map: Map<string, BuildBucket>,
+  fp: string,
+  items: number[],
+  win: boolean,
+) {
+  if (!map.has(fp)) map.set(fp, { items, games: 0, wins: 0 });
+  const b = map.get(fp)!;
+  b.games += 1;
+  if (win) b.wins += 1;
+}
+
+function bumpComp(
+  map: Map<string, CompBucket>,
+  fp: string,
+  items: number[],
+  win: boolean,
+  overlap: number,
+) {
+  if (!map.has(fp)) map.set(fp, { items, games: 0, wins: 0, overlap });
+  const b = map.get(fp)!;
+  b.games += 1;
+  if (win) b.wins += 1;
+  b.overlap = Math.max(b.overlap, overlap);
+}
+
+function bestCompEntry(map: Map<string, CompBucket>) {
+  return [...map.entries()].sort(
+    (a, b) => b[1].games - a[1].games || b[1].overlap - a[1].overlap,
+  )[0];
+}
+
 /**
- * Builds contextuais vs laner e vs composição (overlap soft ≥2 inimigos).
+ * Builds contextuais vs laner e vs composição, com cascata de fallback:
+ * laner same-role → vs champ any-role → pessoal;
+ * comp overlap≥2 forte → soft (≥2 c/ 2j ou overlap=1 c/ 3j) → pessoal.
  */
 export async function buildAdaptTips(
   puuid: string,
@@ -419,14 +459,11 @@ export async function buildAdaptTips(
   });
 
   const uniqueEnemies = [...new Set(enemyChampionIds.filter((id) => id > 0))];
-  const lanerBuilds = new Map<
-    string,
-    { items: number[]; games: number; wins: number }
-  >();
-  const compBuilds = new Map<
-    string,
-    { items: number[]; games: number; wins: number; overlap: number }
-  >();
+  const lanerBuilds = new Map<string, BuildBucket>();
+  const anyRoleVsChamp = new Map<string, BuildBucket>();
+  const personalBuilds = new Map<string, BuildBucket>();
+  const compStrong = new Map<string, CompBucket>();
+  const compSoft = new Map<string, CompBucket>();
   let bestCompOverlap = 0;
 
   for (const match of matches) {
@@ -448,72 +485,135 @@ export async function buildAdaptTips(
     const fp = buildFingerprint(items);
     if (fp === "empty") continue;
 
+    bumpBuild(personalBuilds, fp, items, me.win);
+
     if (enemyLanerId != null && enemyLanerId > 0) {
-      const enemy = enemyParts.find(
+      const onLane = enemyParts.find(
         (p) =>
           p.championId === enemyLanerId &&
           normalizeRole(p.teamPosition, p.individualPosition) === myRole,
       );
-      if (enemy) {
-        if (!lanerBuilds.has(fp)) {
-          lanerBuilds.set(fp, { items, games: 0, wins: 0 });
-        }
-        const b = lanerBuilds.get(fp)!;
-        b.games += 1;
-        if (me.win) b.wins += 1;
-      }
+      if (onLane) bumpBuild(lanerBuilds, fp, items, me.win);
+
+      const anyRole = enemyParts.some((p) => p.championId === enemyLanerId);
+      if (anyRole) bumpBuild(anyRoleVsChamp, fp, items, me.win);
     }
 
-    if (uniqueEnemies.length >= MIN_COMP_OVERLAP) {
+    if (uniqueEnemies.length >= MIN_COMP_OVERLAP_SOFT) {
       const histEnemyIds = new Set(enemyParts.map((p) => p.championId));
       const overlap = uniqueEnemies.filter((id) => histEnemyIds.has(id)).length;
       if (overlap >= MIN_COMP_OVERLAP) {
-        if (!compBuilds.has(fp)) {
-          compBuilds.set(fp, { items, games: 0, wins: 0, overlap });
-        }
-        const b = compBuilds.get(fp)!;
-        b.games += 1;
-        if (me.win) b.wins += 1;
-        b.overlap = Math.max(b.overlap, overlap);
+        bumpComp(compStrong, fp, items, me.win, overlap);
+        bestCompOverlap = Math.max(bestCompOverlap, overlap);
+      } else if (overlap >= MIN_COMP_OVERLAP_SOFT) {
+        bumpComp(compSoft, fp, items, me.win, overlap);
         bestCompOverlap = Math.max(bestCompOverlap, overlap);
       }
     }
   }
 
+  const personalTop = topBuildFromMap(personalBuilds);
   const lanerTop = topBuildFromMap(lanerBuilds);
+  const anyRoleTop = topBuildFromMap(anyRoleVsChamp);
+
   let vsLanerBuild: AdaptBuildTip | null = null;
   if (lanerTop && lanerTop.games >= MIN_LANER_SAMPLE && enemyLanerId) {
     vsLanerBuild = {
       ...lanerTop,
       enemyChampionId: enemyLanerId,
+      sampleNote: "Mesma lane",
     };
-  } else if (enemyLanerId) {
+  } else if (
+    anyRoleTop &&
+    anyRoleTop.games >= MIN_LANER_SAMPLE &&
+    enemyLanerId
+  ) {
+    vsLanerBuild = {
+      ...anyRoleTop,
+      enemyChampionId: enemyLanerId,
+      sampleNote: "Vs este champ (fora da lane / amostra mista)",
+    };
     notes.push(
       lanerTop
-        ? `Só ${lanerTop.games} jogo(s) vs esse laner — amostra baixa.`
-        : "Sem build histórica vs esse laner na lane.",
+        ? `Só ${lanerTop.games} jogo(s) na mesma lane — usando histórico vs o champ em qualquer role.`
+        : "Sem amostra na mesma lane — usando histórico vs este champ em qualquer role.",
     );
+  } else if (personalTop && personalTop.games >= 1) {
+    vsLanerBuild = {
+      ...personalTop,
+      enemyChampionId: enemyLanerId ?? undefined,
+      sampleNote: enemyLanerId
+        ? "Ordem pessoal · sem histórico vs este laner"
+        : "Ordem pessoal",
+    };
+    if (enemyLanerId) {
+      notes.push("Sem build histórica vs esse laner na lane.");
+    }
+  } else if (enemyLanerId) {
+    notes.push("Sem build histórica vs esse laner na lane.");
   }
 
-  const compEntry = [...compBuilds.entries()].sort(
-    (a, b) => b[1].games - a[1].games || b[1].overlap - a[1].overlap,
-  )[0];
+  const strongEntry = bestCompEntry(compStrong);
+  const softEntry = bestCompEntry(compSoft);
   let vsCompBuild: AdaptBuildTip | null = null;
-  if (compEntry && compEntry[1].games >= MIN_COMP_SAMPLE) {
+
+  if (strongEntry && strongEntry[1].games >= MIN_COMP_SAMPLE) {
     vsCompBuild = {
-      items: compEntry[1].items,
-      games: compEntry[1].games,
-      wins: compEntry[1].wins,
-      wr: winRate(compEntry[1].wins, compEntry[1].games),
+      items: strongEntry[1].items,
+      games: strongEntry[1].games,
+      wins: strongEntry[1].wins,
+      wr: winRate(strongEntry[1].wins, strongEntry[1].games),
       enemyChampionIds: uniqueEnemies,
       overlap: bestCompOverlap,
       sampleNote: `Overlap ${bestCompOverlap} inimigos`,
     };
+  } else if (
+    strongEntry &&
+    strongEntry[1].games >= MIN_COMP_SAMPLE_SOFT
+  ) {
+    vsCompBuild = {
+      items: strongEntry[1].items,
+      games: strongEntry[1].games,
+      wins: strongEntry[1].wins,
+      wr: winRate(strongEntry[1].wins, strongEntry[1].games),
+      enemyChampionIds: uniqueEnemies,
+      overlap: bestCompOverlap,
+      sampleNote: `Amostra baixa · overlap ${strongEntry[1].overlap}`,
+    };
+    notes.push(
+      `Poucos jogos com overlap ≥${MIN_COMP_OVERLAP} (${strongEntry[1].games}) — confiança baixa.`,
+    );
+  } else if (
+    softEntry &&
+    softEntry[1].games >= MIN_COMP_SAMPLE
+  ) {
+    vsCompBuild = {
+      items: softEntry[1].items,
+      games: softEntry[1].games,
+      wins: softEntry[1].wins,
+      wr: winRate(softEntry[1].wins, softEntry[1].games),
+      enemyChampionIds: uniqueEnemies,
+      overlap: softEntry[1].overlap,
+      sampleNote: `Overlap parcial (${softEntry[1].overlap} inimigo)`,
+    };
+    notes.push("Overlap parcial de composição — confiança baixa.");
+  } else if (personalTop && personalTop.games >= 1) {
+    vsCompBuild = {
+      ...personalTop,
+      enemyChampionIds: uniqueEnemies,
+      overlap: bestCompOverlap || undefined,
+      sampleNote: "Ordem pessoal · sem overlap desta comp",
+    };
+    if (uniqueEnemies.length >= MIN_COMP_OVERLAP) {
+      notes.push(
+        strongEntry
+          ? `Poucos jogos com overlap ≥${MIN_COMP_OVERLAP} (${strongEntry[1].games}).`
+          : `Sem partidas com ≥${MIN_COMP_OVERLAP} inimigos em comum nesta composição.`,
+      );
+    }
   } else if (uniqueEnemies.length >= MIN_COMP_OVERLAP) {
     notes.push(
-      compEntry
-        ? `Poucos jogos com overlap ≥${MIN_COMP_OVERLAP} (${compEntry[1].games}).`
-        : `Sem partidas com ≥${MIN_COMP_OVERLAP} inimigos em comum nesta comp.`,
+      `Sem partidas com ≥${MIN_COMP_OVERLAP} inimigos em comum nesta composição.`,
     );
   }
 

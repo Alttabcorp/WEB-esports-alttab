@@ -54,13 +54,22 @@ export function AnaliseTabs({ ranking, stats, quando }: Props) {
             </button>
           );
         })}
-        <Link
-          href="/"
-          className="ml-auto inline-flex min-h-9 items-center px-2 text-sm text-[var(--alttab)] hover:underline"
-          prefetch={false}
-        >
-          ← Hoje
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/coach"
+            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--muted-strong)] hover:text-[var(--alttab)]"
+            prefetch={false}
+          >
+            Coach
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--alttab)] hover:underline"
+            prefetch={false}
+          >
+            ← Hoje
+          </Link>
+        </div>
       </div>
 
       <div className={tab === "ranking" ? "block" : "hidden"}>{ranking}</div>

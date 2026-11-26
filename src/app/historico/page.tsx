@@ -1,5 +1,6 @@
 import { MatchHistoryPanel } from "@/components/MatchHistoryPanel";
 import { PrepGate } from "@/components/PrepGate";
+import { Button } from "@/components/ui";
 import { loadPrepContext } from "@/lib/prep/loadPrepContext";
 
 export default async function HistoricoPage() {
@@ -31,6 +32,15 @@ export default async function HistoricoPage() {
         ddragonVersion={ctx.ddragonVersion}
         idToKey={ctx.idToKey}
       />
+
+      <div className="flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+        <Button href="/" size="sm">
+          Abrir Hoje
+        </Button>
+        <Button href="/coach" variant="secondary" size="sm">
+          Coach
+        </Button>
+      </div>
     </div>
   );
 }

@@ -162,7 +162,14 @@ export function DraftCoach({
           }
           if (data.sessionId) setSessionId(data.sessionId);
           if (data.draft?.recommendations) {
-            setRecs(data.draft.recommendations);
+            const boardTaken = new Set(
+              [...enemyIds, ...allyIds, ...banIds].filter((id) => id > 0),
+            );
+            setRecs(
+              data.draft.recommendations.filter(
+                (r) => !boardTaken.has(r.championId),
+              ),
+            );
           }
           if (opts?.confirmPick) setMyPick(opts.confirmPick);
         } catch {

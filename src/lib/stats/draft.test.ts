@@ -450,4 +450,87 @@ describe("recommendDraftPicks", () => {
 
     expect(result.recommendations).toHaveLength(0);
   });
+
+  it("excludes enemy and ally picks already on the board", () => {
+    const annie = emptyRanked({
+      championId: 1,
+      championName: "Annie",
+      games: 20,
+      wins: 14,
+      wr: 0.7,
+      wilsonLower: 0.55,
+      matchups: [
+        {
+          myChampionId: 1,
+          enemyChampionId: 238,
+          enemyChampionName: "Zed",
+          role: "MIDDLE",
+          games: 10,
+          wins: 7,
+          kills: 0,
+          deaths: 0,
+          assists: 0,
+          damage: 0,
+          cs: 0,
+          vision: 0,
+          durationSec: 0,
+          wr: 0.7,
+          wilsonLower: 0.5,
+          lift: 0.1,
+          confidence: "medium",
+          kda: 0,
+          csPerMin: 0,
+          avgDamage: 0,
+        },
+      ],
+    });
+    const ahri = emptyRanked({
+      championId: 103,
+      championName: "Ahri",
+      games: 12,
+      wins: 7,
+      wr: 0.58,
+      wilsonLower: 0.4,
+      matchups: [
+        {
+          myChampionId: 103,
+          enemyChampionId: 238,
+          enemyChampionName: "Zed",
+          role: "MIDDLE",
+          games: 8,
+          wins: 4,
+          kills: 0,
+          deaths: 0,
+          assists: 0,
+          damage: 0,
+          cs: 0,
+          vision: 0,
+          durationSec: 0,
+          wr: 0.5,
+          wilsonLower: 0.35,
+          lift: 0,
+          confidence: "medium",
+          kda: 0,
+          csPerMin: 0,
+          avgDamage: 0,
+        },
+      ],
+    });
+
+    const stolen = recommendDraftPicks(baseAnalysis([annie, ahri]), {
+      role: "MIDDLE",
+      enemyChampionIds: [1],
+      allyChampionIds: [],
+      bannedChampionIds: [],
+    });
+    expect(stolen.recommendations.map((r) => r.championId)).toEqual([103]);
+
+    const allyTook = recommendDraftPicks(baseAnalysis([annie, ahri]), {
+      role: "MIDDLE",
+      enemyChampionIds: [],
+      allyChampionIds: [1],
+      bannedChampionIds: [],
+    });
+    expect(allyTook.recommendations.map((r) => r.championId)).toEqual([103]);
+  });
 });

@@ -146,7 +146,7 @@ export function MatchCoachScreen({
   prepHref = "/",
   timingHref,
 }: Props) {
-  const whenHref = timingHref ?? `${prepHref}${prepHref.includes("?") ? "&" : "?"}tab=timing`;
+  const whenHref = timingHref ?? "/analise?tab=quando";
   const [lcd, setLcd] = useState<LiveClientSnapshot | null>(null);
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [live, setLive] = useState<LiveGamePayload | null>(null);
@@ -405,14 +405,46 @@ export function MatchCoachScreen({
   }, [myChampionId]);
 
   const draftRole = (lcd?.draft?.myPosition || preferredRole) as RoleKey;
-  const lockedChampId = lcd?.draft?.myChampionId ?? null;
-  const topRec =
-    (lockedChampId
-      ? recs.find((r) => r.championId === lockedChampId)
-      : null) ??
-    recs[0] ??
-    null;
+  const lockedChampId =
+    lcd?.draft?.myChampionId && lcd.draft.myChampionId > 0
+      ? lcd.draft.myChampionId
+      : null;
+
+  const draftTaken = useMemo(() => {
+    const d = lcd?.draft;
+    if (!d) return new Set<number>();
+    return new Set(
+      [
+        ...d.bans,
+        ...d.enemies.map((e) => e.championId),
+        ...d.allies.filter((a) => !a.isMe).map((a) => a.championId),
+      ].filter((id) => id > 0),
+    );
+  }, [lcd?.draft]);
+
+  const availableRecs = useMemo(
+    () => recs.filter((r) => !draftTaken.has(r.championId)),
+    [recs, draftTaken],
+  );
+
+  const rawTopId = recs[0]?.championId ?? null;
+  const stolenTop =
+    !lockedChampId &&
+    rawTopId != null &&
+    draftTaken.has(rawTopId) &&
+    availableRecs[0] != null;
+
+  const lockedRec = lockedChampId
+    ? (recs.find((r) => r.championId === lockedChampId) ??
+      availableRecs.find((r) => r.championId === lockedChampId) ??
+      null)
+    : null;
+
+  const topRec = lockedChampId
+    ? lockedRec
+    : (availableRecs[0] ?? null);
   const draftRune = topRec?.topRune ?? null;
+  const heroChampId = lockedChampId ?? topRec?.championId ?? null;
   const mySide = lcd?.players.find((x) => x.isMe)?.team;
   const myTeam = mySide
     ? (lcd?.players ?? []).filter((p) => p.team === mySide)
@@ -422,13 +454,26 @@ export function MatchCoachScreen({
     : [];
 
   const enemyLanerId = useMemo(() => {
-    if (live?.enemyLaner?.championId) return live.enemyLaner.championId;
+    // Prefer LCD draft role match (Spectator laner é frágil: enemies[0]).
     const role = (lcd?.draft?.myPosition || preferredRole) as RoleKey;
     const draftEnemy = lcd?.draft?.enemies.find(
-      (e) => (e.position || "").toUpperCase() === role,
+      (e) =>
+        e.championId > 0 &&
+        (e.position || "").toUpperCase() === role.toUpperCase(),
     );
     if (draftEnemy?.championId) return draftEnemy.championId;
-    // fallback: first enemy with items / first enemy
+
+    const liveLaner = enemyTeam.find((p) => {
+      const id = champIdFromName(p.championName);
+      return (
+        id > 0 &&
+        live?.enemyLaner?.championId != null &&
+        id === live.enemyLaner.championId
+      );
+    });
+    if (liveLaner) return champIdFromName(liveLaner.championName);
+
+    if (live?.enemyLaner?.championId) return live.enemyLaner.championId;
     if (enemyTeam[0]) return champIdFromName(enemyTeam[0].championName);
     return null;
   }, [
@@ -581,7 +626,7 @@ export function MatchCoachScreen({
             ]
           : [
               {
-                label: "Abrir Preparar",
+                label: "Abrir Hoje",
                 href: prepHref,
                 kind: "primary" as const,
               },
@@ -594,8 +639,8 @@ export function MatchCoachScreen({
   }, [idleAdvice, prepHref, whenHref]);
 
   const dodgeAdvice = useMemo(
-    () => (uiPhase === "draft" ? evaluateDodgeAdvice(recs) : null),
-    [uiPhase, recs],
+    () => (uiPhase === "draft" ? evaluateDodgeAdvice(availableRecs) : null),
+    [uiPhase, availableRecs],
   );
 
   const draftDecision = useMemo(() => {
@@ -847,18 +892,26 @@ export function MatchCoachScreen({
                 <DecisionCard decision={draftDecision} />
               ) : null}
 
-              {topRec ? (
+              {heroChampId ? (
                 <section className="rounded-[var(--radius)] border border-[var(--border-strong)] bg-[var(--surface)] p-5 shadow-[var(--shadow-sm)] sm:p-7">
                   <p className="data-label">
-                    {lockedChampId === topRec.championId
+                    {lockedChampId
                       ? "Seu pick · runas"
-                      : "Pick sugerido"}{" "}
+                      : stolenTop
+                        ? "Próximo pick"
+                        : "Pick sugerido"}{" "}
                     · {ROLE_LABELS[draftRole] ?? draftRole}
                   </p>
+                  {stolenTop && rawTopId ? (
+                    <p className="mt-1 text-xs text-[var(--warn)]">
+                      {champName(rawTopId) || `#${rawTopId}`} indisponível —
+                      pickado no board. Sugerindo o próximo.
+                    </p>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap items-center gap-4">
                     <ChampionIcon
                       ddragonVersion={ddragonVersion}
-                      championId={topRec.championId}
+                      championId={heroChampId}
                       idToKey={idToKey}
                       keyToId={keyToId}
                       width={72}
@@ -868,19 +921,34 @@ export function MatchCoachScreen({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-2xl font-semibold text-[var(--foreground)] sm:text-3xl">
-                          {champName(topRec.championId)}
+                          {champName(heroChampId)}
                         </h2>
-                        <ConfidenceBadge level={topRec.confidence} />
+                        {topRec ? (
+                          <ConfidenceBadge level={topRec.confidence} />
+                        ) : lockedChampId ? (
+                          <span className="rounded-[var(--radius)] bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                            Lockado
+                          </span>
+                        ) : null}
                       </div>
-                      <p className="mt-1 text-sm text-[var(--muted-strong)]">
-                        {pct(topRec.wrInRole)} WR · {topRec.gamesInRole} jogos
-                        na lane
-                      </p>
-                      <ul className="mt-2 space-y-1 text-sm text-[var(--foreground)]">
-                        {topRec.reasons.slice(0, 3).map((r) => (
-                          <li key={r}>· {r}</li>
-                        ))}
-                      </ul>
+                      {topRec ? (
+                        <>
+                          <p className="mt-1 text-sm text-[var(--muted-strong)]">
+                            {pct(topRec.wrInRole)} WR · {topRec.gamesInRole}{" "}
+                            jogos na lane
+                          </p>
+                          <ul className="mt-2 space-y-1 text-sm text-[var(--foreground)]">
+                            {topRec.reasons.slice(0, 3).map((r) => (
+                              <li key={r}>· {r}</li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="mt-1 text-sm text-[var(--muted-strong)]">
+                          Champ lockado — runas/contexto entram quando houver
+                          amostra na lane.
+                        </p>
+                      )}
                     </div>
                     {recsPending ? (
                       <span className="ml-auto text-xs text-[var(--alttab)]">
@@ -1005,13 +1073,18 @@ export function MatchCoachScreen({
                     Alternativas
                   </h3>
                   <ul className="mt-3 space-y-2">
-                    {recs.slice(1, 4).map((r, i) => (
+                    {(lockedChampId
+                      ? availableRecs.filter((r) => r.championId !== lockedChampId)
+                      : availableRecs.slice(1)
+                    )
+                      .slice(0, 3)
+                      .map((r, i) => (
                       <li
                         key={r.championId}
                         className="flex items-center gap-3 rounded-[var(--radius)] bg-[var(--surface-2)] px-3 py-2"
                       >
                         <span className="w-5 text-sm font-bold text-[var(--alttab)]">
-                          {i + 2}
+                          {i + 1}
                         </span>
                         <ChampionIcon
                           ddragonVersion={ddragonVersion}
@@ -1045,7 +1118,7 @@ export function MatchCoachScreen({
                         ) : null}
                       </li>
                     ))}
-                    {!recs.length ? (
+                    {!availableRecs.length ? (
                       <li className="text-sm text-[var(--muted)]">
                         Aguardando…
                       </li>
@@ -1275,53 +1348,105 @@ export function MatchCoachScreen({
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5">
               <h3 className="type-title text-base">Contra o laner</h3>
-              {adapt?.vsLanerBuild ? (
-                <div className="mt-3 space-y-2">
-                  {adapt.vsLanerBuild.enemyChampionId ? (
-                    <p className="text-sm text-[var(--muted-strong)]">
-                      Vs {champName(adapt.vsLanerBuild.enemyChampionId)}
+              {(() => {
+                const lanerTip =
+                  adapt?.vsLanerBuild ??
+                  tips?.vsLanerBuild ??
+                  (tips?.topBuild
+                    ? {
+                        ...tips.topBuild,
+                        enemyChampionId: enemyLanerId ?? undefined,
+                        sampleNote: "Ordem pessoal · sem histórico vs laner",
+                      }
+                    : null);
+                if (!lanerTip) {
+                  return (
+                    <p className="mt-3 text-sm text-[var(--muted)]">
+                      {adapt?.notes.find((n) =>
+                        n.toLowerCase().includes("laner"),
+                      ) ?? "Sincronize mais partidas em Config."}
                     </p>
-                  ) : null}
-                  <ItemRow
-                    items={adapt.vsLanerBuild.items}
-                    ddragonVersion={ddragonVersion}
-                    label="Build histórica"
-                    wr={adapt.vsLanerBuild.wr}
-                    games={adapt.vsLanerBuild.games}
-                  />
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-[var(--muted)]">
-                  {adapt?.notes.find((n) => n.toLowerCase().includes("laner")) ??
-                    "Sem amostra suficiente vs este laner."}
-                </p>
-              )}
+                  );
+                }
+                return (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm text-[var(--muted-strong)]">
+                      {lanerTip.enemyChampionId
+                        ? `Vs ${champName(lanerTip.enemyChampionId)}`
+                        : "Contexto de lane"}
+                      {lanerTip.sampleNote ? ` · ${lanerTip.sampleNote}` : ""}
+                    </p>
+                    <ItemRow
+                      items={lanerTip.items}
+                      ddragonVersion={ddragonVersion}
+                      label="Build"
+                      wr={lanerTip.wr}
+                      games={lanerTip.games}
+                    />
+                    {adapt?.notes
+                      .filter((n) => n.toLowerCase().includes("laner") || n.toLowerCase().includes("lane") || n.toLowerCase().includes("role"))
+                      .slice(0, 1)
+                      .map((n) => (
+                        <p key={n} className="text-xs text-[var(--muted)]">
+                          {n}
+                        </p>
+                      ))}
+                  </div>
+                );
+              })()}
             </section>
 
             <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5">
               <h3 className="type-title text-base">Contra esta comp</h3>
-              {adapt?.vsCompBuild ? (
-                <div className="mt-3 space-y-2">
-                  <p className="text-sm text-[var(--muted-strong)]">
-                    {adapt.vsCompBuild.sampleNote ??
-                      `Overlap ${adapt.vsCompBuild.overlap ?? "—"}`}
-                  </p>
-                  <ItemRow
-                    items={adapt.vsCompBuild.items}
-                    ddragonVersion={ddragonVersion}
-                    label="Build vs overlap"
-                    wr={adapt.vsCompBuild.wr}
-                    games={adapt.vsCompBuild.games}
-                  />
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-[var(--muted)]">
-                  {adapt?.notes.find((n) =>
-                    n.toLowerCase().includes("overlap"),
-                  ) ??
-                    "Sem partidas com ≥2 inimigos em comum nesta composição."}
-                </p>
-              )}
+              {(() => {
+                const compTip =
+                  adapt?.vsCompBuild ??
+                  tips?.vsCompBuild ??
+                  (tips?.topBuild
+                    ? {
+                        ...tips.topBuild,
+                        sampleNote: "Ordem pessoal · sem overlap desta comp",
+                      }
+                    : null);
+                if (!compTip) {
+                  return (
+                    <p className="mt-3 text-sm text-[var(--muted)]">
+                      {adapt?.notes.find((n) =>
+                        n.toLowerCase().includes("overlap"),
+                      ) ?? "Sincronize mais partidas em Config."}
+                    </p>
+                  );
+                }
+                return (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm text-[var(--muted-strong)]">
+                      {compTip.sampleNote ??
+                        (compTip.overlap != null
+                          ? `Overlap ${compTip.overlap}`
+                          : "Contexto de composição")}
+                    </p>
+                    <ItemRow
+                      items={compTip.items}
+                      ddragonVersion={ddragonVersion}
+                      label="Build"
+                      wr={compTip.wr}
+                      games={compTip.games}
+                    />
+                    {adapt?.notes
+                      .filter(
+                        (n) =>
+                          n.toLowerCase().includes("overlap") ||
+                          n.toLowerCase().includes("comp"),
+                      )
+                      .slice(0, 1)
+                      .map((n) => (
+                        <p key={n} className="text-xs text-[var(--muted)]">
+                          {n}
+                        </p>
+                      ))}
+                  </div>
+                );
+              })()}
             </section>
           </div>
 

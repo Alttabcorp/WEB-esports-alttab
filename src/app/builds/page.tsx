@@ -43,10 +43,27 @@ export default async function BuildsPage() {
           Builds
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          Cadastre várias builds por campeão. O Coach prioriza essas builds no
-          próximo item (e a versão “vs laner” quando bater o matchup).
+          Cadastre várias builds por campeão. O{" "}
+          <Link href="/coach" className="text-[var(--alttab)] hover:underline">
+            Coach
+          </Link>{" "}
+          prioriza essas builds no próximo item (e a versão “vs laner” quando
+          bater o matchup). Sem partidas syncadas, o contexto vs laner/comp fica
+          vazio — sincronize em{" "}
+          <Link href="/config" className="text-[var(--alttab)] hover:underline">
+            Config
+          </Link>
+          .
         </p>
       </div>
+
+      {builds.length === 0 ? (
+        <p className="rounded-[var(--radius)] border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted-strong)]">
+          Nenhuma build salva ainda. Cadastre a ordem de itens do seu pool — o
+          Coach usa no in-game, inclusive contra o laner quando você marcar o
+          inimigo.
+        </p>
+      ) : null}
 
       <SavedBuildsManager
         initialBuilds={builds}

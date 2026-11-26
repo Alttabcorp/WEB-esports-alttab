@@ -14,7 +14,7 @@ export default async function ConfigPage() {
           href="/"
           className="text-sm text-[var(--alttab-soft)] hover:underline"
         >
-          ← Início
+          ← Hoje
         </Link>
         <h1 className="mt-3 type-display text-3xl text-[var(--foreground)]">Configuração</h1>
         <p className="mt-2 type-body text-sm">
@@ -28,7 +28,7 @@ export default async function ConfigPage() {
             Builds
           </Button>
           <Button href="/" variant="ghost" size="sm">
-            Hub
+            Hoje
           </Button>
         </div>
       </div>

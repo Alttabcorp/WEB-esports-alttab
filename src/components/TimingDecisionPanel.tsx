@@ -61,7 +61,7 @@ function timingDecision(
         { label: "Abrir Coach", href: "/coach", kind: "primary" },
         {
           label: "Preparar pick",
-          href: prepHref ?? "/preparar",
+          href: prepHref ?? "/",
           kind: "secondary",
         },
       ],
@@ -88,7 +88,7 @@ function timingDecision(
               ]),
           {
             label: "Preparar pick",
-            href: prepHref ?? "/preparar",
+            href: prepHref ?? "/",
             kind: "ghost" as const,
           },
         ].filter(
@@ -105,7 +105,7 @@ function timingDecision(
           { label: "Abrir Coach", href: "/coach", kind: "primary" },
           {
             label: "Preparar pick",
-            href: prepHref ?? "/preparar",
+            href: prepHref ?? "/",
             kind: "secondary",
           },
         ],
@@ -119,7 +119,7 @@ function timingDecision(
         actions: [
           {
             label: "Preparar pick",
-            href: prepHref ?? "/preparar",
+            href: prepHref ?? "/",
             kind: "primary",
           },
         ],
@@ -246,7 +246,7 @@ export function TimingDecisionPanel({
   currentPatch = null,
   patchNote = null,
   prepHref = "/",
-  timingHref = "/timing",
+  timingHref = "/analise?tab=quando",
   practiceCandidates = [],
   ddragonVersion = "",
   idToKey = {},
