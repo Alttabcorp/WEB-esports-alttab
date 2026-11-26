@@ -18,6 +18,10 @@ import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
 import type { SessionEvResult } from "@/lib/stats/sessionEv";
 import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
+import {
+  goalAnchorLabel,
+  sortAlertsByPriority,
+} from "@/lib/stats/playerRhythm";
 import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { QueueTrackSwitch } from "./QueueTrackSwitch";
 import { StatsDecisionComments } from "./StatsDecisionComments";
@@ -183,16 +187,21 @@ export function DecisionRoundupView({
     (trackQueue !== "flex" &&
       (dayLpSolo?.gamesToday ?? 0) >= (dayLpFlex?.gamesToday ?? 0));
 
-  const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
+  const bestWindow = analysis.temporal?.bestPlayWindow ?? null;
+  const recentForm = analysis.temporal?.recentForm ?? null;
+  const topAlerts = sortAlertsByPriority(
+    analysis.temporal?.alerts ?? [],
+  ).slice(0, 3);
+  const goalAnchor = goalAnchorLabel(dayGoal);
   const primaryHref =
     sessionEv?.label === "stop" || sessionEv?.label === "caution"
-      ? "/analise?tab=quando"
+      ? "/quando"
       : "/coach";
   const primaryLabel =
     sessionEv?.label === "stop"
-      ? "Ver padrões"
+      ? "Abrir Quando"
       : sessionEv?.label === "caution"
-        ? "Revisar horário"
+        ? "Ver horário"
         : "Abrir Coach";
 
   return (
@@ -216,7 +225,7 @@ export function DecisionRoundupView({
             <p className="mt-0.5 text-xs text-[var(--muted)]">
               {platform.toUpperCase()} ·{" "}
               {ROLE_LABELS[preferredRole] ?? preferredRole}
-              {bestWindow ? ` · melhor ${bestWindow}` : ""}
+              {bestWindow ? ` · melhor ${bestWindow.label}` : ""}
             </p>
           </div>
         </div>
@@ -251,13 +260,104 @@ export function DecisionRoundupView({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button href={primaryHref}>{primaryLabel}</Button>
+          <Button href="/quando" variant="secondary">
+            Quando
+          </Button>
           <Button href="/config" variant="ghost">
             Sync
           </Button>
         </div>
       </Panel>
 
-      {/* Placar + pick lado a lado no desktop */}
+      {/* Avisos */}
+      <section className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">
+            Avisos
+          </h2>
+          <Button href="/quando" variant="ghost" size="sm">
+            Ver todos em Quando
+          </Button>
+        </div>
+        {topAlerts.length ? (
+          <ul className="space-y-2">
+            {topAlerts.map((a) => {
+              const tone =
+                a.severity === "warn"
+                  ? "border-[var(--warn)]/30 bg-[var(--warn)]/8"
+                  : a.severity === "good"
+                    ? "border-[var(--success)]/30 bg-[var(--success)]/8"
+                    : "border-[var(--border)] bg-[var(--surface-2)]";
+              return (
+                <li
+                  key={a.id}
+                  className={`rounded-[var(--radius)] border px-3 py-2.5 ${tone}`}
+                >
+                  <p className="text-sm font-semibold text-[var(--foreground)]">
+                    {a.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--muted-strong)]">
+                    {a.detail}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Sem avisos de padrão agora
+            {alertCount > 0 ? ` · ${alertCount} no histórico` : ""}.
+          </p>
+        )}
+      </section>
+
+      {/* Âncoras do jogador */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Panel className="space-y-1 p-3">
+          <p className="data-label">Melhor horário</p>
+          <p className="text-sm font-semibold text-[var(--foreground)]">
+            {bestWindow?.label ?? "Ainda sem bloco"}
+          </p>
+          <p className="text-xs text-[var(--muted)]">
+            {bestWindow
+              ? `${pct(bestWindow.wr)} WR · ${bestWindow.games}j`
+              : "Precisa de mais partidas"}
+          </p>
+        </Panel>
+        <Panel className="space-y-1 p-3">
+          <p className="data-label">Forma recente</p>
+          <p className="text-sm font-semibold text-[var(--foreground)]">
+            {recentForm ? pct(recentForm.wr) : "—"}
+          </p>
+          <p className="text-xs text-[var(--muted)]">
+            {recentForm
+              ? `${recentForm.games} jogos · ${pct(recentForm.lift)} vs média`
+              : "Sem amostra recente"}
+          </p>
+        </Panel>
+        <Panel className="space-y-1 p-3">
+          <p className="data-label">Meta PDL</p>
+          <p className="text-sm font-semibold text-[var(--foreground)]">
+            {goalAnchor.verb}
+          </p>
+          <p className="text-xs text-[var(--muted)]">
+            {goalAnchor.metric} · {goalAnchor.hint}
+          </p>
+        </Panel>
+      </div>
+
+      {/* Comentários estatísticos — logo após avisos/âncoras */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">
+          Por que essa decisão
+        </h2>
+        <StatsDecisionComments
+          daily={comments.daily}
+          general={comments.general}
+        />
+      </section>
+
+      {/* Placar + pick */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
         <section className="space-y-2">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">
@@ -342,17 +442,6 @@ export function DecisionRoundupView({
         </Panel>
       </div>
 
-      {/* Comentários estatísticos */}
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-[var(--foreground)]">
-          Por que essa decisão
-        </h2>
-        <StatsDecisionComments
-          daily={comments.daily}
-          general={comments.general}
-        />
-      </section>
-
       {/* Detalhes sob demanda */}
       <details className="group rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] open:shadow-[var(--shadow-sm)]">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--foreground)] marker:content-none [&::-webkit-details-marker]:hidden">
@@ -393,13 +482,13 @@ export function DecisionRoundupView({
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <p className="text-[var(--muted-strong)]">
-          {alertCount > 0
-            ? `${alertCount} alerta(s) de padrão`
-            : "Sem alertas de padrão"}
-          {bestWindow ? ` · janela ${bestWindow}` : ""}
+          {topAlerts.length
+            ? `${topAlerts.length} aviso(s) em destaque`
+            : "Sem avisos em destaque"}
+          {bestWindow ? ` · janela ${bestWindow.label}` : ""}
         </p>
-        <Button href="/analise?tab=quando" variant="secondary" size="sm">
-          Abrir Análise
+        <Button href="/quando" variant="secondary" size="sm">
+          Abrir Quando
         </Button>
       </div>
 

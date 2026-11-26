@@ -7,25 +7,30 @@ import { useEffect, useId, useRef, useState } from "react";
 const PRIMARY = [
   { href: "/", label: "Hoje", match: (p: string) => p === "/" },
   {
+    href: "/quando",
+    label: "Quando",
+    match: (p: string) =>
+      p === "/quando" ||
+      p.startsWith("/quando/") ||
+      p === "/timing" ||
+      p.startsWith("/timing/"),
+  },
+  {
     href: "/coach",
     label: "Coach",
     match: (p: string) => p === "/coach" || p.startsWith("/coach/"),
   },
-  {
-    href: "/historico",
-    label: "Revisar",
-    match: (p: string) => p === "/historico" || p.startsWith("/historico/"),
-  },
 ] as const;
 
 const MORE = [
+  { href: "/historico", label: "Revisar" },
   { href: "/analise", label: "Análise" },
   { href: "/builds", label: "Builds" },
   { href: "/config", label: "Config" },
 ] as const;
 
 /**
- * Barra inferior mobile: jornada Hoje → Coach → Revisar + Mais.
+ * Barra inferior mobile: Hoje → Quando → Coach + Mais.
  */
 export function MobileJourneyNav() {
   const pathname = usePathname();
@@ -37,9 +42,9 @@ export function MobileJourneyNav() {
     pathname.startsWith("/analise") ||
     pathname.startsWith("/builds") ||
     pathname.startsWith("/config") ||
+    pathname.startsWith("/historico") ||
     pathname.startsWith("/ranking") ||
-    pathname.startsWith("/estatisticas") ||
-    pathname.startsWith("/timing");
+    pathname.startsWith("/estatisticas");
 
   useEffect(() => {
     if (!open) return;
@@ -58,7 +63,6 @@ export function MobileJourneyNav() {
   }, [open]);
 
   if (pathname === "/coach" || pathname.startsWith("/coach/")) {
-    // Coach usa tela cheia — link mínimo no header já basta.
     return null;
   }
 

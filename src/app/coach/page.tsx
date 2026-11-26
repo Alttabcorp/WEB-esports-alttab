@@ -43,7 +43,7 @@ export default async function CoachPage() {
   const slug = encodeRiotId(profile.gameName, profile.tagLine);
   const qs = `queue=${profile.queue}&count=${profile.matchCount}`;
   const prepHref = "/";
-  const timingHref = "/analise?tab=quando";
+  const timingHref = "/quando";
   const draftHref = `/summoner/${profile.platform}/${slug}/draft?${qs}`;
   const preferredRole = (profile.preferredRole as RoleKey) || "MIDDLE";
 

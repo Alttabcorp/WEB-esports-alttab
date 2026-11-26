@@ -48,7 +48,7 @@ export function ProfileHub({
   practiceCandidates = [],
 }: Props) {
   const hojeHref = "/";
-  const timingHref = "/analise?tab=quando";
+  const timingHref = "/quando";
   const syncHref = "/config";
   const role = profile.preferredRole as RoleKey;
   const fmtLp = (v: number | null) =>

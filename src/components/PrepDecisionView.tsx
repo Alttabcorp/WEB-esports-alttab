@@ -121,7 +121,7 @@ export function PrepDecisionView({
             { label: "Abrir Coach", href: "/coach", kind: "primary" },
             {
               label: "Ver horários",
-              href: "/analise?tab=quando",
+              href: "/quando",
               kind: "secondary",
             },
           ],
@@ -206,7 +206,7 @@ export function PrepDecisionView({
         <PerformanceAlerts
           alerts={analysis.temporal.alerts}
           prepHref="/"
-          timingHref="/analise?tab=quando"
+          timingHref="/quando"
           practiceCandidates={practiceCandidates}
         />
       ) : playDecision ? (
@@ -230,7 +230,7 @@ export function PrepDecisionView({
           <Button href="/coach" size="sm">
             Abrir Coach
           </Button>
-          <Button href="/analise?tab=quando" variant="secondary" size="sm">
+          <Button href="/quando" variant="secondary" size="sm">
             Quando jogar
           </Button>
           <Button href={syncHref} variant="ghost" size="sm">

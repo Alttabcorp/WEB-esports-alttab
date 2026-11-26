@@ -37,7 +37,10 @@ export default async function HistoricoPage() {
         <Button href="/" size="sm">
           Abrir Hoje
         </Button>
-        <Button href="/coach" variant="secondary" size="sm">
+        <Button href="/quando" variant="secondary" size="sm">
+          Quando
+        </Button>
+        <Button href="/coach" variant="ghost" size="sm">
           Coach
         </Button>
       </div>

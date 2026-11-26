@@ -7,23 +7,25 @@ import type { ReactNode } from "react";
 const TABS = [
   { id: "ranking", label: "Ranking" },
   { id: "stats", label: "Estatísticas" },
-  { id: "quando", label: "Quando" },
 ] as const;
 
 export type AnaliseTabId = (typeof TABS)[number]["id"];
 
 export function parseAnaliseTab(raw: string | null | undefined): AnaliseTabId {
-  if (raw === "stats" || raw === "quando" || raw === "ranking") return raw;
+  if (raw === "stats" || raw === "ranking") return raw;
+  if (raw === "quando") {
+    // Legacy — page should redirect; keep ranking as safe default.
+    return "ranking";
+  }
   return "ranking";
 }
 
 type Props = {
   ranking: ReactNode;
   stats: ReactNode;
-  quando: ReactNode;
 };
 
-export function AnaliseTabs({ ranking, stats, quando }: Props) {
+export function AnaliseTabs({ ranking, stats }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tab = parseAnaliseTab(searchParams.get("tab"));
@@ -56,15 +58,15 @@ export function AnaliseTabs({ ranking, stats, quando }: Props) {
         })}
         <div className="ml-auto flex items-center gap-2">
           <Link
-            href="/coach"
-            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--muted-strong)] hover:text-[var(--alttab)]"
+            href="/quando"
+            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--alttab)] hover:underline"
             prefetch={false}
           >
-            Coach
+            Ver Quando
           </Link>
           <Link
             href="/"
-            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--alttab)] hover:underline"
+            className="inline-flex min-h-9 items-center px-2 text-sm text-[var(--muted-strong)] hover:text-[var(--alttab)]"
             prefetch={false}
           >
             ← Hoje
@@ -74,7 +76,6 @@ export function AnaliseTabs({ ranking, stats, quando }: Props) {
 
       <div className={tab === "ranking" ? "block" : "hidden"}>{ranking}</div>
       <div className={tab === "stats" ? "block" : "hidden"}>{stats}</div>
-      <div className={tab === "quando" ? "block" : "hidden"}>{quando}</div>
     </div>
   );
 }

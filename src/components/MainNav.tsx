@@ -48,14 +48,17 @@ export function MainNav({ hasProfile }: Props) {
   const onConfig = pathname === "/config" || pathname.startsWith("/config/");
   const onHistorico =
     pathname === "/historico" || pathname.startsWith("/historico/");
+  const onQuando =
+    pathname === "/quando" ||
+    pathname.startsWith("/quando/") ||
+    pathname === "/timing" ||
+    pathname.startsWith("/timing/");
   const onAnalise =
     pathname === "/analise" ||
     pathname.startsWith("/analise/") ||
     pathname === "/ranking" ||
     pathname.startsWith("/ranking/") ||
     pathname.startsWith("/estatisticas") ||
-    pathname === "/timing" ||
-    pathname.startsWith("/timing/") ||
     pathname.startsWith("/campeao");
   const onBuilds = pathname.startsWith("/builds");
   const onHoje =
@@ -64,7 +67,7 @@ export function MainNav({ hasProfile }: Props) {
     pathname.startsWith("/rodada/") ||
     pathname === "/preparar" ||
     pathname.startsWith("/preparar/");
-  const onMore = onAnalise || onBuilds || onConfig;
+  const onMore = onAnalise || onBuilds || onConfig || onHistorico;
 
   useEffect(() => {
     if (!moreOpen) return;
@@ -98,24 +101,25 @@ export function MainNav({ hasProfile }: Props) {
 
   return (
     <nav aria-label="Principal" className="flex items-center gap-0.5 text-sm">
-      {/* Jornada — sempre visível */}
       <div className="hidden items-center gap-0.5 sm:flex">
-        <NavItem href="/" active={onHoje && !onCoach && !onHistorico && !onMore}>
+        <NavItem
+          href="/"
+          active={onHoje && !onCoach && !onQuando && !onMore}
+        >
           Hoje
+        </NavItem>
+        <NavItem href="/quando" active={onQuando}>
+          Quando
         </NavItem>
         <NavItem href="/coach" active={onCoach}>
           Coach
         </NavItem>
-        <NavItem href="/historico" active={onHistorico}>
-          Revisar
-        </NavItem>
       </div>
 
-      {/* Secundário em “Mais” (desktop + tablet) */}
       <div className="relative hidden sm:block" ref={moreRef}>
         <button
           type="button"
-          className={linkClass(onMore && !onHoje && !onCoach && !onHistorico)}
+          className={linkClass(onMore && !onHoje && !onCoach && !onQuando)}
           aria-expanded={moreOpen}
           aria-controls={menuId}
           aria-haspopup="menu"
@@ -131,6 +135,7 @@ export function MainNav({ hasProfile }: Props) {
           >
             {(
               [
+                { href: "/historico", label: "Revisar", active: onHistorico },
                 { href: "/analise", label: "Análise", active: onAnalise },
                 { href: "/builds", label: "Builds", active: onBuilds },
                 { href: "/config", label: "Config", active: onConfig },
@@ -155,7 +160,6 @@ export function MainNav({ hasProfile }: Props) {
         ) : null}
       </div>
 
-      {/* Mobile: só Coach CTA no header; jornada fica na bottom bar */}
       <Link
         href="/coach"
         className={`sm:hidden inline-flex min-h-9 items-center rounded-[var(--radius)] px-3 py-1.5 text-sm font-semibold ${

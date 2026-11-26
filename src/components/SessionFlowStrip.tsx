@@ -5,19 +5,25 @@ import { usePathname } from "next/navigation";
 
 const STEPS = [
   { id: "hoje", href: "/", label: "Hoje", hint: "Decidir" },
+  { id: "quando", href: "/quando", label: "Quando", hint: "Fila" },
   { id: "coach", href: "/coach", label: "Coach", hint: "Jogar" },
-  { id: "revisar", href: "/historico", label: "Revisar", hint: "Depois" },
 ] as const;
 
 function activeStep(pathname: string): (typeof STEPS)[number]["id"] {
   if (pathname === "/coach" || pathname.startsWith("/coach/")) return "coach";
-  if (pathname === "/historico" || pathname.startsWith("/historico/"))
-    return "revisar";
+  if (
+    pathname === "/quando" ||
+    pathname.startsWith("/quando/") ||
+    pathname === "/timing" ||
+    pathname.startsWith("/timing/")
+  ) {
+    return "quando";
+  }
   return "hoje";
 }
 
 /**
- * Faixa da jornada diária: Hoje → Coach → Revisar.
+ * Faixa da jornada: Hoje → Quando → Coach.
  */
 export function SessionFlowStrip({ className = "" }: { className?: string }) {
   const pathname = usePathname();

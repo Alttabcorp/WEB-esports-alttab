@@ -146,7 +146,7 @@ export function MatchCoachScreen({
   prepHref = "/",
   timingHref,
 }: Props) {
-  const whenHref = timingHref ?? "/analise?tab=quando";
+  const whenHref = timingHref ?? "/quando";
   const [lcd, setLcd] = useState<LiveClientSnapshot | null>(null);
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [live, setLive] = useState<LiveGamePayload | null>(null);

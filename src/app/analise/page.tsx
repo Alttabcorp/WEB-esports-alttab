@@ -1,10 +1,9 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AnaliseTabs } from "@/components/AnaliseTabs";
-import { DayLpCard } from "@/components/DayLpCard";
 import { PrepGate } from "@/components/PrepGate";
 import { RankingExplorer } from "@/components/RankingExplorer";
 import { StatsExplorer } from "@/components/StatsExplorer";
-import { TimingDecisionPanel } from "@/components/TimingDecisionPanel";
 import { loadPrepContext } from "@/lib/prep/loadPrepContext";
 import { buildChampionRoleStats } from "@/lib/stats/championRoleStats";
 
@@ -14,6 +13,10 @@ type PageProps = {
 
 export default async function AnalisePage({ searchParams }: PageProps) {
   const sp = await searchParams;
+  if (sp.tab === "quando") {
+    redirect("/quando");
+  }
+
   const champParam = sp.champ ? Number(sp.champ) : null;
   const ctx = await loadPrepContext();
 
@@ -44,7 +47,7 @@ export default async function AnalisePage({ searchParams }: PageProps) {
           Análise
         </h1>
         <p className="mt-1 max-w-prose text-sm text-[var(--muted)]">
-          Ranking, estatísticas e padrões de horário — fora da jornada diária.
+          Ranking e estatísticas por campeão — aprofundar fora da jornada.
         </p>
       </div>
 
@@ -85,36 +88,6 @@ export default async function AnalisePage({ searchParams }: PageProps) {
               practiceCandidates={ctx.practiceCandidates}
               initialChampionId={initialChampionId}
             />
-          }
-          quando={
-            <div className="space-y-4">
-              <DayLpCard
-                solo={ctx.dayLpSolo}
-                flex={ctx.dayLpFlex}
-                summary={ctx.dayLp}
-                trackQueue={ctx.queue}
-              />
-              {ctx.analysis.temporal ? (
-                <TimingDecisionPanel
-                  temporal={ctx.analysis.temporal}
-                  overallWr={ctx.analysis.overallWr}
-                  sessionEv={ctx.sessionEv}
-                  lpInsights={ctx.lpInsights}
-                  calendar={ctx.lpCalendar}
-                  currentPatch={ctx.currentPatch}
-                  patchNote={ctx.patchNote}
-                  prepHref="/"
-                  timingHref="/analise?tab=quando"
-                  practiceCandidates={ctx.practiceCandidates}
-                  ddragonVersion={ctx.ddragonVersion}
-                  idToKey={ctx.idToKey}
-                />
-              ) : (
-                <p className="text-sm text-[var(--muted)]">
-                  Sem dados temporais ainda.
-                </p>
-              )}
-            </div>
           }
         />
       </Suspense>

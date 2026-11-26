@@ -12,11 +12,13 @@ import type { TemporalInsights } from "@/lib/stats/temporal";
 import type { MatchLpInsights } from "@/lib/stats/matchLpLedger";
 import type { DayLpCalendarEntry } from "@/lib/stats/lpCalendar";
 import type { PracticeCandidate } from "@/lib/stats/practiceCandidates";
+import { sortAlertsByPriority } from "@/lib/stats/playerRhythm";
 import { DecisionCard } from "./DecisionCard";
 import { LpInsightsPanel } from "./LpInsightsPanel";
 import { LpCalendarGrid } from "./LpCalendarGrid";
 import { PerformanceInsights } from "./PerformanceInsights";
 import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
+import { PlayerRhythmPanels } from "./PlayerRhythmPanels";
 import { Button, Panel } from "@/components/ui";
 
 type Props = {
@@ -60,7 +62,7 @@ function timingDecision(
       actions: [
         { label: "Abrir Coach", href: "/coach", kind: "primary" },
         {
-          label: "Preparar pick",
+          label: "Abrir Hoje",
           href: prepHref ?? "/",
           kind: "secondary",
         },
@@ -87,7 +89,7 @@ function timingDecision(
                 ...fromAlerts.actions,
               ]),
           {
-            label: "Preparar pick",
+            label: "Abrir Hoje",
             href: prepHref ?? "/",
             kind: "ghost" as const,
           },
@@ -104,7 +106,7 @@ function timingDecision(
         actions: [
           { label: "Abrir Coach", href: "/coach", kind: "primary" },
           {
-            label: "Preparar pick",
+            label: "Abrir Hoje",
             href: prepHref ?? "/",
             kind: "secondary",
           },
@@ -118,7 +120,7 @@ function timingDecision(
         detail: "Sincronize mais partidas para horários e dias mais claros.",
         actions: [
           {
-            label: "Preparar pick",
+            label: "Abrir Hoje",
             href: prepHref ?? "/",
             kind: "primary",
           },
@@ -237,6 +239,46 @@ function SectionHead({
   );
 }
 
+function AlertList({
+  alerts,
+}: {
+  alerts: TemporalInsights["alerts"];
+}) {
+  const sorted = sortAlertsByPriority(alerts);
+  if (!sorted.length) {
+    return (
+      <p className="text-sm text-[var(--muted)]">
+        Sem avisos ativos no histórico recente.
+      </p>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {sorted.map((a) => {
+        const tone =
+          a.severity === "warn"
+            ? "border-[var(--warn)]/30 bg-[var(--warn)]/8"
+            : a.severity === "good"
+              ? "border-[var(--success)]/30 bg-[var(--success)]/8"
+              : "border-[var(--border)] bg-[var(--surface-2)]";
+        return (
+          <li
+            key={a.id}
+            className={`rounded-[var(--radius)] border px-3 py-2.5 ${tone}`}
+          >
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              {a.title}
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted-strong)]">
+              {a.detail}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export function TimingDecisionPanel({
   temporal,
   overallWr,
@@ -246,7 +288,7 @@ export function TimingDecisionPanel({
   currentPatch = null,
   patchNote = null,
   prepHref = "/",
-  timingHref = "/analise?tab=quando",
+  timingHref = "/quando",
   practiceCandidates = [],
   ddragonVersion = "",
   idToKey = {},
@@ -265,6 +307,7 @@ export function TimingDecisionPanel({
 
   const bestHour = temporal.bestPlayWindow;
   const bestDay = temporal.bestDay;
+  const alerts = temporal.alerts ?? [];
 
   return (
     <div className="space-y-8">
@@ -273,9 +316,40 @@ export function TimingDecisionPanel({
         <SectionHead
           eyebrow="1 · Agora"
           title="Tomada de decisão"
-          hint="Sinal da sessão + âncoras do histórico."
+          hint="Sinal da sessão e avisos do histórico salvo."
         />
         <DecisionCard decision={decision} />
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-[var(--foreground)]">
+            Avisos
+          </p>
+          <AlertList alerts={alerts} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button href="/coach" size="sm">
+            Abrir Coach
+          </Button>
+          <Button href={prepHref} variant="secondary" size="sm">
+            Abrir Hoje
+          </Button>
+        </div>
+        {practiceCandidates.length > 0 && ddragonVersion ? (
+          <PracticeNormalsPanel
+            candidates={practiceCandidates}
+            ddragonVersion={ddragonVersion}
+            idToKey={idToKey}
+            compact
+          />
+        ) : null}
+      </section>
+
+      {/* 2. Âncoras */}
+      <section className="space-y-3">
+        <SectionHead
+          eyebrow="2 · Âncoras"
+          title="Horário, dia e freio"
+          hint="Três âncoras do seu histórico para decidir a fila."
+        />
         <div className="grid gap-3 sm:grid-cols-3">
           <BigCard
             title="Melhor horário"
@@ -301,28 +375,12 @@ export function TimingDecisionPanel({
           />
           <StopCard temporal={temporal} />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button href="/coach" size="sm">
-            Abrir Coach
-          </Button>
-          <Button href={prepHref} variant="secondary" size="sm">
-            Preparar pick
-          </Button>
-        </div>
-        {practiceCandidates.length > 0 && ddragonVersion ? (
-          <PracticeNormalsPanel
-            candidates={practiceCandidates}
-            ddragonVersion={ddragonVersion}
-            idToKey={idToKey}
-            compact
-          />
-        ) : null}
       </section>
 
-      {/* 2. Seu grind */}
+      {/* 3. Seu ritmo */}
       <section>
         <SectionHead
-          eyebrow="2 · Seu grind"
+          eyebrow="3 · Seu ritmo"
           title="PDL no histórico"
           hint="Calendário dos últimos 28 dias e onde você ganha ou perde PDL."
         />
@@ -356,21 +414,34 @@ export function TimingDecisionPanel({
         </div>
       </section>
 
-      {/* 3. Padrões */}
-      <section>
+      {/* 4. Padrões acionáveis + scorecard + heatmap */}
+      <section className="space-y-3">
         <SectionHead
-          eyebrow="3 · Padrões"
-          title="O que o histórico mostra"
-          hint="WR por horário, dia, pausas e sequências — complementar ao PDL."
+          eyebrow="4 · Padrões acionáveis"
+          title="O que fazer com o histórico"
+          hint="Limite de sessão, pausa, evitar agora e mapa dia × horário."
         />
-        <Panel className="p-3 sm:p-4">
+        <PlayerRhythmPanels temporal={temporal} calendar={calendar} />
+      </section>
+
+      {/* 5. Detalhe */}
+      <details className="group rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] open:shadow-[var(--shadow-sm)]">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--foreground)] marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between gap-2">
+            Detalhe completo dos padrões
+            <span className="text-xs font-normal text-[var(--muted)] group-open:hidden">
+              expandir
+            </span>
+          </span>
+        </summary>
+        <div className="border-t border-[var(--border)] px-3 pb-4 pt-3 sm:px-4">
           <PerformanceInsights
             temporal={temporal}
             overallWr={overallWr}
             embedded
           />
-        </Panel>
-      </section>
+        </div>
+      </details>
     </div>
   );
 }
