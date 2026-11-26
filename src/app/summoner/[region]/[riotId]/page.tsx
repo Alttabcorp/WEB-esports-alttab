@@ -84,7 +84,7 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
     if (sp.tab === "history") redirect("/historico");
     if (sp.mode === "live") redirect("/coach");
     const q = qs.toString();
-    redirect(q ? `/preparar?${q}` : "/preparar");
+    redirect(q ? `/?${q}` : "/");
   }
 
   // Guest / outro invocador — carrega e mostra decisão enxuta

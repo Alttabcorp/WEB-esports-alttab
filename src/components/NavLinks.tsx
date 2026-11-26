@@ -1,6 +1,5 @@
 import { MainNav } from "@/components/MainNav";
 import { QueueContextChip } from "@/components/QueueContextChip";
-import { QueueTrackSwitch } from "@/components/QueueTrackSwitch";
 import {
   getAppProfile,
   getDayLpByQueue,
@@ -11,7 +10,7 @@ export async function NavLinks() {
   const profile = await getAppProfile();
   if (!profile) {
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <MainNav hasProfile={false} />
       </div>
     );
@@ -29,15 +28,16 @@ export async function NavLinks() {
   const active = dayLp?.active ?? null;
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-      <QueueContextChip
-        trackQueue={queue}
-        queueType={active?.queueType ?? null}
-        lpDelta={active?.lpDelta ?? null}
-        winsToday={active?.winsToday ?? 0}
-        lossesToday={active?.lossesToday ?? 0}
-      />
-      <QueueTrackSwitch current={queue} />
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="hidden md:block">
+        <QueueContextChip
+          trackQueue={queue}
+          queueType={active?.queueType ?? null}
+          lpDelta={active?.lpDelta ?? null}
+          winsToday={active?.winsToday ?? 0}
+          lossesToday={active?.lossesToday ?? 0}
+        />
+      </div>
       <MainNav hasProfile />
     </div>
   );

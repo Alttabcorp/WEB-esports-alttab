@@ -20,7 +20,6 @@ import { ROLE_LABELS, type RoleKey } from "@/lib/stats/roles";
 import { pct } from "@/lib/format";
 import { PracticeNormalsPanel } from "./PracticeNormalsPanel";
 import { QueueTrackSwitch } from "./QueueTrackSwitch";
-import { SessionFlowStrip } from "./SessionFlowStrip";
 import { StatsDecisionComments } from "./StatsDecisionComments";
 import { TodayPoolPanel } from "./TodayPoolPanel";
 import { Button, Panel } from "@/components/ui";
@@ -86,7 +85,7 @@ function QueueScorecard({
         <p className="data-label">{label}</p>
         {emphasize ? (
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--alttab)]">
-            Acompanhando
+            Ativa
           </span>
         ) : null}
       </div>
@@ -107,7 +106,7 @@ function QueueScorecard({
         </p>
       </div>
       <p className="mt-1 text-xs text-[var(--muted)]">
-        {summary.gamesToday} jogos hoje
+        {summary.gamesToday} jogos
         {summary.current
           ? ` · ${summary.current.tier} ${summary.current.rank} ${summary.current.lp} LP`
           : ""}
@@ -185,13 +184,10 @@ export function DecisionRoundupView({
       (dayLpSolo?.gamesToday ?? 0) >= (dayLpFlex?.gamesToday ?? 0));
 
   const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
-  const syncHref = `/config`;
   const primaryHref =
-    sessionEv?.label === "stop"
+    sessionEv?.label === "stop" || sessionEv?.label === "caution"
       ? "/analise?tab=quando"
-      : sessionEv?.label === "caution"
-        ? "/analise?tab=quando"
-        : "/coach";
+      : "/coach";
   const primaryLabel =
     sessionEv?.label === "stop"
       ? "Ver padrões"
@@ -200,212 +196,215 @@ export function DecisionRoundupView({
         : "Abrir Coach";
 
   return (
-    <div className="space-y-4 pb-8">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-5 pb-8">
+      {/* Identidade */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <Image
             src={profileIconUrl(ddragonVersion, profileIconId ?? 29)}
             alt=""
-            width={48}
-            height={48}
+            width={44}
+            height={44}
             className="rounded-[var(--radius)] ring-1 ring-[var(--border)]"
+            priority
           />
           <div className="min-w-0">
-            <p className="data-label">Hoje</p>
-            <h1 className="truncate text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+            <h1 className="truncate text-pretty text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
               {gameName}
               <span className="font-medium text-[var(--alttab)]">#{tagLine}</span>
             </h1>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
               {platform.toUpperCase()} ·{" "}
               {ROLE_LABELS[preferredRole] ?? preferredRole}
+              {bestWindow ? ` · melhor ${bestWindow}` : ""}
             </p>
           </div>
         </div>
         <QueueTrackSwitch current={trackQueue} />
       </div>
 
-      <SessionFlowStrip />
-
-      {sessionEv ? (
-        <Panel
-          strong
-          className={`space-y-3 px-4 py-4 ${
-            sessionEv.label === "stop"
-              ? "border-[var(--danger)]/30 bg-[var(--danger)]/10"
-              : sessionEv.label === "go"
-                ? "border-[var(--success)]/30 bg-[var(--success)]/10"
-                : "border-[var(--warn)]/30 bg-[var(--warn)]/10"
-          }`}
-        >
-          <div>
-            <p className="data-label">1 · Decisão da fila</p>
-            <p className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-              {sessionEv.verb}
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted-strong)]">
-              {[sessionEv.detail, ...sessionEv.reasons.slice(0, 2)]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button href={primaryHref} size="sm">
-              {primaryLabel}
-            </Button>
-            <Button href={syncHref} variant="ghost" size="sm">
-              Sync / Config
-            </Button>
-          </div>
-        </Panel>
-      ) : (
-        <Panel strong className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
-          <div>
-            <p className="data-label">1 · Decisão da fila</p>
-            <p className="mt-1 text-sm text-[var(--muted-strong)]">
-              Sem sinal ainda — sincronize o histórico se estiver vazio.
-            </p>
-          </div>
-          <Button href="/coach" size="sm">
-            Abrir Coach
-          </Button>
-        </Panel>
-      )}
-
-      <section className="space-y-2">
-        <p className="data-label">2 · Placar do dia</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <QueueScorecard
-            summary={dayLpSolo}
-            emphasize={
-              trackQueue === "solo" ||
-              (trackQueue !== "flex" &&
-                (dayLpSolo?.queueType === SOLO_QUEUE || activeSolo))
-            }
-          />
-          <QueueScorecard
-            summary={dayLpFlex}
-            emphasize={
-              trackQueue === "flex" ||
-              (trackQueue !== "solo" &&
-                dayLpFlex?.queueType === FLEX_QUEUE &&
-                !activeSolo)
-            }
-          />
-        </div>
-      </section>
-
-      <section>
-        <Panel strong className="space-y-3 p-4">
-          <div>
-            <p className="data-label">3 · Pick ranked</p>
-            <h2 className="mt-0.5 text-base font-semibold text-[var(--foreground)]">
-              O que jogar agora
-            </h2>
-          </div>
-          {rankedPick ? (
-            <div className="flex flex-wrap items-center gap-4">
-              <Image
-                src={championIconUrl(
-                  ddragonVersion,
-                  idToKey[rankedPick.championId] ?? rankedPick.championName,
-                )}
-                alt={rankedPick.championName}
-                width={64}
-                height={64}
-                className="rounded-[var(--radius)] ring-2 ring-[var(--alttab)]"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-xl font-semibold text-[var(--foreground)]">
-                  {rankedPick.championName}
-                  <span className="ml-2 text-sm font-normal text-[var(--muted)]">
-                    {ROLE_LABELS[rankedPick.role] ?? rankedPick.role}
-                  </span>
-                </p>
-                <p className="mt-1 text-sm tabular-nums text-[var(--muted-strong)]">
-                  {pct(rankedPick.wr)} WR · {rankedPick.games}j · PDL{" "}
-                  {rankedPick.expectedLp >= 0 ? "+" : ""}
-                  {rankedPick.expectedLp}
-                </p>
-                {rankedPick.reasons[0] ? (
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {rankedPick.reasons.slice(0, 2).join(" · ")}
-                  </p>
-                ) : null}
-              </div>
-              <Button href="/coach" size="sm">
-                Ir para o Coach
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--muted)]">
-              Sem pick contextual ainda — sincronize mais partidas em Config.
-            </p>
-          )}
-          {dayGoal ? (
-            <p className="border-t border-[var(--border)] pt-3 text-sm text-[var(--muted-strong)]">
-              Meta: {dayGoalVerb(dayGoal)}
-              {dayGoal.delta != null
-                ? ` · agora ${dayGoal.delta > 0 ? "+" : ""}${dayGoal.delta}`
-                : ""}
-            </p>
-          ) : null}
-        </Panel>
-      </section>
-
-      <TodayPoolPanel
-        picks={todayPool}
-        champions={analysis.champions}
-        ddragonVersion={ddragonVersion}
-        idToKey={idToKey}
-        runeCatalog={runeCatalog}
-        preferredRole={preferredRole}
-        featuredId={poolFeaturedId}
-        onFeature={setPoolFeaturedId}
-        champHref="/analise?tab=ranking"
-        rankingHref="/analise?tab=ranking"
-        statsHref="/analise?tab=stats"
-        coachHref="/coach"
-      />
-
-      <PracticeNormalsPanel
-        candidates={practiceCandidates}
-        ddragonVersion={ddragonVersion}
-        idToKey={idToKey}
-      />
-
-      {practiceCandidates.length === 0 ? (
-        <Panel className="px-4 py-3">
-          <p className="data-label">Normais para avaliar</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Nenhum champ marcado para treino agora.
-          </p>
-        </Panel>
-      ) : null}
-
-      <section className="space-y-2">
-        <p className="data-label">Comentários da decisão</p>
-        <StatsDecisionComments daily={comments.daily} general={comments.general} />
-      </section>
-
-      <Panel className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      {/* Decisão — primeiro viewport */}
+      <Panel
+        strong
+        className={`space-y-3 px-4 py-4 ${
+          sessionEv?.label === "stop"
+            ? "border-[var(--danger)]/30 bg-[var(--danger)]/10"
+            : sessionEv?.label === "go"
+              ? "border-[var(--success)]/30 bg-[var(--success)]/10"
+              : sessionEv?.label === "caution"
+                ? "border-[var(--warn)]/30 bg-[var(--warn)]/10"
+                : ""
+        }`}
+      >
         <div>
-          <p className="data-label">Quando jogar</p>
-          <p className="mt-1 text-sm text-[var(--muted-strong)]">
-            {bestWindow
-              ? `Melhor janela: ${bestWindow}`
-              : "Ainda sem janela clara no histórico"}
-            {alertCount > 0 ? ` · ${alertCount} alerta(s)` : ""}
+          <p className="data-label">Fila agora</p>
+          <p className="mt-1 text-pretty text-2xl font-semibold text-[var(--foreground)]">
+            {sessionEv?.verb ?? "Sem sinal ainda"}
+          </p>
+          <p className="mt-1 max-w-prose text-sm text-[var(--muted-strong)]">
+            {sessionEv
+              ? [sessionEv.detail, ...sessionEv.reasons.slice(0, 2)]
+                  .filter(Boolean)
+                  .join(" · ")
+              : "Sincronize o histórico em Config se estiver vazio."}
           </p>
         </div>
-        <Button href="/analise?tab=quando" variant="secondary" size="sm">
-          Ver padrões →
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button href={primaryHref}>{primaryLabel}</Button>
+          <Button href="/config" variant="ghost">
+            Sync
+          </Button>
+        </div>
       </Panel>
 
+      {/* Placar + pick lado a lado no desktop */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">
+            Placar do dia
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <QueueScorecard
+              summary={dayLpSolo}
+              emphasize={
+                trackQueue === "solo" ||
+                (trackQueue !== "flex" &&
+                  (dayLpSolo?.queueType === SOLO_QUEUE || activeSolo))
+              }
+            />
+            <QueueScorecard
+              summary={dayLpFlex}
+              emphasize={
+                trackQueue === "flex" ||
+                (trackQueue !== "solo" &&
+                  dayLpFlex?.queueType === FLEX_QUEUE &&
+                  !activeSolo)
+              }
+            />
+          </div>
+        </section>
+
+        <Panel strong className="flex flex-col justify-between gap-3 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-[var(--foreground)]">
+              O que jogar
+            </h2>
+            {rankedPick ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Image
+                  src={championIconUrl(
+                    ddragonVersion,
+                    idToKey[rankedPick.championId] ?? rankedPick.championName,
+                  )}
+                  alt={rankedPick.championName}
+                  width={56}
+                  height={56}
+                  className="rounded-[var(--radius)] ring-2 ring-[var(--alttab)]"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-semibold text-[var(--foreground)]">
+                    {rankedPick.championName}
+                    <span className="ml-2 text-sm font-normal text-[var(--muted)]">
+                      {ROLE_LABELS[rankedPick.role] ?? rankedPick.role}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-sm tabular-nums text-[var(--muted-strong)]">
+                    {pct(rankedPick.wr)} WR · {rankedPick.games}j · PDL{" "}
+                    {rankedPick.expectedLp >= 0 ? "+" : ""}
+                    {rankedPick.expectedLp}
+                  </p>
+                  {rankedPick.reasons[0] ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
+                      {rankedPick.reasons.slice(0, 2).join(" · ")}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Sem pick contextual — sincronize mais partidas.
+              </p>
+            )}
+            {dayGoal ? (
+              <p className="mt-3 text-sm text-[var(--muted-strong)]">
+                {dayGoalVerb(dayGoal)}
+                {dayGoal.delta != null
+                  ? ` · ${dayGoal.delta > 0 ? "+" : ""}${dayGoal.delta} PDL`
+                  : ""}
+              </p>
+            ) : null}
+          </div>
+          {rankedPick ? (
+            <Button href="/coach" className="w-full sm:w-auto">
+              Ir para o Coach
+            </Button>
+          ) : null}
+        </Panel>
+      </div>
+
+      {/* Comentários estatísticos */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">
+          Por que essa decisão
+        </h2>
+        <StatsDecisionComments
+          daily={comments.daily}
+          general={comments.general}
+        />
+      </section>
+
+      {/* Detalhes sob demanda */}
+      <details className="group rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] open:shadow-[var(--shadow-sm)]">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-[var(--foreground)] marker:content-none [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center justify-between gap-2">
+            Pool por lane e normais
+            <span className="text-xs font-normal text-[var(--muted)] group-open:hidden">
+              expandir
+            </span>
+          </span>
+        </summary>
+        <div className="space-y-4 border-t border-[var(--border)] px-3 pb-4 pt-3 sm:px-4">
+          <TodayPoolPanel
+            picks={todayPool}
+            champions={analysis.champions}
+            ddragonVersion={ddragonVersion}
+            idToKey={idToKey}
+            runeCatalog={runeCatalog}
+            preferredRole={preferredRole}
+            featuredId={poolFeaturedId}
+            onFeature={setPoolFeaturedId}
+            champHref="/analise?tab=ranking"
+            rankingHref="/analise?tab=ranking"
+            statsHref="/analise?tab=stats"
+            coachHref="/coach"
+          />
+          <PracticeNormalsPanel
+            candidates={practiceCandidates}
+            ddragonVersion={ddragonVersion}
+            idToKey={idToKey}
+          />
+          {practiceCandidates.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">
+              Nenhum champ marcado para treino em normais agora.
+            </p>
+          ) : null}
+        </div>
+      </details>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <p className="text-[var(--muted-strong)]">
+          {alertCount > 0
+            ? `${alertCount} alerta(s) de padrão`
+            : "Sem alertas de padrão"}
+          {bestWindow ? ` · janela ${bestWindow}` : ""}
+        </p>
+        <Button href="/analise?tab=quando" variant="secondary" size="sm">
+          Abrir Análise
+        </Button>
+      </div>
+
       <p className="text-center text-[11px] text-[var(--muted)]">
-        Sync de partidas em Config · amostra {analysis.analyzedGames}j · até{" "}
-        {matchCount}
+        Amostra {analysis.analyzedGames}j · sync em Config (até {matchCount})
       </p>
     </div>
   );

@@ -47,10 +47,9 @@ export function ProfileHub({
   sessionEv = null,
   practiceCandidates = [],
 }: Props) {
-  const rodadaHref = "/rodada";
-  const prepHref = "/preparar";
-  const timingHref = "/timing";
-  const syncHref = `/preparar?refresh=1&queue=${profile.queue}&count=${profile.matchCount}`;
+  const hojeHref = "/";
+  const timingHref = "/analise?tab=quando";
+  const syncHref = "/config";
   const role = profile.preferredRole as RoleKey;
   const fmtLp = (v: number | null) =>
     v == null ? "—" : v > 0 ? `+${v}` : String(v);
@@ -77,7 +76,7 @@ export function ProfileHub({
             ? `${sessionEv.detail} · ${sessionEv.reasons[0]}`
             : sessionEv.detail,
           actions: [
-            { label: "Abrir Rodada", href: rodadaHref, kind: "primary" },
+            { label: "Abrir Hoje", href: hojeHref, kind: "primary" },
             { label: "Abrir Coach", href: "/coach", kind: "secondary" },
             { label: "Ver horários", href: timingHref, kind: "ghost" },
           ],
@@ -143,15 +142,15 @@ export function ProfileHub({
                 </span>
               </p>
             </div>
-            <Button href={rodadaHref} variant="secondary" size="sm">
-              Ver na Rodada
+            <Button href={hojeHref} variant="secondary" size="sm">
+              Ver em Hoje
             </Button>
           </div>
         ) : null}
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button href={rodadaHref} size="lg" className="flex-1">
-            Rodada de decisão
+          <Button href={hojeHref} size="lg" className="flex-1">
+            Decisão de hoje
           </Button>
           <Button href="/coach" variant="secondary" size="lg" className="flex-1">
             Abrir Coach
@@ -159,23 +158,17 @@ export function ProfileHub({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-2">
-          <Button href={prepHref} variant="ghost" size="sm">
-            Preparar
-          </Button>
           <Button href="/historico" variant="ghost" size="sm">
-            Histórico
+            Revisar
           </Button>
-          <Button href="/ranking" variant="ghost" size="sm">
-            Ranking
+          <Button href="/analise" variant="ghost" size="sm">
+            Análise
           </Button>
           <Button href={timingHref} variant="ghost" size="sm">
             Quando
           </Button>
           <Button href={syncHref} variant="ghost" size="sm">
             Sync
-          </Button>
-          <Button href="/config" variant="ghost" size="sm">
-            Config
           </Button>
         </div>
 
@@ -202,8 +195,8 @@ export function ProfileHub({
               .map((c) => c.championName)
               .join(", ")}
           </p>
-          <Button href={rodadaHref} variant="ghost" size="sm" className="mt-2">
-            Abrir na Rodada →
+          <Button href={hojeHref} variant="ghost" size="sm" className="mt-2">
+            Abrir em Hoje →
           </Button>
         </Panel>
       ) : null}

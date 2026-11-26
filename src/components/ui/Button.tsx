@@ -23,7 +23,7 @@ const sizeClass: Record<Size, string> = {
 };
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-semibold transition-[background-color,border-color,color,opacity] duration-150 disabled:cursor-not-allowed disabled:opacity-50 [touch-action:manipulation]";
 
 type Common = {
   variant?: Variant;

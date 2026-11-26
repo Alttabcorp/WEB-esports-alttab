@@ -245,7 +245,7 @@ export function TimingDecisionPanel({
   calendar = [],
   currentPatch = null,
   patchNote = null,
-  prepHref = "/preparar",
+  prepHref = "/",
   timingHref = "/timing",
   practiceCandidates = [],
   ddragonVersion = "",

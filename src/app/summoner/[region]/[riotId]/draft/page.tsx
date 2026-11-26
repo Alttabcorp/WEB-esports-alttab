@@ -51,7 +51,7 @@ export default async function DraftPage({ params, searchParams }: PageProps) {
     ]);
 
   const riotId = `${parsed.gameName}#${parsed.tagLine}`;
-  const backHref = "/preparar";
+  const backHref = "/";
   const defaultRole =
     (appProfile?.preferredRole as RoleKey | undefined) ?? "MIDDLE";
 

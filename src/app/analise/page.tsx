@@ -40,11 +40,10 @@ export default async function AnalisePage({ searchParams }: PageProps) {
   return (
     <div className="space-y-4 pb-10">
       <div>
-        <p className="data-label">Aprofundar</p>
-        <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+        <h1 className="text-pretty text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
           Análise
         </h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+        <p className="mt-1 max-w-prose text-sm text-[var(--muted)]">
           Ranking, estatísticas e padrões de horário — fora da jornada diária.
         </p>
       </div>

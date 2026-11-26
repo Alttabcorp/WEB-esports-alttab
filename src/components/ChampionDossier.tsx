@@ -6,7 +6,6 @@ import type { MatchHistoryRow } from "@/lib/db/persist";
 import type { RuneCatalog } from "@/lib/ddragon";
 import type { LeagueEntryDto } from "@/lib/riot/types";
 import { ChampionDetailPanel } from "./ChampionDetailPanel";
-import { PrepSubnav } from "./PrepSubnav";
 import { Button } from "@/components/ui";
 
 type Props = {
@@ -34,30 +33,27 @@ export function ChampionDossier({
   ranked,
   lpAvg = null,
   lpGames = null,
-  alertCount = 0,
 }: Props) {
   const router = useRouter();
 
   return (
-    <div className="space-y-3 pb-8">
+    <div className="space-y-4 pb-8">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="data-label">Dossiê</p>
-          <h1 className="mt-0.5 text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
+          <h1 className="text-pretty text-xl font-semibold text-[var(--foreground)] sm:text-2xl">
             {champion.championName}
           </h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Dossiê do campeão</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button href="/ranking" variant="secondary" size="sm">
+          <Button href="/analise?tab=ranking" variant="secondary" size="sm">
             Ranking
           </Button>
-          <Button href="/preparar" variant="ghost" size="sm">
-            Preparar
+          <Button href="/" variant="ghost" size="sm">
+            Hoje
           </Button>
         </div>
       </div>
-
-      <PrepSubnav alertCount={alertCount} />
 
       <ChampionDetailPanel
         champion={champion}

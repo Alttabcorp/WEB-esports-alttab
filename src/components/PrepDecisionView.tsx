@@ -17,7 +17,6 @@ import { SummonerHeader } from "./SummonerHeader";
 import { DayGoalCard } from "./DayGoalCard";
 import { DecisionCard } from "./DecisionCard";
 import { PerformanceAlerts } from "./PerformanceAlerts";
-import { PrepSubnav } from "./PrepSubnav";
 import { Button, Panel, Stat } from "@/components/ui";
 
 type Props = {
@@ -60,8 +59,6 @@ export function PrepDecisionView({
   dayGoal = null,
   sessionEv = null,
   practiceCandidates = [],
-  queue = "ranked",
-  count = 50,
   source,
   cached = false,
 }: Props) {
@@ -101,7 +98,7 @@ export function PrepDecisionView({
   const hasAlerts = alertCount > 0;
   const topPick = todayPool[0] ?? null;
   const bestWindow = analysis.temporal?.bestPlayWindow?.label ?? null;
-  const syncHref = `/preparar?refresh=1&queue=${queue}&count=${count}`;
+  const syncHref = "/config";
 
   const playDecisionRaw: DecisionModel | null =
     !hasAlerts && sessionEv
@@ -122,7 +119,11 @@ export function PrepDecisionView({
             .join(" · "),
           actions: [
             { label: "Abrir Coach", href: "/coach", kind: "primary" },
-            { label: "Ver horários", href: "/timing", kind: "secondary" },
+            {
+              label: "Ver horários",
+              href: "/analise?tab=quando",
+              kind: "secondary",
+            },
           ],
           secondary: sessionEv.reasons.slice(3).map((r, i) => ({
             id: `ev-reason-${i}`,
@@ -181,34 +182,31 @@ export function PrepDecisionView({
                 ? `+${dayLp.lpDelta}`
                 : String(dayLp.lpDelta)
           }
-          hint="detalhe na Rodada"
+          hint="detalhe em Hoje"
         />
       </div>
-
-      <PrepSubnav alertCount={alertCount} />
 
       <Panel
         strong
         className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
       >
         <div className="min-w-0 flex-1">
-          <p className="data-label">Rodada de decisão</p>
+          <p className="data-label">Decisão do dia</p>
           <p className="text-sm text-[var(--muted-strong)]">
-            Placar Solo/Flex, comentários, pick ranked e normais ficam na
-            Rodada.
+            Placar Solo/Flex, comentários, pick ranked e normais ficam em Hoje.
             {topPick ? ` Pick sugerido: ${topPick.championName}.` : ""}
           </p>
         </div>
-        <Button href="/rodada" size="sm">
-          Abrir rodada
+        <Button href="/" size="sm">
+          Abrir Hoje
         </Button>
       </Panel>
 
       {hasAlerts && analysis.temporal?.alerts?.length ? (
         <PerformanceAlerts
           alerts={analysis.temporal.alerts}
-          prepHref="/preparar"
-          timingHref="/timing"
+          prepHref="/"
+          timingHref="/analise?tab=quando"
           practiceCandidates={practiceCandidates}
         />
       ) : playDecision ? (
@@ -225,14 +223,14 @@ export function PrepDecisionView({
           <p className="text-sm text-[var(--muted-strong)]">
             {liveDetected
               ? "Bridge detectou atividade — abra o Coach no 2º monitor."
-              : "Revise a Rodada e abra o Coach na fila."}
+              : "Revise Hoje e abra o Coach na fila."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button href="/coach" size="sm">
             Abrir Coach
           </Button>
-          <Button href="/timing" variant="secondary" size="sm">
+          <Button href="/analise?tab=quando" variant="secondary" size="sm">
             Quando jogar
           </Button>
           <Button href={syncHref} variant="ghost" size="sm">
