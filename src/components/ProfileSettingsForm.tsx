@@ -317,7 +317,7 @@ export function ProfileSettingsForm({ initial = null }: Props) {
 
         <div>
           <label htmlFor="cfg-count" className="mb-1.5 block text-sm text-[var(--muted-strong)]">
-            Partidas a sincronizar
+            Sync inicial (bootstrap)
           </label>
           <select
             id="cfg-count"
@@ -332,6 +332,10 @@ export function ProfileSettingsForm({ initial = null }: Props) {
               </option>
             ))}
           </select>
+          <p className="mt-1.5 text-xs text-[var(--muted)]">
+            Só a primeira carga grande. Depois o banco acumula e cada sync
+            puxa as partidas recentes — as estatísticas melhoram com o tempo.
+          </p>
         </div>
       </div>
 

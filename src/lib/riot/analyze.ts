@@ -5,6 +5,7 @@ import {
   setCachedMatch,
 } from "@/lib/cache/matches";
 import {
+  countStoredMatches,
   findPlayerByIdentity,
   findPlayerByPuuid,
   getFreshAnalysisRun,
@@ -18,6 +19,8 @@ import {
 import { aggregatePlayerMatches, type AggregateResult } from "@/lib/stats/aggregate";
 import {
   clampMatchCount,
+  MAX_ANALYSIS_MATCHES,
+  RECENT_SYNC_COUNT,
   RIOT_MATCH_PAGE_SIZE,
 } from "@/lib/stats/limits";
 import { getRiotClient, resolveRouting } from "./client";
@@ -140,7 +143,8 @@ export async function analyzePlayer(
   const preferDb = options.preferDb !== false;
   const purpose: AnalyzePurpose = options.purpose ?? "self";
   const recordRank = purpose === "self";
-  const cacheKey = `${options.puuid}:${options.platform}:${queue}:${count}:v3`;
+  // Histórico acumulado no banco — não fragmentar cache pelo matchCount de bootstrap.
+  const cacheKey = `${options.puuid}:${options.platform}:${queue}:accum:v4`;
 
   if (!forceRefresh) {
     const cachedRedis = await getCachedAggregate<AnalyzeResponse>(cacheKey);
@@ -192,8 +196,9 @@ export async function analyzePlayer(
   if (playerId && !forceRefresh) {
     if (preferDb) {
       const stored = await getStoredMatchesForPlayer(playerId, {
-        count,
+        count: MAX_ANALYSIS_MATCHES,
         queue,
+        forAnalysis: true,
       });
       if (stored.length > 0) {
         const stats = aggregatePlayerMatches(stored, options.puuid);
@@ -207,7 +212,7 @@ export async function analyzePlayer(
         await persistAnalysisRun({
           playerId,
           queue,
-          count,
+          count: stored.length,
           stats,
         });
         await setCachedAggregate(cacheKey, result);
@@ -230,13 +235,36 @@ export async function analyzePlayer(
     }
   }
 
+  // Bootstrap: se o banco ainda é menor que o matchCount do perfil, puxa o lote inicial.
+  // Depois: só recentes (RECENT_SYNC_COUNT) e analisa o histórico acumulado no Postgres.
+  let fetchCount = count;
+  if (playerId) {
+    const storedCount = await countStoredMatches(playerId, queue);
+    if (storedCount >= count) {
+      fetchCount = Math.min(RECENT_SYNC_COUNT, count);
+    }
+  }
+
   const { matches, matchIds } = await fetchMatchesForPlayer({
     ...options,
     queue,
-    count,
+    count: fetchCount,
   });
 
-  const stats = aggregatePlayerMatches(matches, options.puuid);
+  if (playerId) {
+    await persistMatchesForPlayer(playerId, options.puuid, matches);
+  }
+
+  const analysisMatches =
+    playerId != null
+      ? await getStoredMatchesForPlayer(playerId, {
+          count: MAX_ANALYSIS_MATCHES,
+          queue,
+          forAnalysis: true,
+        })
+      : matches;
+
+  const stats = aggregatePlayerMatches(analysisMatches, options.puuid);
   const result: AnalyzeResponse = {
     ...stats,
     cached: false,
@@ -246,11 +274,10 @@ export async function analyzePlayer(
   };
 
   if (playerId) {
-    await persistMatchesForPlayer(playerId, options.puuid, matches);
     await persistAnalysisRun({
       playerId,
       queue,
-      count,
+      count: analysisMatches.length,
       stats,
     });
   }

@@ -18,7 +18,10 @@ import type {
   SummonerDto,
 } from "@/lib/riot/types";
 import { QUEUE_IDS } from "@/lib/riot/types";
-import { clampMatchCount } from "@/lib/stats/limits";
+import {
+  clampAnalysisMatchCount,
+  clampMatchCount,
+} from "@/lib/stats/limits";
 import {
   PLAYER_TIMEZONE,
   patchFromGameVersion,
@@ -78,12 +81,21 @@ export async function countStoredMatches(
 /** Partidas já persistidas — sem chamar a Riot. */
 export async function getStoredMatchesForPlayer(
   playerId: string,
-  options: { count: number; queue: QueueFilter },
+  options: {
+    count: number;
+    queue: QueueFilter;
+    /** Se true, usa teto de análise acumulada (não o bootstrap). */
+    forAnalysis?: boolean;
+  },
 ): Promise<MatchDto[]> {
   const queueFilter =
     options.queue === "all"
       ? undefined
       : { queueId: { in: QUEUE_IDS[options.queue] } };
+
+  const take = options.forAnalysis
+    ? clampAnalysisMatchCount(options.count)
+    : clampMatchCount(options.count);
 
   const rows = await db.playerMatch.findMany({
     where: {
@@ -92,7 +104,7 @@ export async function getStoredMatchesForPlayer(
     },
     include: { match: true },
     orderBy: { match: { gameCreation: "desc" } },
-    take: clampMatchCount(options.count),
+    take,
   });
 
   return rows.map((r) => r.match.payload as unknown as MatchDto);

@@ -7,6 +7,7 @@ import {
   listRankSnapshots,
   type MatchHistoryRow,
 } from "@/lib/db/persist";
+import { MAX_ANALYSIS_MATCHES } from "@/lib/stats/limits";
 import {
   getChampionIdToKey,
   getDdragonVersion,
@@ -234,8 +235,9 @@ export async function loadPrepContext(
 
   const storedForLp = dbPlayer
     ? await getStoredMatchesForPlayer(dbPlayer.id, {
-        count,
+        count: MAX_ANALYSIS_MATCHES,
         queue,
+        forAnalysis: true,
       })
     : [];
   const { FLEX_QUEUE, SOLO_QUEUE } = await import("@/lib/stats/lpLedger");

@@ -493,7 +493,8 @@ export function DecisionRoundupView({
       </div>
 
       <p className="text-center text-[11px] text-[var(--muted)]">
-        Amostra {analysis.analyzedGames}j · sync em Config (até {matchCount})
+        Amostra {analysis.analyzedGames}j no banco · bootstrap {matchCount} ·
+        sync recentes em Config
       </p>
     </div>
   );
