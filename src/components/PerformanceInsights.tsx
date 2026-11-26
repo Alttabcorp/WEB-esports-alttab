@@ -234,34 +234,41 @@ export function PerformanceInsights({
         </InsightBlock>
       ) : null}
 
-      <InsightBlock title="Por patch">
+      <InsightBlock title="Por patch (opcional)">
         {patches.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">
             Versão do jogo ainda não veio no histórico salvo — sincronize de
             novo.
           </p>
         ) : (
-          <ul className="space-y-2">
-            {patches.map((p, i) => (
-              <li
-                key={p.patch}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm text-[var(--foreground)]">
-                    {p.patch}
-                    {i === 0 ? (
-                      <span className="ml-2 text-xs text-[var(--alttab)]">atual</span>
-                    ) : null}
-                  </p>
-                  <p className="text-xs text-[var(--muted)]">
-                    {p.games} jogos · {pct(p.wr)} WR
-                  </p>
-                </div>
-                <ConfidenceBadge level={p.confidence} />
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="mb-2 text-xs text-[var(--muted)]">
+              Breakdown — as stats gerais do app usam todos os patches juntos.
+            </p>
+            <ul className="space-y-2">
+              {patches.map((p, i) => (
+                <li
+                  key={p.patch}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm text-[var(--foreground)]">
+                      {p.patch}
+                      {i === 0 ? (
+                        <span className="ml-2 text-xs text-[var(--alttab)]">
+                          atual
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {p.games} jogos · {pct(p.wr)} WR
+                    </p>
+                  </div>
+                  <ConfidenceBadge level={p.confidence} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </InsightBlock>
     </section>

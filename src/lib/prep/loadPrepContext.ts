@@ -249,9 +249,10 @@ export async function loadPrepContext(
       })
     : [];
 
+  // Stats gerais usam TODAS as partidas; patch é só breakdown/opcional na UI.
   const patchGate = filterMatchesByRecentPatches(storedForLp, 1);
   const lpInsights = buildMatchLpLedger({
-    matches: patchGate.filtered.length ? patchGate.filtered : storedForLp,
+    matches: storedForLp,
     puuid: profile.puuid,
     snapshots: snapshots.map((s) => ({
       ladderScore: s.ladderScore,
@@ -263,7 +264,7 @@ export async function loadPrepContext(
   const patchNote =
     patchGate.currentPatch &&
     patchGate.filtered.length < storedForLp.length
-      ? `EV de PDL usa só patch ${patchGate.currentPatch} (${patchGate.filtered.length}/${storedForLp.length} jogos).`
+      ? `Stats gerais: ${storedForLp.length} jogos. Breakdown por patch disponível em Análise → Quando (atual ${patchGate.currentPatch}: ${patchGate.filtered.length}j).`
       : null;
 
   const todayPool = buildContextualPool({

@@ -860,8 +860,8 @@ function buildAlerts(input: {
       alerts.push({
         id: "patch-small",
         severity: "info",
-        title: `Poucos jogos no patch ${input.currentPatch}`,
-        detail: `Só ${cur.games} partidas neste patch. Picks antigos podem estar desatualizados.`,
+        title: `Patch ${input.currentPatch} ainda com pouca amostra`,
+        detail: `Só ${cur.games} partidas neste patch (stats gerais usam as ${input.totalGames} juntas). Veja o breakdown por patch em Análise se quiser isolar.`,
       });
     }
   }

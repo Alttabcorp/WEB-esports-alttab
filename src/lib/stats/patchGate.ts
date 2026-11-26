@@ -2,7 +2,8 @@ import type { MatchDto } from "@/lib/riot/types";
 import { patchFromGameVersion } from "@/lib/stats/temporal";
 
 /**
- * Mantém só partidas do patch atual (ou dos N patches mais recentes na amostra).
+ * Filtra partidas por patch — uso opcional (breakdown/UI).
+ * Stats gerais do app devem usar a amostra completa, sem este gate.
  */
 export function filterMatchesByRecentPatches(
   matches: MatchDto[],

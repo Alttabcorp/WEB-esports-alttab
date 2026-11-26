@@ -25,7 +25,6 @@ import type { QueueFilter } from "@/lib/riot/types";
 import { buildContextualPool } from "@/lib/stats/contextualPool";
 import { computeDayGoalProgress } from "@/lib/stats/dayGoal";
 import { buildMatchLpLedger } from "@/lib/stats/matchLpLedger";
-import { filterMatchesByRecentPatches } from "@/lib/stats/patchGate";
 import { computeSessionEv } from "@/lib/stats/sessionEv";
 import { SESSION_GAP_MS } from "@/lib/stats/temporal";
 import type { RoleKey } from "@/lib/stats/roles";
@@ -127,9 +126,8 @@ export default async function SummonerPage({ params, searchParams }: PageProps) 
           limit: 400,
         })
       : [];
-    const patchGate = filterMatchesByRecentPatches(storedForLp, 1);
     const lpInsights = buildMatchLpLedger({
-      matches: patchGate.filtered.length ? patchGate.filtered : storedForLp,
+      matches: storedForLp,
       puuid: profile.puuid,
       snapshots: snapshots.map((s) => ({
         ladderScore: s.ladderScore,

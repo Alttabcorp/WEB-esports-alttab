@@ -153,7 +153,7 @@ export function LpInsightsPanel({
               Média por partida no grupo · win ≈ +
               {insights.avgLpPerWin.toFixed(0)} · loss ≈ −
               {insights.avgLpPerLoss.toFixed(0)}
-              {currentPatch ? ` · patch ${currentPatch}` : ""}
+              {currentPatch ? ` · patch atual ${currentPatch}` : ""}
             </p>
           </div>
           {insights.tiltCostAvg != null ? (
@@ -165,7 +165,7 @@ export function LpInsightsPanel({
           ) : null}
         </div>
         {patchNote ? (
-          <p className="text-xs text-[var(--warn)]">{patchNote}</p>
+          <p className="text-xs text-[var(--muted)]">{patchNote}</p>
         ) : null}
         <BarsGrid
           insights={insights}
@@ -185,12 +185,12 @@ export function LpInsightsPanel({
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {simpleLabels
-              ? `Cada barra é o PDL médio por partida naquele grupo. Ex.: +9 PDL · 2 jogos = média de +9 nas 2 partidas da amostra. Vitória ≈ +${insights.avgLpPerWin.toFixed(0)} PDL · derrota ≈ −${insights.avgLpPerLoss.toFixed(0)} PDL.`
-              : `ΔPDL por partida (snapshots quando houver; senão estimativa ±${insights.avgLpPerWin.toFixed(0)}/${insights.avgLpPerLoss.toFixed(0)}). Números à direita = média · quantidade de jogos.`}
-            {currentPatch ? ` Patch foco: ${currentPatch}.` : ""}
+              ? `Cada barra é o PDL médio por partida naquele grupo (toda a amostra). Vitória ≈ +${insights.avgLpPerWin.toFixed(0)} PDL · derrota ≈ −${insights.avgLpPerLoss.toFixed(0)} PDL.`
+              : `ΔPDL por partida na amostra completa (snapshots quando houver; senão estimativa ±${insights.avgLpPerWin.toFixed(0)}/${insights.avgLpPerLoss.toFixed(0)}).`}
+            {currentPatch ? ` Patch mais recente na amostra: ${currentPatch}.` : ""}
           </p>
           {patchNote ? (
-            <p className="mt-1 text-xs text-[var(--warn)]">{patchNote}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{patchNote}</p>
           ) : null}
         </div>
         <div className="flex flex-wrap gap-3 text-sm text-[var(--muted-strong)]">
